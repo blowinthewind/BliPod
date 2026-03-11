@@ -193,8 +193,7 @@ export default {
 .track-cover img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: var(--bg-card);
+  object-fit: cover;
 }
 
 .cover-placeholder {
