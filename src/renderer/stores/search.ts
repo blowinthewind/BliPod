@@ -133,15 +133,14 @@ export const useSearchStore = defineStore('search', () => {
   function setResultListener() {
     const unsubscribe = window.electronAPI.search.onSearchResult((result: SearchResult) => {
       if (result.success) {
-        if (result.page && result.page > 1) {
+        if (isLoadingMore.value) {
           const newVideos = result.videos.filter(
             (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
           )
           results.value = [...results.value, ...newVideos]
-          currentPage.value = result.page
         } else {
           results.value = result.videos
-          currentPage.value = result.page || 1
+          currentPage.value = 1
         }
         hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt

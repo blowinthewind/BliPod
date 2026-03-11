@@ -254,7 +254,8 @@ function setupIPC() {
       let searchUrl: string
       
       if (page && page > 1) {
-        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}`
+        const offset = (page - 1) * 20
+        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
       } else {
         searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
       }
