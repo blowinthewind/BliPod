@@ -1,22 +1,65 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useThemeStore, type ThemeId } from '@/stores/theme'
-import { Settings, Moon, Sun, Palette, Volume2, Download, LogIn } from 'lucide-vue-next'
+import { useThemeStore, type Theme } from '@/stores/theme'
+import { Settings, Volume2, Download, LogIn, Plus, Trash2 } from 'lucide-vue-next'
 
 const themeStore = useThemeStore()
 
 const volume = ref(80)
 const autoPlay = ref(true)
 const rememberPosition = ref(true)
+const showCreateTheme = ref(false)
 
-const themeOptions = [
-  { id: 'light' as ThemeId, name: 'Light', icon: Sun },
-  { id: 'dark' as ThemeId, name: 'Dark', icon: Moon },
-  { id: 'colorful' as ThemeId, name: 'Colorful', icon: Palette }
-]
+const newTheme = ref<Partial<Theme>>({
+  id: '',
+  name: '',
+  colors: {
+    bgPrimary: '#0d0d0d',
+    bgSecondary: '#141414',
+    bgCard: '#1a1a1a',
+    bgElevated: '#242424',
+    textPrimary: '#ffffff',
+    textSecondary: '#a0a0a0',
+    accent: '#e94560',
+    accentHover: '#ff6b6b',
+    border: '#2d2d2d'
+  }
+})
 
-function setTheme(themeId: ThemeId) {
+function setTheme(themeId: string) {
   themeStore.setTheme(themeId)
+}
+
+function createCustomTheme() {
+  if (!newTheme.value.id || !newTheme.value.name) return
+  
+  themeStore.addCustomTheme({
+    id: newTheme.value.id,
+    name: newTheme.value.name,
+    description: 'Custom theme',
+    colors: newTheme.value.colors as Theme['colors']
+  })
+  
+  showCreateTheme.value = false
+  newTheme.value = {
+    id: '',
+    name: '',
+    colors: {
+      bgPrimary: '#0d0d0d',
+      bgSecondary: '#141414',
+      bgCard: '#1a1a1a',
+      bgElevated: '#242424',
+      textPrimary: '#ffffff',
+      textSecondary: '#a0a0a0',
+      accent: '#e94560',
+      accentHover: '#ff6b6b',
+      border: '#2d2d2d'
+    }
+  }
+}
+
+function deleteTheme(themeId: string) {
+  themeStore.removeCustomTheme(themeId)
 }
 </script>
 
@@ -57,17 +100,33 @@ function setTheme(themeId: ThemeId) {
               <span class="setting-label">Theme</span>
               <span class="setting-desc">Choose your preferred interface theme</span>
             </div>
-            <div class="theme-options">
-              <button
-                v-for="option in themeOptions"
-                :key="option.id"
-                class="theme-btn"
-                :class="{ active: themeStore.currentThemeId === option.id }"
-                @click="setTheme(option.id)"
-              >
-                <component :is="option.icon" :size="18" />
-                {{ option.name }}
-              </button>
+            <button class="add-theme-btn" @click="showCreateTheme = true">
+              <Plus :size="16" />
+            </button>
+          </div>
+          
+          <div class="theme-grid">
+            <div
+              v-for="theme in themeStore.allThemes"
+              :key="theme.id"
+              class="theme-card"
+              :class="{ active: themeStore.currentThemeId === theme.id }"
+              @click="setTheme(theme.id)"
+            >
+              <div class="theme-preview" :style="{ background: theme.colors.bgPrimary }">
+                <div class="preview-sidebar" :style="{ background: theme.colors.bgSecondary }"></div>
+                <div class="preview-accent" :style="{ background: theme.colors.accent }"></div>
+              </div>
+              <div class="theme-info">
+                <span class="theme-name">{{ theme.name }}</span>
+                <button 
+                  v-if="!theme.isBuiltIn" 
+                  class="delete-theme-btn"
+                  @click.stop="deleteTheme(theme.id)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -139,6 +198,26 @@ function setTheme(themeId: ThemeId) {
         </div>
       </section>
     </div>
+
+    <div class="modal-overlay" v-if="showCreateTheme" @click.self="showCreateTheme = false">
+      <div class="modal">
+        <h2 class="modal-title">Create Custom Theme</h2>
+        <div class="modal-content">
+          <div class="form-group">
+            <label>Theme ID</label>
+            <input type="text" v-model="newTheme.id" placeholder="my-theme" />
+          </div>
+          <div class="form-group">
+            <label>Theme Name</label>
+            <input type="text" v-model="newTheme.name" placeholder="My Theme" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="showCreateTheme = false">Cancel</button>
+          <button class="modal-btn confirm" @click="createCustomTheme">Create</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -203,18 +282,14 @@ function setTheme(themeId: ThemeId) {
   background: var(--bg-secondary);
   border-radius: 12px;
   overflow: hidden;
+  padding: 8px 0;
 }
 
 .setting-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.setting-item:last-child {
-  border-bottom: none;
+  padding: 12px 20px;
 }
 
 .setting-info {
@@ -253,32 +328,103 @@ function setTheme(themeId: ThemeId) {
   background: var(--accent-hover);
 }
 
-.theme-options {
-  display: flex;
-  gap: 8px;
-}
-
-.theme-btn {
+.add-theme-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   background: var(--bg-card);
   color: var(--text-secondary);
-  border: 2px solid transparent;
+  border: none;
   border-radius: 8px;
-  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.theme-btn:hover {
+.add-theme-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 0 20px 12px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.theme-card:hover {
+  transform: translateY(-2px);
+}
+
+.theme-card.active {
+  border-color: var(--accent);
+}
+
+.theme-preview {
+  position: relative;
+  height: 80px;
+  display: flex;
+  padding: 8px;
+  gap: 4px;
+}
+
+.preview-sidebar {
+  width: 30%;
+  border-radius: 4px;
+}
+
+.preview-accent {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.theme-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.theme-name {
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 
-.theme-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
+.delete-theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-theme-btn:hover {
+  background: var(--error);
+  color: white;
 }
 
 .volume-control {
@@ -377,5 +523,101 @@ function setTheme(themeId: ThemeId) {
 
 .rotate-180 {
   transform: rotate(180deg);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 400px;
+  max-width: 90vw;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-group input {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.cancel {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.modal-btn.cancel:hover {
+  background: var(--bg-primary);
+}
+
+.modal-btn.confirm {
+  background: var(--accent);
+  color: white;
+}
+
+.modal-btn.confirm:hover {
+  background: var(--accent-hover);
 }
 </style>

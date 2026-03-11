@@ -1,28 +1,50 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-export type ThemeId = 'dark' | 'light' | 'colorful'
-
-export interface Theme {
-  id: ThemeId
-  name: string
-  colors: {
-    bgPrimary: string
-    bgSecondary: string
-    bgCard: string
-    bgElevated: string
-    textPrimary: string
-    textSecondary: string
-    accent: string
-    accentHover: string
-    border: string
-  }
+export interface ThemeColors {
+  bgPrimary: string
+  bgSecondary: string
+  bgCard: string
+  bgElevated: string
+  textPrimary: string
+  textSecondary: string
+  accent: string
+  accentHover: string
+  border: string
+  success?: string
+  warning?: string
+  error?: string
 }
 
-export const themes: Record<ThemeId, Theme> = {
-  dark: {
+export interface Theme {
+  id: string
+  name: string
+  description?: string
+  colors: ThemeColors
+  isBuiltIn?: boolean
+}
+
+const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
+  bgPrimary: '--bg-primary',
+  bgSecondary: '--bg-secondary',
+  bgCard: '--bg-card',
+  bgElevated: '--bg-elevated',
+  textPrimary: '--text-primary',
+  textSecondary: '--text-secondary',
+  accent: '--accent',
+  accentHover: '--accent-hover',
+  border: '--border',
+  success: '--success',
+  warning: '--warning',
+  error: '--error'
+}
+
+const builtInThemes: Theme[] = [
+  {
     id: 'dark',
     name: 'Dark',
+    description: 'Classic dark theme',
+    isBuiltIn: true,
     colors: {
       bgPrimary: '#0d0d0d',
       bgSecondary: '#141414',
@@ -32,12 +54,17 @@ export const themes: Record<ThemeId, Theme> = {
       textSecondary: '#a0a0a0',
       accent: '#e94560',
       accentHover: '#ff6b6b',
-      border: '#2d2d2d'
+      border: '#2d2d2d',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      error: '#ef4444'
     }
   },
-  light: {
+  {
     id: 'light',
     name: 'Light',
+    description: 'Clean light theme',
+    isBuiltIn: true,
     colors: {
       bgPrimary: '#ffffff',
       bgSecondary: '#f5f5f5',
@@ -47,12 +74,17 @@ export const themes: Record<ThemeId, Theme> = {
       textSecondary: '#666666',
       accent: '#e94560',
       accentHover: '#d63850',
-      border: '#d9d9d9'
+      border: '#d9d9d9',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      error: '#ef4444'
     }
   },
-  colorful: {
+  {
     id: 'colorful',
     name: 'Colorful',
+    description: 'Vibrant purple-blue theme',
+    isBuiltIn: true,
     colors: {
       bgPrimary: '#1a1a2e',
       bgSecondary: '#16213e',
@@ -62,38 +94,80 @@ export const themes: Record<ThemeId, Theme> = {
       textSecondary: '#a0a0a0',
       accent: '#e94560',
       accentHover: '#ff6b6b',
-      border: '#2d2d44'
+      border: '#2d2d44',
+      success: '#22c55e',
+      warning: '#f59e0b',
+      error: '#ef4444'
     }
   }
-}
+]
 
 export const useThemeStore = defineStore('theme', () => {
-  const currentThemeId = ref<ThemeId>('dark')
-  const currentTheme = ref<Theme>(themes.dark)
+  const currentThemeId = ref<string>('dark')
+  const customThemes = ref<Theme[]>([])
+  
+  const allThemes = computed<Theme[]>(() => [...builtInThemes, ...customThemes.value])
+  
+  const currentTheme = computed<Theme | undefined>(() => 
+    allThemes.value.find(t => t.id === currentThemeId.value)
+  )
 
-  function setTheme(themeId: ThemeId) {
-    if (themes[themeId]) {
+  function setTheme(themeId: string) {
+    const theme = allThemes.value.find(t => t.id === themeId)
+    if (theme) {
       currentThemeId.value = themeId
-      currentTheme.value = themes[themeId]
-      applyTheme(themes[themeId])
+      applyTheme(theme)
       saveThemeToStorage(themeId)
     }
   }
 
   function applyTheme(theme: Theme) {
     const root = document.documentElement
-    root.style.setProperty('--bg-primary', theme.colors.bgPrimary)
-    root.style.setProperty('--bg-secondary', theme.colors.bgSecondary)
-    root.style.setProperty('--bg-card', theme.colors.bgCard)
-    root.style.setProperty('--bg-elevated', theme.colors.bgElevated)
-    root.style.setProperty('--text-primary', theme.colors.textPrimary)
-    root.style.setProperty('--text-secondary', theme.colors.textSecondary)
-    root.style.setProperty('--accent', theme.colors.accent)
-    root.style.setProperty('--accent-hover', theme.colors.accentHover)
-    root.style.setProperty('--border', theme.colors.border)
+    Object.entries(theme.colors).forEach(([key, value]) => {
+      if (value && CSS_VAR_MAP[key as keyof ThemeColors]) {
+        root.style.setProperty(CSS_VAR_MAP[key as keyof ThemeColors], value)
+      }
+    })
   }
 
-  function saveThemeToStorage(themeId: ThemeId) {
+  function addCustomTheme(theme: Theme) {
+    const existing = allThemes.value.find(t => t.id === theme.id)
+    if (existing) {
+      console.warn(`Theme with id "${theme.id}" already exists`)
+      return false
+    }
+    customThemes.value.push({ ...theme, isBuiltIn: false })
+    saveCustomThemesToStorage()
+    return true
+  }
+
+  function removeCustomTheme(themeId: string) {
+    const index = customThemes.value.findIndex(t => t.id === themeId)
+    if (index !== -1) {
+      customThemes.value.splice(index, 1)
+      saveCustomThemesToStorage()
+      if (currentThemeId.value === themeId) {
+        setTheme('dark')
+      }
+      return true
+    }
+    return false
+  }
+
+  function updateCustomTheme(themeId: string, updates: Partial<Theme>) {
+    const theme = customThemes.value.find(t => t.id === themeId)
+    if (theme) {
+      Object.assign(theme, updates)
+      saveCustomThemesToStorage()
+      if (currentThemeId.value === themeId) {
+        applyTheme(theme)
+      }
+      return true
+    }
+    return false
+  }
+
+  function saveThemeToStorage(themeId: string) {
     try {
       localStorage.setItem('blipod-theme', themeId)
     } catch (e) {
@@ -101,26 +175,51 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  function loadThemeFromStorage() {
+  function saveCustomThemesToStorage() {
     try {
-      const saved = localStorage.getItem('blipod-theme') as ThemeId | null
-      if (saved && themes[saved]) {
-        setTheme(saved)
+      localStorage.setItem('blipod-custom-themes', JSON.stringify(customThemes.value))
+    } catch (e) {
+      console.warn('Failed to save custom themes:', e)
+    }
+  }
+
+  function loadFromStorage() {
+    try {
+      const savedThemeId = localStorage.getItem('blipod-theme')
+      if (savedThemeId && allThemes.value.find(t => t.id === savedThemeId)) {
+        setTheme(savedThemeId)
+      }
+      
+      const savedCustomThemes = localStorage.getItem('blipod-custom-themes')
+      if (savedCustomThemes) {
+        customThemes.value = JSON.parse(savedCustomThemes)
       }
     } catch (e) {
-      console.warn('Failed to load theme from localStorage:', e)
+      console.warn('Failed to load from localStorage:', e)
     }
   }
 
   function initTheme() {
-    loadThemeFromStorage()
+    loadFromStorage()
+  }
+
+  function resetToDefault() {
+    setTheme('dark')
+    customThemes.value = []
+    localStorage.removeItem('blipod-custom-themes')
   }
 
   return {
     currentThemeId,
     currentTheme,
-    themes,
+    allThemes,
+    builtInThemes,
+    customThemes,
     setTheme,
-    initTheme
+    addCustomTheme,
+    removeCustomTheme,
+    updateCustomTheme,
+    initTheme,
+    resetToDefault
   }
 })
