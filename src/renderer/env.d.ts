@@ -29,6 +29,10 @@ interface ExtractedVideo {
 interface SearchAPI {
   search: (query: string) => Promise<SearchResult>
   playVideo: (bvid: string) => void
+  pauseVideo: () => void
+  resumeVideo: () => void
+  seekVideo: (time: number) => void
+  setVolume: (volume: number) => void
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
 }

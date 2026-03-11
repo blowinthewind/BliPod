@@ -164,7 +164,7 @@ async function createSearchView(): Promise<BrowserView> {
 }
 
 async function createPlayerView(): Promise<BrowserView> {
-  if (playerView && mainWindow) {
+  if (playerView) {
     return playerView
   }
 
@@ -172,12 +172,27 @@ async function createPlayerView(): Promise<BrowserView> {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,
-      session: getBilibiliSession()
+      sandbox: false,
+      session: getBilibiliSession(),
+      webSecurity: false
     }
   })
 
   playerView.webContents.on('did-finish-load', () => {
+    console.log('[BliPod] Player page finished loading')
+    
+    playerView!.webContents.executeJavaScript(`
+      (function() {
+        const style = document.createElement('style');
+        style.textContent = \`
+          video { display: none !important; }
+          body { background: transparent !important; }
+          .bilibili-player-video { display: none !important; }
+        \`;
+        document.head.appendChild(style);
+      })();
+    `).catch(err => console.error('[BliPod] Failed to inject player styles:', err))
+    
     if (mainWindow) {
       mainWindow.webContents.send('player:ready')
     }
@@ -219,19 +234,61 @@ function setupIPC() {
   })
 
   ipcMain.on('player:play', async (_event, bvid: string) => {
+    console.log('[BliPod] Playing video:', bvid)
+    
     try {
       const view = await createPlayerView()
-      const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1`
+      const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1&muted=0`
       
       await view.webContents.loadURL(playUrl)
       
       if (mainWindow) {
         mainWindow.setBrowserView(view)
         const bounds = mainWindow.getBounds()
-        view.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height - 90 })
+        view.setBounds({ x: 0, y: bounds.height, width: 1, height: 1 })
       }
     } catch (error) {
       console.error('[BliPod] Failed to play video:', error)
+    }
+  })
+
+  ipcMain.on('player:pause', async () => {
+    if (playerView) {
+      await playerView.webContents.executeJavaScript(`
+        if (document.querySelector('video')) {
+          document.querySelector('video').pause();
+        }
+      `).catch(() => {})
+    }
+  })
+
+  ipcMain.on('player:resume', async () => {
+    if (playerView) {
+      await playerView.webContents.executeJavaScript(`
+        if (document.querySelector('video')) {
+          document.querySelector('video').play();
+        }
+      `).catch(() => {})
+    }
+  })
+
+  ipcMain.on('player:seek', async (_event, time: number) => {
+    if (playerView) {
+      await playerView.webContents.executeJavaScript(`
+        if (document.querySelector('video')) {
+          document.querySelector('video').currentTime = ${time};
+        }
+      `).catch(() => {})
+    }
+  })
+
+  ipcMain.on('player:volume', async (_event, volume: number) => {
+    if (playerView) {
+      await playerView.webContents.executeJavaScript(`
+        if (document.querySelector('video')) {
+          document.querySelector('video').volume = ${volume / 100};
+        }
+      `).catch(() => {})
     }
   })
 }

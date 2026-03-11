@@ -36,25 +36,36 @@ export const usePlayerStore = defineStore('player', () => {
     
     if (videoList) {
       playlist.value = videoList
-      currentIndex.value = videoList.findIndex(v => v.bvid === video.bvid)
+      currentIndex.value = videoList.findIndex((v: ExtractedVideo) => v.bvid === video.bvid)
     }
     
     window.electronAPI.search.playVideo(video.bvid)
   }
 
   function play() {
-    isPlaying.value = true
+    if (!isPlaying.value) {
+      window.electronAPI.search.resumeVideo()
+      isPlaying.value = true
+    }
   }
 
   function pause() {
-    isPlaying.value = false
+    if (isPlaying.value) {
+      window.electronAPI.search.pauseVideo()
+      isPlaying.value = false
+    }
   }
 
   function togglePlay() {
-    isPlaying.value = !isPlaying.value
+    if (isPlaying.value) {
+      pause()
+    } else {
+      play()
+    }
   }
 
   function stop() {
+    window.electronAPI.search.pauseVideo()
     currentVideo.value = null
     isPlaying.value = false
     isLoading.value = false
@@ -64,6 +75,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function seek(time: number) {
     currentTime.value = Math.max(0, Math.min(time, duration.value))
+    window.electronAPI.search.seekVideo(currentTime.value)
   }
 
   function seekByPercent(percent: number) {
@@ -72,6 +84,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function setVolume(value: number) {
     volume.value = Math.max(0, Math.min(100, value))
+    window.electronAPI.search.setVolume(volume.value)
     if (volume.value > 0) {
       isMuted.value = false
     }
@@ -79,6 +92,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function toggleMute() {
     isMuted.value = !isMuted.value
+    window.electronAPI.search.setVolume(isMuted.value ? 0 : volume.value)
   }
 
   function setPlaybackRate(rate: number) {
@@ -122,13 +136,13 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function addToPlaylist(video: ExtractedVideo) {
-    if (!playlist.value.find(v => v.bvid === video.bvid)) {
+    if (!playlist.value.find((v: ExtractedVideo) => v.bvid === video.bvid)) {
       playlist.value.push(video)
     }
   }
 
   function removeFromPlaylist(bvid: string) {
-    const index = playlist.value.findIndex(v => v.bvid === bvid)
+    const index = playlist.value.findIndex((v: ExtractedVideo) => v.bvid === bvid)
     if (index > -1) {
       playlist.value.splice(index, 1)
       if (currentIndex.value >= index) {
@@ -146,6 +160,7 @@ export const usePlayerStore = defineStore('player', () => {
     const unsubscribe = window.electronAPI.search.onPlayerReady(() => {
       isLoading.value = false
       isPlaying.value = true
+      window.electronAPI.search.setVolume(volume.value)
     })
     
     return unsubscribe
