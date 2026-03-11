@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useThemeStore, type Theme } from '@/stores/theme'
-import { Settings, Volume2, Download, LogIn, Plus, Trash2 } from 'lucide-vue-next'
+import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
+import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles } from 'lucide-vue-next'
 
 const themeStore = useThemeStore()
 
@@ -9,25 +9,62 @@ const volume = ref(80)
 const autoPlay = ref(true)
 const rememberPosition = ref(true)
 const showCreateTheme = ref(false)
+const showEditTheme = ref(false)
+const editingThemeId = ref<string | null>(null)
+
+const defaultColors: ThemeColors = {
+  bgPrimary: '#0d0d0d',
+  bgSecondary: '#141414',
+  bgCard: '#1a1a1a',
+  bgElevated: '#242424',
+  textPrimary: '#ffffff',
+  textSecondary: '#a0a0a0',
+  accent: '#e94560',
+  accentHover: '#ff6b6b',
+  border: '#2d2d2d',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  error: '#ef4444'
+}
 
 const newTheme = ref<Partial<Theme>>({
   id: '',
   name: '',
-  colors: {
-    bgPrimary: '#0d0d0d',
-    bgSecondary: '#141414',
-    bgCard: '#1a1a1a',
-    bgElevated: '#242424',
-    textPrimary: '#ffffff',
-    textSecondary: '#a0a0a0',
-    accent: '#e94560',
-    accentHover: '#ff6b6b',
-    border: '#2d2d2d'
-  }
+  description: '',
+  colors: { ...defaultColors },
+  effects: {}
 })
+
+const editingTheme = ref<Theme & { effects: ThemeEffects } | null>(null)
+
+const colorLabels: Record<keyof ThemeColors, string> = {
+  bgPrimary: 'Background',
+  bgSecondary: 'Sidebar',
+  bgCard: 'Cards',
+  bgElevated: 'Elevated',
+  textPrimary: 'Text Primary',
+  textSecondary: 'Text Secondary',
+  accent: 'Accent',
+  accentHover: 'Accent Hover',
+  border: 'Border',
+  success: 'Success',
+  warning: 'Warning',
+  error: 'Error'
+}
 
 function setTheme(themeId: string) {
   themeStore.setTheme(themeId)
+}
+
+function openCreateTheme() {
+  newTheme.value = {
+    id: '',
+    name: '',
+    description: '',
+    colors: { ...defaultColors },
+    effects: {}
+  }
+  showCreateTheme.value = true
 }
 
 function createCustomTheme() {
@@ -36,30 +73,62 @@ function createCustomTheme() {
   themeStore.addCustomTheme({
     id: newTheme.value.id,
     name: newTheme.value.name,
-    description: 'Custom theme',
-    colors: newTheme.value.colors as Theme['colors']
+    description: newTheme.value.description || 'Custom theme',
+    colors: newTheme.value.colors as ThemeColors,
+    effects: Object.keys(newTheme.value.effects || {}).length > 0 ? newTheme.value.effects : undefined
   })
   
   showCreateTheme.value = false
-  newTheme.value = {
-    id: '',
-    name: '',
-    colors: {
-      bgPrimary: '#0d0d0d',
-      bgSecondary: '#141414',
-      bgCard: '#1a1a1a',
-      bgElevated: '#242424',
-      textPrimary: '#ffffff',
-      textSecondary: '#a0a0a0',
-      accent: '#e94560',
-      accentHover: '#ff6b6b',
-      border: '#2d2d2d'
-    }
+}
+
+function openEditTheme(themeId: string) {
+  const theme = themeStore.allThemes.find(t => t.id === themeId)
+  if (theme && !theme.isBuiltIn) {
+    editingTheme.value = JSON.parse(JSON.stringify({
+      ...theme,
+      effects: theme.effects || {}
+    }))
+    editingThemeId.value = themeId
+    showEditTheme.value = true
+  }
+}
+
+function saveEditedTheme() {
+  if (editingTheme.value && editingThemeId.value) {
+    themeStore.updateCustomTheme(editingThemeId.value, {
+      name: editingTheme.value.name,
+      description: editingTheme.value.description,
+      colors: editingTheme.value.colors,
+      effects: editingTheme.value.effects
+    })
+    showEditTheme.value = false
+    editingTheme.value = null
+    editingThemeId.value = null
   }
 }
 
 function deleteTheme(themeId: string) {
   themeStore.removeCustomTheme(themeId)
+}
+
+function duplicateTheme(themeId: string) {
+  const newId = `${themeId}-copy-${Date.now()}`
+  const source = themeStore.allThemes.find(t => t.id === themeId)
+  if (source) {
+    themeStore.duplicateTheme(themeId, newId, `${source.name} Copy`)
+  }
+}
+
+function getThemePreviewStyle(theme: Theme) {
+  const style: Record<string, string> = {}
+  
+  if (theme.effects?.bgGradient) {
+    style.background = theme.effects.bgGradient
+  } else {
+    style.background = theme.colors.bgPrimary
+  }
+  
+  return style
 }
 </script>
 
@@ -93,38 +162,52 @@ function deleteTheme(themeId: string) {
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">Appearance</h2>
-        <div class="settings-card">
-          <div class="setting-item">
-            <div class="setting-info">
-              <span class="setting-label">Theme</span>
-              <span class="setting-desc">Choose your preferred interface theme</span>
-            </div>
-            <button class="add-theme-btn" @click="showCreateTheme = true">
-              <Plus :size="16" />
-            </button>
-          </div>
-          
-          <div class="theme-grid">
-            <div
-              v-for="theme in themeStore.allThemes"
-              :key="theme.id"
-              class="theme-card"
-              :class="{ active: themeStore.currentThemeId === theme.id }"
-              @click="setTheme(theme.id)"
-            >
-              <div class="theme-preview" :style="{ background: theme.colors.bgPrimary }">
-                <div class="preview-sidebar" :style="{ background: theme.colors.bgSecondary }"></div>
-                <div class="preview-accent" :style="{ background: theme.colors.accent }"></div>
+        <div class="section-header-row">
+          <h2 class="section-title">
+            <Palette :size="18" />
+            Themes
+          </h2>
+          <button class="add-theme-btn" @click="openCreateTheme">
+            <Plus :size="16" />
+            New Theme
+          </button>
+        </div>
+        
+        <div class="theme-grid">
+          <div
+            v-for="theme in themeStore.allThemes"
+            :key="theme.id"
+            class="theme-card"
+            :class="{ active: themeStore.currentThemeId === theme.id }"
+            @click="setTheme(theme.id)"
+          >
+            <div class="theme-preview" :style="getThemePreviewStyle(theme)">
+              <div class="preview-sidebar" :style="{ background: theme.colors.bgSecondary }"></div>
+              <div class="preview-card" :style="{ background: theme.colors.bgCard }"></div>
+              <div class="preview-accent" :style="{ background: theme.colors.accent }"></div>
+              <div v-if="theme.effects?.glassEffect" class="preview-glass">
+                <Sparkles :size="12" />
               </div>
-              <div class="theme-info">
+            </div>
+            <div class="theme-info">
+              <div class="theme-meta">
                 <span class="theme-name">{{ theme.name }}</span>
-                <button 
-                  v-if="!theme.isBuiltIn" 
-                  class="delete-theme-btn"
-                  @click.stop="deleteTheme(theme.id)"
-                >
+                <span v-if="theme.isBuiltIn" class="theme-badge">Built-in</span>
+              </div>
+              <div class="theme-actions" v-if="!theme.isBuiltIn">
+                <button class="theme-action-btn" @click.stop="openEditTheme(theme.id)" title="Edit">
+                  <Palette :size="14" />
+                </button>
+                <button class="theme-action-btn" @click.stop="duplicateTheme(theme.id)" title="Duplicate">
+                  <Copy :size="14" />
+                </button>
+                <button class="theme-action-btn danger" @click.stop="deleteTheme(theme.id)" title="Delete">
                   <Trash2 :size="14" />
+                </button>
+              </div>
+              <div class="theme-actions" v-else>
+                <button class="theme-action-btn" @click.stop="duplicateTheme(theme.id)" title="Duplicate">
+                  <Copy :size="14" />
                 </button>
               </div>
             </div>
@@ -199,22 +282,252 @@ function deleteTheme(themeId: string) {
       </section>
     </div>
 
+    <!-- Create Theme Modal -->
     <div class="modal-overlay" v-if="showCreateTheme" @click.self="showCreateTheme = false">
-      <div class="modal">
-        <h2 class="modal-title">Create Custom Theme</h2>
+      <div class="modal theme-editor-modal">
+        <h2 class="modal-title">Create New Theme</h2>
+        
         <div class="modal-content">
-          <div class="form-group">
-            <label>Theme ID</label>
-            <input type="text" v-model="newTheme.id" placeholder="my-theme" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>Theme ID</label>
+              <input type="text" v-model="newTheme.id" placeholder="my-theme" />
+            </div>
+            <div class="form-group">
+              <label>Theme Name</label>
+              <input type="text" v-model="newTheme.name" placeholder="My Theme" />
+            </div>
           </div>
+          
           <div class="form-group">
-            <label>Theme Name</label>
-            <input type="text" v-model="newTheme.name" placeholder="My Theme" />
+            <label>Description</label>
+            <input type="text" v-model="newTheme.description" placeholder="A beautiful custom theme" />
+          </div>
+
+          <div class="editor-section">
+            <h3 class="editor-section-title">
+              <Palette :size="16" />
+              Colors
+            </h3>
+            <div class="color-grid">
+              <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
+                <label>{{ label }}</label>
+                <div class="color-input-wrapper">
+                  <input 
+                    type="color" 
+                    :value="newTheme.colors?.[key as keyof ThemeColors] || '#000000'"
+                    @input="(e) => newTheme.colors && (newTheme.colors[key as keyof ThemeColors] = (e.target as HTMLInputElement).value)"
+                  />
+                  <input 
+                    type="text" 
+                    :value="newTheme.colors?.[key as keyof ThemeColors] || ''"
+                    @input="(e) => newTheme.colors && (newTheme.colors[key as keyof ThemeColors] = (e.target as HTMLInputElement).value)"
+                    class="color-text-input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-section">
+            <h3 class="editor-section-title">
+              <Sparkles :size="16" />
+              Effects
+            </h3>
+            
+            <div class="effect-item">
+              <label>Background Gradient</label>
+              <input 
+                type="text" 
+                v-model="newTheme.effects!.bgGradient"
+                placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
+              />
+            </div>
+            
+            <div class="effect-item">
+              <label>Background Image URL</label>
+              <input 
+                type="text" 
+                v-model="newTheme.effects!.bgImage"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            
+            <div class="effect-row">
+              <div class="effect-item half">
+                <label>Image Opacity (0-1)</label>
+                <input 
+                  type="number" 
+                  v-model.number="newTheme.effects!.bgImageOpacity"
+                  min="0" max="1" step="0.1"
+                  placeholder="0.5"
+                />
+              </div>
+              <div class="effect-item half">
+                <label>Background Blur</label>
+                <input 
+                  type="text" 
+                  v-model="newTheme.effects!.bgBlur"
+                  placeholder="10px"
+                />
+              </div>
+            </div>
+            
+            <div class="effect-toggle">
+              <label class="toggle">
+                <input type="checkbox" v-model="newTheme.effects!.glassEffect" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span>Enable Glass Effect</span>
+            </div>
+            
+            <div v-if="newTheme.effects?.glassEffect" class="effect-row">
+              <div class="effect-item half">
+                <label>Glass Blur</label>
+                <input 
+                  type="text" 
+                  v-model="newTheme.effects!.glassBlur"
+                  placeholder="20px"
+                />
+              </div>
+              <div class="effect-item half">
+                <label>Glass Opacity (0-1)</label>
+                <input 
+                  type="number" 
+                  v-model.number="newTheme.effects!.glassOpacity"
+                  min="0" max="1" step="0.1"
+                  placeholder="0.8"
+                />
+              </div>
+            </div>
           </div>
         </div>
+        
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="showCreateTheme = false">Cancel</button>
-          <button class="modal-btn confirm" @click="createCustomTheme">Create</button>
+          <button class="modal-btn confirm" @click="createCustomTheme">Create Theme</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Theme Modal -->
+    <div class="modal-overlay" v-if="showEditTheme && editingTheme" @click.self="showEditTheme = false">
+      <div class="modal theme-editor-modal">
+        <h2 class="modal-title">Edit Theme: {{ editingTheme.name }}</h2>
+        
+        <div class="modal-content">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Theme Name</label>
+              <input type="text" v-model="editingTheme.name" />
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" v-model="editingTheme.description" />
+          </div>
+
+          <div class="editor-section">
+            <h3 class="editor-section-title">
+              <Palette :size="16" />
+              Colors
+            </h3>
+            <div class="color-grid">
+              <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
+                <label>{{ label }}</label>
+                <div class="color-input-wrapper">
+                  <input 
+                    type="color" 
+                    :value="editingTheme!.colors[key as keyof ThemeColors] || '#000000'"
+                    @input="(e) => editingTheme!.colors[key as keyof ThemeColors] = (e.target as HTMLInputElement).value"
+                  />
+                  <input 
+                    type="text" 
+                    :value="editingTheme!.colors[key as keyof ThemeColors] || ''"
+                    @input="(e) => editingTheme!.colors[key as keyof ThemeColors] = (e.target as HTMLInputElement).value"
+                    class="color-text-input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-section">
+            <h3 class="editor-section-title">
+              <Sparkles :size="16" />
+              Effects
+            </h3>
+            
+            <div class="effect-item">
+              <label>Background Gradient</label>
+              <input 
+                type="text" 
+                v-model="editingTheme!.effects.bgGradient"
+                placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
+              />
+            </div>
+            
+            <div class="effect-item">
+              <label>Background Image URL</label>
+              <input 
+                type="text" 
+                v-model="editingTheme!.effects.bgImage"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            
+            <div class="effect-row">
+              <div class="effect-item half">
+                <label>Image Opacity (0-1)</label>
+                <input 
+                  type="number" 
+                  v-model.number="editingTheme!.effects.bgImageOpacity"
+                  min="0" max="1" step="0.1"
+                />
+              </div>
+              <div class="effect-item half">
+                <label>Background Blur</label>
+                <input 
+                  type="text" 
+                  v-model="editingTheme!.effects.bgBlur"
+                  placeholder="10px"
+                />
+              </div>
+            </div>
+            
+            <div class="effect-toggle">
+              <label class="toggle">
+                <input type="checkbox" v-model="editingTheme!.effects.glassEffect" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span>Enable Glass Effect</span>
+            </div>
+            
+            <div v-if="editingTheme!.effects?.glassEffect" class="effect-row">
+              <div class="effect-item half">
+                <label>Glass Blur</label>
+                <input 
+                  type="text" 
+                  v-model="editingTheme!.effects.glassBlur"
+                  placeholder="20px"
+                />
+              </div>
+              <div class="effect-item half">
+                <label>Glass Opacity (0-1)</label>
+                <input 
+                  type="number" 
+                  v-model.number="editingTheme!.effects.glassOpacity"
+                  min="0" max="1" step="0.1"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="showEditTheme = false">Cancel</button>
+          <button class="modal-btn confirm" @click="saveEditedTheme">Save Changes</button>
         </div>
       </div>
     </div>
@@ -226,7 +539,7 @@ function deleteTheme(themeId: string) {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .page-header {
@@ -269,11 +582,20 @@ function deleteTheme(themeId: string) {
   gap: 12px;
 }
 
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 4px;
+}
+
 .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  padding-left: 4px;
 }
 
 .settings-card {
@@ -331,35 +653,34 @@ function deleteTheme(themeId: string) {
 .add-theme-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: white;
   border: none;
   border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-theme-btn:hover {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-hover);
 }
 
 .theme-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  padding: 0 20px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
 }
 
 .theme-card {
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--bg-card);
+  background: var(--bg-secondary);
   cursor: pointer;
   transition: all 0.2s;
   border: 2px solid transparent;
@@ -367,6 +688,7 @@ function deleteTheme(themeId: string) {
 
 .theme-card:hover {
   transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .theme-card.active {
@@ -375,54 +697,91 @@ function deleteTheme(themeId: string) {
 
 .theme-preview {
   position: relative;
-  height: 80px;
+  height: 100px;
   display: flex;
-  padding: 8px;
-  gap: 4px;
+  padding: 12px;
+  gap: 6px;
 }
 
 .preview-sidebar {
-  width: 30%;
+  width: 25%;
+  border-radius: 4px;
+}
+
+.preview-card {
+  flex: 1;
   border-radius: 4px;
 }
 
 .preview-accent {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
+  bottom: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
+}
+
+.preview-glass {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .theme-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+}
+
+.theme-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .theme-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.delete-theme-btn {
+.theme-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 4px;
+}
+
+.theme-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.theme-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   background: transparent;
   color: var(--text-secondary);
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.delete-theme-btn:hover {
+.theme-action-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.theme-action-btn.danger:hover {
   background: var(--error);
   color: white;
 }
@@ -525,6 +884,7 @@ function deleteTheme(themeId: string) {
   transform: rotate(180deg);
 }
 
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -534,23 +894,30 @@ function deleteTheme(themeId: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 1000;
+  padding: 20px;
 }
 
 .modal {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  width: 400px;
-  max-width: 90vw;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
   padding: 24px;
   background: var(--bg-secondary);
-  border-radius: 12px;
+  border-radius: 16px;
+}
+
+.theme-editor-modal {
+  max-width: 700px;
 }
 
 .modal-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -558,6 +925,12 @@ function deleteTheme(themeId: string) {
 .modal-content {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -587,10 +960,119 @@ function deleteTheme(themeId: string) {
   border-color: var(--accent);
 }
 
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.editor-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.color-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-item label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.color-input-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+.color-input-wrapper input[type="color"] {
+  width: 40px;
+  height: 36px;
+  padding: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.color-text-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.effect-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.effect-item.half {
+  flex: 1;
+}
+
+.effect-item label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.effect-item input {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+}
+
+.effect-item input:focus {
+  border-color: var(--accent);
+}
+
+.effect-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.effect-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.effect-toggle span {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 
 .modal-btn {
@@ -619,5 +1101,23 @@ function deleteTheme(themeId: string) {
 
 .modal-btn.confirm:hover {
   background: var(--accent-hover);
+}
+
+@media (max-width: 768px) {
+  .theme-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .color-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .effect-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
