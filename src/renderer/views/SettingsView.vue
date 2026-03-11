@@ -1,20 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useThemeStore, type ThemeId } from '@/stores/theme'
 import { Settings, Moon, Sun, Palette, Volume2, Download, LogIn } from 'lucide-vue-next'
 
-const currentTheme = ref<'light' | 'dark' | 'colorful'>('dark')
+const themeStore = useThemeStore()
+
 const volume = ref(80)
 const autoPlay = ref(true)
 const rememberPosition = ref(true)
 
-const themes = [
-  { id: 'light', name: '浅色', icon: Sun },
-  { id: 'dark', name: '深色', icon: Moon },
-  { id: 'colorful', name: '多彩', icon: Palette }
-] as const
+const themeOptions = [
+  { id: 'light' as ThemeId, name: 'Light', icon: Sun },
+  { id: 'dark' as ThemeId, name: 'Dark', icon: Moon },
+  { id: 'colorful' as ThemeId, name: 'Colorful', icon: Palette }
+]
 
-function setTheme(theme: typeof currentTheme.value) {
-  currentTheme.value = theme
+function setTheme(themeId: ThemeId) {
+  themeStore.setTheme(themeId)
 }
 </script>
 
@@ -25,46 +27,46 @@ function setTheme(theme: typeof currentTheme.value) {
         <Settings :size="24" />
       </div>
       <div class="header-text">
-        <h1 class="page-title">设置</h1>
-        <p class="page-desc">自定义你的BliPod体验</p>
+        <h1 class="page-title">Settings</h1>
+        <p class="page-desc">Customize your BliPod experience</p>
       </div>
     </div>
 
     <div class="settings-sections">
       <section class="settings-section">
-        <h2 class="section-title">账号</h2>
+        <h2 class="section-title">Account</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">B站账号</span>
-              <span class="setting-desc">登录以获取个性化推荐和完整功能</span>
+              <span class="setting-label">Bilibili Account</span>
+              <span class="setting-desc">Login to get personalized recommendations and full features</span>
             </div>
             <button class="login-btn">
               <LogIn :size="18" />
-              登录B站
+              Login
             </button>
           </div>
         </div>
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">外观</h2>
+        <h2 class="section-title">Appearance</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">主题</span>
-              <span class="setting-desc">选择你喜欢的界面主题</span>
+              <span class="setting-label">Theme</span>
+              <span class="setting-desc">Choose your preferred interface theme</span>
             </div>
             <div class="theme-options">
               <button
-                v-for="theme in themes"
-                :key="theme.id"
+                v-for="option in themeOptions"
+                :key="option.id"
                 class="theme-btn"
-                :class="{ active: currentTheme === theme.id }"
-                @click="setTheme(theme.id)"
+                :class="{ active: themeStore.currentThemeId === option.id }"
+                @click="setTheme(option.id)"
               >
-                <component :is="theme.icon" :size="18" />
-                {{ theme.name }}
+                <component :is="option.icon" :size="18" />
+                {{ option.name }}
               </button>
             </div>
           </div>
@@ -72,12 +74,12 @@ function setTheme(theme: typeof currentTheme.value) {
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">播放</h2>
+        <h2 class="section-title">Playback</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">默认音量</span>
-              <span class="setting-desc">设置播放器的默认音量</span>
+              <span class="setting-label">Default Volume</span>
+              <span class="setting-desc">Set the default player volume</span>
             </div>
             <div class="volume-control">
               <Volume2 :size="18" />
@@ -88,8 +90,8 @@ function setTheme(theme: typeof currentTheme.value) {
 
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">自动播放</span>
-              <span class="setting-desc">选择视频后自动开始播放</span>
+              <span class="setting-label">Auto Play</span>
+              <span class="setting-desc">Start playback automatically when selecting a video</span>
             </div>
             <label class="toggle">
               <input type="checkbox" v-model="autoPlay" />
@@ -99,8 +101,8 @@ function setTheme(theme: typeof currentTheme.value) {
 
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">记住播放位置</span>
-              <span class="setting-desc">下次打开时从上次位置继续播放</span>
+              <span class="setting-label">Remember Position</span>
+              <span class="setting-desc">Resume from where you left off next time</span>
             </div>
             <label class="toggle">
               <input type="checkbox" v-model="rememberPosition" />
@@ -111,27 +113,27 @@ function setTheme(theme: typeof currentTheme.value) {
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">数据</h2>
+        <h2 class="section-title">Data</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">导出数据</span>
-              <span class="setting-desc">导出收藏和播放列表到本地文件</span>
+              <span class="setting-label">Export Data</span>
+              <span class="setting-desc">Export favorites and playlists to local file</span>
             </div>
             <button class="action-btn">
               <Download :size="18" />
-              导出
+              Export
             </button>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">导入数据</span>
-              <span class="setting-desc">从本地文件导入收藏和播放列表</span>
+              <span class="setting-label">Import Data</span>
+              <span class="setting-desc">Import favorites and playlists from local file</span>
             </div>
             <button class="action-btn">
               <Download :size="18" class="rotate-180" />
-              导入
+              Import
             </button>
           </div>
         </div>
