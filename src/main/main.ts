@@ -327,9 +327,16 @@ function setupIPC() {
     }
     
     try {
-      const script = getExtractorScript()
-      if (script) {
-        await searchView.webContents.executeJavaScript(script)
+      const hasFunction = await searchView.webContents.executeJavaScript(
+        'typeof window.__BILI_CLICK_NEXT_PAGE__ === "function"'
+      )
+      
+      if (!hasFunction) {
+        console.log('[BliPod] Re-injecting extractor script')
+        const script = getExtractorScript()
+        if (script) {
+          await searchView.webContents.executeJavaScript(script)
+        }
       }
       
       const clickResult = await searchView.webContents.executeJavaScript(
