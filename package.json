@@ -1,0 +1,17 @@
+{
+  "name": "blipod",
+  "version": "0.1.0",
+  "description": "B站视频转Podcast播放器",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "open": "open node_modules/electron/dist/Electron.app --args $(pwd)"
+  },
+  "keywords": ["bilibili", "podcast", "electron"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

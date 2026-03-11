@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BliPod - B站音频播放器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-card: #0f3460;
+      --text-primary: #eaeaea;
+      --text-secondary: #a0a0a0;
+      --accent: #e94560;
+      --accent-hover: #ff6b6b;
+      --border: #2d2d44;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 12px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      -webkit-app-region: drag;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    .url-input-container {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+    }
+
+    .url-input {
+      flex: 1;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .url-input:focus {
+      border-color: var(--accent);
+    }
+
+    .load-btn {
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .load-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .control-panel {
+      width: 400px;
+      min-width: 350px;
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+
+    .video-info-section {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cover-container {
+      width: 320px;
+      height: 180px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .cover-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cover-placeholder {
+      color: var(--text-secondary);
+      font-size: 14px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .video-title {
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      max-width: 340px;
+      line-height: 1.4;
+    }
+
+    .video-author {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .player-section {
+      padding: 20px 24px;
+      background: var(--bg-secondary);
+      margin-top: auto;
+    }
+
+    .progress-container {
+      margin-bottom: 16px;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .control-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .control-btn:hover {
+      background: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .control-btn.play-btn {
+      width: 56px;
+      height: 56px;
+      background: var(--accent);
+      font-size: 20px;
+    }
+
+    .control-btn.play-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .volume-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 16px;
+    }
+
+    .volume-slider {
+      width: 80px;
+      height: 4px;
+      -webkit-appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .webview-container {
+      flex: 1;
+      background: var(--bg-secondary);
+      position: relative;
+    }
+
+    webview {
+      width: 100%;
+      height: 100%;
+    }
+
+    .webview-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .status-bar {
+      padding: 6px 24px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">BliPod</div>
+    <div class="url-input-container">
+      <input type="text" class="url-input" id="urlInput" placeholder="输入B站视频链接 (如: https://www.bilibili.com/video/BV1xx411c7mD)">
+      <button class="load-btn" id="loadBtn">加载视频</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div class="control-panel">
+      <div class="video-info-section">
+        <div class="cover-container" id="coverContainer">
+          <span class="cover-placeholder">输入视频链接<br>开始播放</span>
+        </div>
+        <h1 class="video-title" id="videoTitle">等待加载视频...</h1>
+        <p class="video-author" id="videoAuthor"></p>
+      </div>
+      
+      <div class="player-section">
+        <div class="progress-container">
+          <div class="time-display">
+            <span id="currentTime">00:00</span>
+            <span id="duration">00:00</span>
+          </div>
+          <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+        
+        <div class="controls">
+          <button class="control-btn" id="backwardBtn" title="快退10秒">⏪</button>
+          <button class="control-btn play-btn" id="playBtn" title="播放/暂停">▶</button>
+          <button class="control-btn" id="forwardBtn" title="快进10秒">⏩</button>
+          
+          <div class="volume-container">
+            <span>🔊</span>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="80">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="webview-container">
+      <webview id="webview" src="about:blank" allowpopups></webview>
+      <div class="webview-placeholder" id="webviewPlaceholder">加载视频后显示B站页面</div>
+    </div>
+  </div>
+
+  <footer class="status-bar">
+    <span id="statusText">就绪</span>
+    <span>BliPod MVP v0.1.0</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
