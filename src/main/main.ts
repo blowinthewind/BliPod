@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 
 function createWindow() {
@@ -9,7 +9,8 @@ function createWindow() {
       preload: join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webviewTag: true
+      webviewTag: true,
+      sandbox: true
     }
   })
 
@@ -21,7 +22,28 @@ function createWindow() {
   }
 }
 
+function setupCSP() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+          "style-src 'self' 'unsafe-inline'; " +
+          "img-src 'self' https: data: blob:; " +
+          "connect-src 'self' https: ws:; " +
+          "font-src 'self' data:; " +
+          "media-src 'self' https: blob:; " +
+          "frame-src 'self' https://www.bilibili.com https://player.bilibili.com"
+        ]
+      }
+    })
+  })
+}
+
 app.whenReady().then(() => {
+  setupCSP()
   createWindow()
 })
 
