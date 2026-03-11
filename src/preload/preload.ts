@@ -30,6 +30,7 @@ export interface SearchResult {
 
 export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
+  clickNextPage: () => void
   playVideo: (bvid: string) => void
   pauseVideo: () => void
   resumeVideo: () => void
@@ -43,6 +44,9 @@ export interface SearchAPI {
 const searchAPI: SearchAPI = {
   search: (query: string, offset?: number) => {
     return ipcRenderer.invoke('search:query', query, offset)
+  },
+  clickNextPage: () => {
+    ipcRenderer.send('search:clickNextPage')
   },
   playVideo: (bvid: string) => {
     ipcRenderer.send('player:play', bvid)

@@ -318,6 +318,57 @@ function setupIPC() {
     }
   })
 
+  ipcMain.on('search:clickNextPage', async () => {
+    console.log('[BliPod] Clicking next page button')
+    
+    if (!searchView) {
+      console.error('[BliPod] Search view not found')
+      return
+    }
+    
+    try {
+      const script = getExtractorScript()
+      if (script) {
+        await searchView.webContents.executeJavaScript(script)
+      }
+      
+      const clickResult = await searchView.webContents.executeJavaScript(
+        'window.__BILI_CLICK_NEXT_PAGE__ ? window.__BILI_CLICK_NEXT_PAGE__() : null'
+      )
+      
+      console.log('[BliPod] Click result:', JSON.stringify(clickResult, null, 2))
+      
+      if (!clickResult || !clickResult.success) {
+        if (mainWindow) {
+          mainWindow.webContents.send('search:result', {
+            success: false,
+            videos: [],
+            hasMore: false,
+            error: clickResult?.error || 'Failed to click next page',
+            extractedAt: Date.now(),
+            pageUrl: '',
+            currentPage: 1,
+            nextOffset: null,
+          } as SearchResult)
+        }
+      }
+    } catch (error) {
+      console.error('[BliPod] Failed to click next page:', error)
+      if (mainWindow) {
+        mainWindow.webContents.send('search:result', {
+          success: false,
+          videos: [],
+          hasMore: false,
+          error: error instanceof Error ? error.message : 'Failed to click next page',
+          extractedAt: Date.now(),
+          pageUrl: '',
+          currentPage: 1,
+          nextOffset: null,
+        } as SearchResult)
+      }
+    }
+  })
+
   ipcMain.on('player:resume', async () => {
     if (playerView) {
       await playerView.webContents.executeJavaScript(`

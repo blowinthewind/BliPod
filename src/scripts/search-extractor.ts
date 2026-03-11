@@ -30,6 +30,12 @@ export interface SearchResult {
   nextOffset: number | null
 }
 
+export interface ClickNextPageResult {
+  success: boolean
+  hasMore: boolean
+  error?: string
+}
+
 function extractVideoFromCard(card: Element): ExtractedVideo | null {
   const titleResult = extractWithFallback(card, BILIBILI_SELECTORS.title, extractText)
   const coverResult = extractWithFallback(card, BILIBILI_SELECTORS.cover, extractSrc)
@@ -79,9 +85,14 @@ function checkHasMore(): boolean {
     }
   }
   
-  const scrollHeight = document.documentElement.scrollHeight
-  const clientHeight = document.documentElement.clientHeight
-  return scrollHeight > clientHeight
+  for (const config of SEARCH_PAGE_SELECTORS.nextPageButton) {
+    const btn = document.querySelector(config.selector)
+    if (btn && !btn.classList.contains('disabled')) {
+      return true
+    }
+  }
+  
+  return false
 }
 
 function extractPageInfo(): { currentPage: number; nextOffset: number | null } {
@@ -167,12 +178,41 @@ export function extractSearchResults(): SearchResult {
   }
 }
 
+export function clickNextPageButton(): ClickNextPageResult {
+  try {
+    for (const config of SEARCH_PAGE_SELECTORS.nextPageButton) {
+      const btn = document.querySelector(config.selector) as HTMLElement
+      if (btn && !btn.classList.contains('disabled')) {
+        btn.click()
+        return {
+          success: true,
+          hasMore: true,
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      hasMore: false,
+      error: 'No next page button found or button is disabled',
+    }
+  } catch (error) {
+    return {
+      success: false,
+      hasMore: false,
+      error: error instanceof Error ? error.message : 'Failed to click next page button',
+    }
+  }
+}
+
 export function injectSearchExtractor(): void {
   window.__BILI_EXTRACT_SEARCH__ = extractSearchResults
+  window.__BILI_CLICK_NEXT_PAGE__ = clickNextPageButton
 }
 
 declare global {
   interface Window {
     __BILI_EXTRACT_SEARCH__?: typeof extractSearchResults
+    __BILI_CLICK_NEXT_PAGE__?: typeof clickNextPageButton
   }
 }

@@ -89,4 +89,11 @@ export const SEARCH_PAGE_SELECTORS = {
     { selector: '.load-more', priority: 1 },
     { selector: '.bili-load-more', priority: 2 },
   ],
+  nextPageButton: [
+    { selector: '.vui_pagenation--btns .vui_button:last-child:not(.vui_button--disabled)', priority: 1, description: 'B站分页下一页按钮' },
+    { selector: '.pagination .next:not(.disabled)', priority: 2, description: '通用下一页按钮' },
+    { selector: '.page-next:not(.disabled)', priority: 3, description: 'page-next类' },
+    { selector: 'button[aria-label="下一页"]:not([disabled])', priority: 4, description: 'aria-label下一页' },
+    { selector: '.vui_pagenation--btns button:last-child:not([class*="disabled"])', priority: 5, description: '分页按钮组最后一个' },
+  ],
 }

@@ -99,30 +99,11 @@ export const useSearchStore = defineStore('search', () => {
   }
 
   async function loadMore(): Promise<void> {
-    if (isLoadingMore.value || !hasMore.value || nextOffset.value === null) return
+    if (isLoadingMore.value || !hasMore.value) return
     
     isLoadingMore.value = true
     
-    try {
-      const result = await window.electronAPI.search.search(query.value, nextOffset.value)
-      
-      if (result.success) {
-        const newVideos = result.videos.filter(
-          (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
-        )
-        results.value = [...results.value, ...newVideos]
-        currentPage.value = result.currentPage
-        nextOffset.value = result.nextOffset
-        hasMore.value = result.videos.length >= 20
-        lastSearchTime.value = result.extractedAt
-      } else {
-        error.value = result.error || 'Failed to load more'
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Unknown error occurred'
-    } finally {
-      isLoadingMore.value = false
-    }
+    window.electronAPI.search.clickNextPage()
   }
 
   function clearResults() {
