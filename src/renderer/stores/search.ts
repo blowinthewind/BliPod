@@ -5,8 +5,10 @@ export const useSearchStore = defineStore('search', () => {
   const query = ref('')
   const results = ref<ExtractedVideo[]>([])
   const isSearching = ref(false)
+  const isLoadingMore = ref(false)
   const error = ref<string | null>(null)
   const hasMore = ref(false)
+  const currentPage = ref(1)
   const lastSearchTime = ref<number | null>(null)
   const searchHistory = ref<string[]>([])
   const maxHistorySize = 20
@@ -71,15 +73,16 @@ export const useSearchStore = defineStore('search', () => {
     isSearching.value = true
     error.value = null
     results.value = []
+    currentPage.value = 1
     
     addToHistory(query.value)
 
     try {
-      const result = await window.electronAPI.search.search(query.value)
+      const result = await window.electronAPI.search.search(query.value, 1)
       
       if (result.success) {
         results.value = result.videos
-        hasMore.value = result.hasMore
+        hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
       } else {
         error.value = result.error || 'Search failed'
@@ -91,24 +94,62 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  async function loadMore(): Promise<void> {
+    if (isLoadingMore.value || !hasMore.value) return
+    
+    isLoadingMore.value = true
+    const nextPage = currentPage.value + 1
+    
+    try {
+      const result = await window.electronAPI.search.search(query.value, nextPage)
+      
+      if (result.success) {
+        const newVideos = result.videos.filter(
+          (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
+        )
+        results.value = [...results.value, ...newVideos]
+        currentPage.value = nextPage
+        hasMore.value = result.videos.length >= 20
+        lastSearchTime.value = result.extractedAt
+      } else {
+        error.value = result.error || 'Failed to load more'
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Unknown error occurred'
+    } finally {
+      isLoadingMore.value = false
+    }
+  }
+
   function clearResults() {
     results.value = []
     query.value = ''
     error.value = null
     hasMore.value = false
+    currentPage.value = 1
     lastSearchTime.value = null
   }
 
   function setResultListener() {
     const unsubscribe = window.electronAPI.search.onSearchResult((result: SearchResult) => {
       if (result.success) {
-        results.value = result.videos
-        hasMore.value = result.hasMore
+        if (result.page && result.page > 1) {
+          const newVideos = result.videos.filter(
+            (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
+          )
+          results.value = [...results.value, ...newVideos]
+          currentPage.value = result.page
+        } else {
+          results.value = result.videos
+          currentPage.value = result.page || 1
+        }
+        hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
       } else {
         error.value = result.error || 'Search failed'
       }
       isSearching.value = false
+      isLoadingMore.value = false
     })
     
     return unsubscribe
@@ -120,13 +161,16 @@ export const useSearchStore = defineStore('search', () => {
     query,
     results,
     isSearching,
+    isLoadingMore,
     error,
     hasMore,
+    currentPage,
     lastSearchTime,
     searchHistory,
     hasResults,
     resultCount,
     search,
+    loadMore,
     clearResults,
     addToHistory,
     removeFromHistory,

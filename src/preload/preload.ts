@@ -8,7 +8,7 @@ export interface PlayerProgress {
 }
 
 export interface SearchAPI {
-  search: (query: string) => Promise<SearchResult>
+  search: (query: string, page?: number) => Promise<SearchResult>
   playVideo: (bvid: string) => void
   pauseVideo: () => void
   resumeVideo: () => void
@@ -20,8 +20,8 @@ export interface SearchAPI {
 }
 
 const searchAPI: SearchAPI = {
-  search: (query: string) => {
-    return ipcRenderer.invoke('search:query', query)
+  search: (query: string, page: number = 1) => {
+    return ipcRenderer.invoke('search:query', query, page)
   },
   playVideo: (bvid: string) => {
     ipcRenderer.send('player:play', bvid)

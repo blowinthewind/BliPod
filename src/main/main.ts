@@ -243,13 +243,13 @@ async function createPlayerView(): Promise<BrowserView> {
 }
 
 function setupIPC() {
-  ipcMain.handle('search:query', async (_event, query: string): Promise<SearchResult> => {
-    console.log('[BliPod] Search query received:', query)
+  ipcMain.handle('search:query', async (_event, query: string, page: number = 1): Promise<SearchResult> => {
+    console.log('[BliPod] Search query received:', query, 'page:', page)
     
     try {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
-      const searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
+      const searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}`
       
       console.log('[BliPod] Loading search URL:', searchUrl)
       await view.webContents.loadURL(searchUrl)
@@ -259,7 +259,8 @@ function setupIPC() {
         videos: [],
         hasMore: false,
         extractedAt: Date.now(),
-        pageUrl: searchUrl
+        pageUrl: searchUrl,
+        page
       }
     } catch (error) {
       console.error('[BliPod] Search error:', error)
@@ -269,7 +270,8 @@ function setupIPC() {
         hasMore: false,
         error: error instanceof Error ? error.message : 'Search request failed',
         extractedAt: Date.now(),
-        pageUrl: ''
+        pageUrl: '',
+        page
       }
     }
   })

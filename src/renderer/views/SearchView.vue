@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useSearch } from '../composables/useSearch'
 
@@ -61,6 +61,10 @@ function blurInput() {
   setTimeout(() => {
     showHistory.value = false
   }, 200)
+}
+
+async function handleLoadMore() {
+  await searchStore.loadMore()
 }
 </script>
 
@@ -130,6 +134,7 @@ function blurInput() {
     <div class="search-results" v-if="searchStore.hasResults">
       <div class="results-header">
         <span class="results-count">Found {{ searchStore.resultCount }} results</span>
+        <span v-if="searchStore.currentPage > 1" class="page-info">Page {{ searchStore.currentPage }}</span>
       </div>
       
       <div class="results-list">
@@ -164,6 +169,20 @@ function blurInput() {
             <Play :size="18" />
           </button>
         </div>
+      </div>
+
+      <div v-if="searchStore.hasMore" class="load-more-container">
+        <button 
+          class="load-more-btn" 
+          @click="handleLoadMore"
+          :disabled="searchStore.isLoadingMore"
+        >
+          <Loader2 v-if="searchStore.isLoadingMore" :size="18" class="animate-spin" />
+          <template v-else>
+            <ChevronDown :size="18" />
+            <span>Load More</span>
+          </template>
+        </button>
       </div>
     </div>
 
@@ -426,6 +445,9 @@ function blurInput() {
 }
 
 .results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
 }
@@ -433,6 +455,14 @@ function blurInput() {
 .results-count {
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.page-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .results-list {
@@ -547,6 +577,37 @@ function blurInput() {
 
 .play-btn:hover {
   transform: scale(1.1);
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.load-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .empty-state {

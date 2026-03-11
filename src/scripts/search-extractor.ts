@@ -26,6 +26,7 @@ export interface SearchResult {
   error?: string
   extractedAt: number
   pageUrl: string
+  page?: number
 }
 
 function extractVideoFromCard(card: Element): ExtractedVideo | null {

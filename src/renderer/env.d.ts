@@ -13,6 +13,7 @@ interface SearchResult {
   error?: string
   extractedAt: number
   pageUrl: string
+  page?: number
 }
 
 interface ExtractedVideo {
@@ -33,7 +34,7 @@ interface PlayerProgress {
 }
 
 interface SearchAPI {
-  search: (query: string) => Promise<SearchResult>
+  search: (query: string, page?: number) => Promise<SearchResult>
   playVideo: (bvid: string) => void
   pauseVideo: () => void
   resumeVideo: () => void
