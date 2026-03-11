@@ -46,4 +46,18 @@ import PlayerBar from './PlayerBar.vue'
   grid-column: 1 / -1;
   grid-row: 2;
 }
+
+@media (max-width: 768px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-content {
+    grid-column: 1;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+}
 </style>

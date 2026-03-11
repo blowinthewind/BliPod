@@ -7,7 +7,8 @@ import {
   ListMusic,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Menu
 } from 'lucide-vue-next'
 
 const navStore = useNavigationStore()
@@ -19,18 +20,21 @@ interface NavMenuItem {
 }
 
 const menuItems: NavMenuItem[] = [
-  { id: 'home', label: '首页', icon: Home },
-  { id: 'search', label: '搜索', icon: Search },
-  { id: 'favorites', label: '收藏', icon: Heart },
-  { id: 'playlists', label: '播放列表', icon: ListMusic },
-  { id: 'settings', label: '设置', icon: Settings }
+  { id: 'home', label: 'Home', icon: Home },
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'favorites', label: 'Favorites', icon: Heart },
+  { id: 'playlists', label: 'Playlists', icon: ListMusic },
+  { id: 'settings', label: 'Settings', icon: Settings }
 ]
 </script>
 
 <template>
   <aside
     class="sidebar"
-    :class="{ collapsed: navStore.sidebarCollapsed }"
+    :class="{ 
+      collapsed: navStore.sidebarCollapsed,
+      'mobile-open': navStore.mobileMenuOpen 
+    }"
   >
     <div class="sidebar-header">
       <div class="logo" v-if="!navStore.sidebarCollapsed">
@@ -44,6 +48,9 @@ const menuItems: NavMenuItem[] = [
         <ChevronLeft v-if="!navStore.sidebarCollapsed" :size="18" />
         <ChevronRight v-else :size="18" />
       </button>
+      <button class="mobile-close-btn" @click="navStore.closeMobileMenu">
+        <Menu :size="20" />
+      </button>
     </div>
 
     <nav class="nav-menu">
@@ -53,7 +60,7 @@ const menuItems: NavMenuItem[] = [
         :to="{ name: item.id }"
         class="nav-item"
         :class="{ active: navStore.activeItem === item.id }"
-        @click="navStore.setActiveItem(item.id)"
+        @click="navStore.setActiveItem(item.id); navStore.closeMobileMenu()"
       >
         <component :is="item.icon" :size="22" class="nav-icon" />
         <span class="nav-label" v-if="!navStore.sidebarCollapsed">
@@ -69,12 +76,17 @@ const menuItems: NavMenuItem[] = [
           <div class="avatar-placeholder">U</div>
         </div>
         <div class="user-details">
-          <span class="user-name">未登录</span>
-          <span class="user-status">点击登录B站账号</span>
+          <span class="user-name">Not logged in</span>
+          <span class="user-status">Click to login</span>
         </div>
       </div>
     </div>
   </aside>
+  <div 
+    class="sidebar-overlay" 
+    v-if="navStore.mobileMenuOpen" 
+    @click="navStore.closeMobileMenu"
+  ></div>
 </template>
 
 <style scoped>
@@ -85,8 +97,9 @@ const menuItems: NavMenuItem[] = [
   height: 100%;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   overflow: hidden;
+  z-index: 100;
 }
 
 .sidebar.collapsed {
@@ -140,6 +153,19 @@ const menuItems: NavMenuItem[] = [
 .collapse-btn:hover {
   background: var(--bg-card);
   color: var(--text-primary);
+}
+
+.mobile-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
 }
 
 .nav-menu {
@@ -263,5 +289,47 @@ const menuItems: NavMenuItem[] = [
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed {
+    width: 280px;
+  }
+
+  .collapse-btn {
+    display: none;
+  }
+
+  .mobile-close-btn {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
 }
 </style>

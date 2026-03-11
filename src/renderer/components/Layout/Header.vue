@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Search, X } from 'lucide-vue-next'
+import { Search, X, Menu } from 'lucide-vue-next'
+import { useNavigationStore } from '@/stores/navigation'
 
+const navStore = useNavigationStore()
 const searchQuery = ref('')
 const isSearchFocused = ref(false)
 
@@ -19,6 +21,9 @@ function clearSearch() {
 <template>
   <header class="header">
     <div class="header-left">
+      <button class="mobile-menu-btn" @click="navStore.toggleMobileMenu">
+        <Menu :size="22" />
+      </button>
       <div class="window-controls">
         <div class="traffic-lights">
           <span class="traffic-light close"></span>
@@ -37,7 +42,7 @@ function clearSearch() {
         <input
           type="text"
           class="search-input"
-          placeholder="搜索B站视频..."
+          placeholder="Search Bilibili videos..."
           v-model="searchQuery"
           @focus="isSearchFocused = true"
           @blur="isSearchFocused = false"
@@ -86,6 +91,24 @@ function clearSearch() {
   display: flex;
   justify-content: center;
   padding: 0 24px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.mobile-menu-btn:hover {
+  background: var(--bg-card);
 }
 
 .traffic-lights {
@@ -203,5 +226,27 @@ function clearSearch() {
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .header-left {
+    min-width: auto;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .window-controls {
+    display: none;
+  }
+
+  .header-center {
+    padding: 0 12px;
+  }
+
+  .header-right {
+    min-width: auto;
+  }
 }
 </style>

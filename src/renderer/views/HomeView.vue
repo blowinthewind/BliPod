@@ -3,16 +3,16 @@ import { ref } from 'vue'
 import { Play, Clock, TrendingUp } from 'lucide-vue-next'
 
 const recentPlays = ref([
-  { id: 1, title: '示例视频1', author: 'UP主1', duration: '10:30' },
-  { id: 2, title: '示例视频2', author: 'UP主2', duration: '15:45' },
-  { id: 3, title: '示例视频3', author: 'UP主3', duration: '8:20' }
+  { id: 1, title: 'Sample Video 1', author: 'UP Owner 1', duration: '10:30' },
+  { id: 2, title: 'Sample Video 2', author: 'UP Owner 2', duration: '15:45' },
+  { id: 3, title: 'Sample Video 3', author: 'UP Owner 3', duration: '8:20' }
 ])
 
 const recommendations = ref([
-  { id: 1, title: '推荐视频1', author: 'UP主A', views: '10万' },
-  { id: 2, title: '推荐视频2', author: 'UP主B', views: '5万' },
-  { id: 3, title: '推荐视频3', author: 'UP主C', views: '20万' },
-  { id: 4, title: '推荐视频4', author: 'UP主D', views: '8万' }
+  { id: 1, title: 'Recommended Video 1', author: 'UP Owner A', views: '100K' },
+  { id: 2, title: 'Recommended Video 2', author: 'UP Owner B', views: '50K' },
+  { id: 3, title: 'Recommended Video 3', author: 'UP Owner C', views: '200K' },
+  { id: 4, title: 'Recommended Video 4', author: 'UP Owner D', views: '80K' }
 ])
 </script>
 
@@ -22,7 +22,7 @@ const recommendations = ref([
       <div class="section-header">
         <h2 class="section-title">
           <Clock :size="20" />
-          最近播放
+          Recently Played
         </h2>
       </div>
       <div class="video-grid" v-if="recentPlays.length > 0">
@@ -44,7 +44,7 @@ const recommendations = ref([
         </div>
       </div>
       <div class="empty-state" v-else>
-        <p>暂无播放记录</p>
+        <p>No recent plays</p>
       </div>
     </section>
 
@@ -52,7 +52,7 @@ const recommendations = ref([
       <div class="section-header">
         <h2 class="section-title">
           <TrendingUp :size="20" />
-          热门推荐
+          Trending
         </h2>
       </div>
       <div class="video-grid">
@@ -69,7 +69,7 @@ const recommendations = ref([
           <div class="video-info">
             <h3 class="video-title">{{ video.title }}</h3>
             <span class="video-author">{{ video.author }}</span>
-            <span class="video-views">{{ video.views }}次播放</span>
+            <span class="video-views">{{ video.views }} views</span>
           </div>
         </div>
       </div>
@@ -196,5 +196,12 @@ const recommendations = ref([
   height: 120px;
   color: var(--text-secondary);
   font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .video-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
 }
 </style>
