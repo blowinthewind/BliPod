@@ -7,15 +7,16 @@ import UnoCSS from 'unocss/vite'
 import { resolve } from 'path'
 
 export default defineConfig({
+  root: resolve(__dirname, 'src/renderer'),
   plugins: [
     vue(),
     UnoCSS(),
     electron([
       {
-        entry: 'src/main/main.ts',
+        entry: resolve(__dirname, 'src/main/main.ts'),
         vite: {
           build: {
-            outDir: 'dist/main',
+            outDir: resolve(__dirname, 'dist/main'),
             rollupOptions: {
               external: ['electron']
             }
@@ -23,10 +24,10 @@ export default defineConfig({
         }
       },
       {
-        entry: 'src/preload/preload.ts',
+        entry: resolve(__dirname, 'src/preload/preload.ts'),
         vite: {
           build: {
-            outDir: 'dist/preload',
+            outDir: resolve(__dirname, 'dist/preload'),
             rollupOptions: {
               external: ['electron']
             }
@@ -36,11 +37,11 @@ export default defineConfig({
     ]),
     autoImport({
       imports: ['vue', 'pinia'],
-      dts: 'src/renderer/auto-imports.d.ts'
+      dts: resolve(__dirname, 'src/renderer/auto-imports.d.ts')
     }),
     components({
-      dirs: ['src/renderer/components'],
-      dts: 'src/renderer/components.d.ts'
+      dirs: [resolve(__dirname, 'src/renderer/components')],
+      dts: resolve(__dirname, 'src/renderer/components.d.ts')
     })
   ],
   resolve: {
@@ -49,13 +50,8 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist/renderer',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        index: resolve(__dirname, 'src/renderer/index.html')
-      }
-    }
+    outDir: resolve(__dirname, 'dist/renderer'),
+    emptyOutDir: true
   },
   server: {
     port: 5173

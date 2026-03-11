@@ -72,7 +72,6 @@ function clearSearch() {
   padding: 0 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  -webkit-app-region: drag;
 }
 
 .header-left,
@@ -87,7 +86,6 @@ function clearSearch() {
   display: flex;
   justify-content: center;
   padding: 0 24px;
-  -webkit-app-region: no-drag;
 }
 
 .traffic-lights {
