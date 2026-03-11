@@ -7,6 +7,7 @@ let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
 let extractorScript: string | null = null
+let progressInterval: NodeJS.Timeout | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
 
@@ -24,6 +25,43 @@ function getExtractorScript(): string {
     }
   }
   return extractorScript
+}
+
+function startProgressTracking() {
+  if (progressInterval) {
+    clearInterval(progressInterval)
+  }
+  
+  progressInterval = setInterval(async () => {
+    if (!playerView || !mainWindow) return
+    
+    try {
+      const state = await playerView.webContents.executeJavaScript(`
+        (function() {
+          const video = document.querySelector('video');
+          if (!video) return null;
+          return {
+            currentTime: video.currentTime,
+            duration: video.duration || 0,
+            paused: video.paused
+          };
+        })()
+      `)
+      
+      if (state && mainWindow) {
+        mainWindow.webContents.send('player:progress', state)
+      }
+    } catch {
+      // ignore
+    }
+  }, 500)
+}
+
+function stopProgressTracking() {
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
 }
 
 function createWindow() {
@@ -50,6 +88,7 @@ function createWindow() {
     mainWindow = null
     searchView = null
     playerView = null
+    stopProgressTracking()
   })
 }
 
@@ -196,6 +235,8 @@ async function createPlayerView(): Promise<BrowserView> {
     if (mainWindow) {
       mainWindow.webContents.send('player:ready')
     }
+    
+    startProgressTracking()
   })
 
   return playerView

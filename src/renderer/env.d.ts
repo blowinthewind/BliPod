@@ -26,6 +26,12 @@ interface ExtractedVideo {
   videoLink: string
 }
 
+interface PlayerProgress {
+  currentTime: number
+  duration: number
+  paused: boolean
+}
+
 interface SearchAPI {
   search: (query: string) => Promise<SearchResult>
   playVideo: (bvid: string) => void
@@ -35,6 +41,7 @@ interface SearchAPI {
   setVolume: (volume: number) => void
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
+  onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
 }
 
 interface Window {

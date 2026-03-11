@@ -33,6 +33,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentVideo.value = video
     isLoading.value = true
     isPlaying.value = false
+    currentTime.value = 0
+    duration.value = 0
     
     if (videoList) {
       playlist.value = videoList
@@ -166,6 +168,16 @@ export const usePlayerStore = defineStore('player', () => {
     return unsubscribe
   }
 
+  function setProgressListener() {
+    const unsubscribe = window.electronAPI.search.onPlayerProgress((progress: PlayerProgress) => {
+      currentTime.value = progress.currentTime
+      duration.value = progress.duration || 0
+      isPlaying.value = !progress.paused
+    })
+    
+    return unsubscribe
+  }
+
   return {
     currentVideo,
     isPlaying,
@@ -201,5 +213,6 @@ export const usePlayerStore = defineStore('player', () => {
     removeFromPlaylist,
     clearPlaylist,
     setReadyListener,
+    setProgressListener,
   }
 })

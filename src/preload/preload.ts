@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { SearchResult } from '../scripts/search-extractor'
 
+export interface PlayerProgress {
+  currentTime: number
+  duration: number
+  paused: boolean
+}
+
 export interface SearchAPI {
   search: (query: string) => Promise<SearchResult>
   playVideo: (bvid: string) => void
@@ -10,6 +16,7 @@ export interface SearchAPI {
   setVolume: (volume: number) => void
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
+  onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
 }
 
 const searchAPI: SearchAPI = {
@@ -40,6 +47,11 @@ const searchAPI: SearchAPI = {
     const handler = () => callback()
     ipcRenderer.on('player:ready', handler)
     return () => ipcRenderer.removeListener('player:ready', handler)
+  },
+  onPlayerProgress: (callback) => {
+    const handler = (_event: unknown, progress: PlayerProgress) => callback(progress)
+    ipcRenderer.on('player:progress', handler)
+    return () => ipcRenderer.removeListener('player:progress', handler)
   }
 }
 

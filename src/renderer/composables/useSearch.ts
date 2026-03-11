@@ -18,10 +18,12 @@ export function useSearch(options: UseSearchOptions = {}) {
 
   let searchUnsubscribe: (() => void) | null = null
   let playerUnsubscribe: (() => void) | null = null
+  let progressUnsubscribe: (() => void) | null = null
 
   function setupListeners() {
     searchUnsubscribe = searchStore.setResultListener()
     playerUnsubscribe = playerStore.setReadyListener()
+    progressUnsubscribe = playerStore.setProgressListener()
   }
 
   function cleanupListeners() {
@@ -32,6 +34,10 @@ export function useSearch(options: UseSearchOptions = {}) {
     if (playerUnsubscribe) {
       playerUnsubscribe()
       playerUnsubscribe = null
+    }
+    if (progressUnsubscribe) {
+      progressUnsubscribe()
+      progressUnsubscribe = null
     }
   }
 
