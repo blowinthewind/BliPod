@@ -9,6 +9,10 @@ export default [
       'dist/**',
       'node_modules/**',
       'src/legacy/**',
+      'src/renderer/dist/**',
+      'src/renderer/app.js',
+      'src/main/main.js',
+      'src/preload/preload.js',
       '*.d.ts',
       'src/renderer/auto-imports.d.ts',
       'src/renderer/components.d.ts'
@@ -23,15 +27,43 @@ export default [
     languageOptions: {
       parserOptions: {
         parser: tseslint.parser
+      },
+      globals: {
+        console: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        Image: 'readonly',
+        MouseEvent: 'readonly',
+        Event: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly'
       }
     }
   },
   {
     files: ['**/*.ts', '**/*.vue'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        Image: 'readonly',
+        MouseEvent: 'readonly',
+        Event: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLInputElement: 'readonly'
+      }
+    },
     rules: {
       'vue/multi-word-component-names': 'off',
+      'vue/attributes-order': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn'
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off'
     }
   }
 ]
