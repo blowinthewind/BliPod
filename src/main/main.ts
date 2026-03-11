@@ -73,6 +73,38 @@ function setupCSP() {
   })
 }
 
+function setupBilibiliImageReferer() {
+  const bilibiliSession = getBilibiliSession()
+  
+  bilibiliSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const url = details.url
+    if (url.includes('hdslb.com') || url.includes('bilivideo.com') || url.includes('biliapi.net')) {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          'Referer': 'https://www.bilibili.com/'
+        }
+      })
+    } else {
+      callback({ requestHeaders: details.requestHeaders })
+    }
+  })
+  
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const url = details.url
+    if (url.includes('hdslb.com') || url.includes('bilivideo.com')) {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          'Referer': 'https://www.bilibili.com/'
+        }
+      })
+    } else {
+      callback({ requestHeaders: details.requestHeaders })
+    }
+  })
+}
+
 async function createSearchView(): Promise<BrowserView> {
   if (searchView && mainWindow) {
     return searchView
@@ -206,6 +238,7 @@ function setupIPC() {
 
 app.whenReady().then(() => {
   setupCSP()
+  setupBilibiliImageReferer()
   setupIPC()
   createWindow()
 })
