@@ -177,22 +177,24 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 240px;
-  min-width: 180px;
+  width: 280px;
+  min-width: 200px;
 }
 
 .track-cover {
-  width: 56px;
-  height: 56px;
-  border-radius: 6px;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
   overflow: hidden;
   background: var(--bg-card);
+  flex-shrink: 0;
 }
 
 .track-cover img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--bg-card);
 }
 
 .cover-placeholder {
