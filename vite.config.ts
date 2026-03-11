@@ -12,10 +12,7 @@ export default defineConfig({
     UnoCSS(),
     electron([
       {
-        entry: resolve(__dirname, 'src/main/main.ts'),
-        onstart(options) {
-          options.startup()
-        },
+        entry: 'src/main/main.ts',
         vite: {
           build: {
             outDir: 'dist/main',
@@ -26,10 +23,7 @@ export default defineConfig({
         }
       },
       {
-        entry: resolve(__dirname, 'src/preload/preload.ts'),
-        onstart(options) {
-          options.reload()
-        },
+        entry: 'src/preload/preload.ts',
         vite: {
           build: {
             outDir: 'dist/preload',
@@ -54,11 +48,14 @@ export default defineConfig({
       '@': resolve(__dirname, 'src/renderer')
     }
   },
-  root: 'src/renderer',
-  base: './',
   build: {
-    outDir: resolve(__dirname, 'dist/renderer'),
-    emptyOutDir: true
+    outDir: 'dist/renderer',
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        index: resolve(__dirname, 'src/renderer/index.html')
+      }
+    }
   },
   server: {
     port: 5173
