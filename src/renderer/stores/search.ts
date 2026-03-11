@@ -78,7 +78,7 @@ export const useSearchStore = defineStore('search', () => {
     addToHistory(query.value)
 
     try {
-      const result = await window.electronAPI.search.search(query.value, 1)
+      const result = await window.electronAPI.search.search(query.value)
       
       if (result.success) {
         results.value = result.videos

@@ -167,6 +167,8 @@ async function createSearchView(): Promise<BrowserView> {
     console.log('[BliPod] Search page finished loading')
     
     try {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
       const script = getExtractorScript()
       if (!script) {
         throw new Error('Extractor script not found')
@@ -243,13 +245,19 @@ async function createPlayerView(): Promise<BrowserView> {
 }
 
 function setupIPC() {
-  ipcMain.handle('search:query', async (_event, query: string, page: number = 1): Promise<SearchResult> => {
+  ipcMain.handle('search:query', async (_event, query: string, page?: number): Promise<SearchResult> => {
     console.log('[BliPod] Search query received:', query, 'page:', page)
     
     try {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
-      const searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}`
+      let searchUrl: string
+      
+      if (page && page > 1) {
+        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}`
+      } else {
+        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
+      }
       
       console.log('[BliPod] Loading search URL:', searchUrl)
       await view.webContents.loadURL(searchUrl)
@@ -260,7 +268,7 @@ function setupIPC() {
         hasMore: false,
         extractedAt: Date.now(),
         pageUrl: searchUrl,
-        page
+        page: page || 1
       }
     } catch (error) {
       console.error('[BliPod] Search error:', error)
@@ -271,7 +279,7 @@ function setupIPC() {
         error: error instanceof Error ? error.message : 'Search request failed',
         extractedAt: Date.now(),
         pageUrl: '',
-        page
+        page: page || 1
       }
     }
   })
