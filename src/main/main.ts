@@ -47,10 +47,10 @@ function setupCSP() {
         'Content-Security-Policy': [
           "default-src 'self'; " +
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
-          "style-src 'self' 'unsafe-inline'; " +
+          "style-src 'self' 'unsafe-inline' https:; " +
           "img-src 'self' https: data: blob:; " +
           "connect-src 'self' https: ws:; " +
-          "font-src 'self' data:; " +
+          "font-src 'self' data: https:; " +
           "media-src 'self' https: blob:; " +
           "frame-src 'self' https://www.bilibili.com https://player.bilibili.com https://search.bilibili.com"
         ]
