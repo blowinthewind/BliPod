@@ -1,15 +1,29 @@
 import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
 import { join } from 'path'
+import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
+let extractorScript: string | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
+}
+
+function getExtractorScript(): string {
+  if (!extractorScript) {
+    try {
+      extractorScript = readFileSync(join(__dirname, '../scripts/inject-search.js'), 'utf-8')
+    } catch (error) {
+      console.error('[BliPod] Failed to read extractor script:', error)
+      extractorScript = ''
+    }
+  }
+  return extractorScript
 }
 
 function createWindow() {
@@ -66,11 +80,11 @@ async function createSearchView(): Promise<BrowserView> {
 
   searchView = new BrowserView({
     webPreferences: {
-      preload: join(__dirname, '../scripts/inject-search.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
-      session: getBilibiliSession()
+      session: getBilibiliSession(),
+      webSecurity: false
     }
   })
 
@@ -79,10 +93,22 @@ async function createSearchView(): Promise<BrowserView> {
   }
 
   searchView.webContents.on('did-finish-load', async () => {
+    console.log('[BliPod] Search page finished loading')
+    
     try {
+      const script = getExtractorScript()
+      if (!script) {
+        throw new Error('Extractor script not found')
+      }
+      
+      await searchView!.webContents.executeJavaScript(script)
+      console.log('[BliPod] Extractor script injected')
+      
       const result = await searchView!.webContents.executeJavaScript(
         'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
       ) as SearchResult | null
+
+      console.log('[BliPod] Extract result:', JSON.stringify(result, null, 2))
 
       if (result && mainWindow) {
         mainWindow.webContents.send('search:result', result)
@@ -130,11 +156,14 @@ async function createPlayerView(): Promise<BrowserView> {
 
 function setupIPC() {
   ipcMain.handle('search:query', async (_event, query: string): Promise<SearchResult> => {
+    console.log('[BliPod] Search query received:', query)
+    
     try {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
       const searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
       
+      console.log('[BliPod] Loading search URL:', searchUrl)
       await view.webContents.loadURL(searchUrl)
       
       return {
@@ -145,6 +174,7 @@ function setupIPC() {
         pageUrl: searchUrl
       }
     } catch (error) {
+      console.error('[BliPod] Search error:', error)
       return {
         success: false,
         videos: [],
