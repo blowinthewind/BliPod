@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import {
   Play,
   Pause,
@@ -12,22 +11,14 @@ import {
   ListMusic,
   Maximize2
 } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { usePlayerStore } from '../../stores/player'
 
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(180)
-const volume = ref(80)
-const isMuted = ref(false)
-const isRepeat = ref(false)
-const isShuffle = ref(false)
+const playerStore = usePlayerStore()
 
-const progress = computed(() => {
-  if (duration.value === 0) return 0
-  return (currentTime.value / duration.value) * 100
-})
-
-const formattedCurrentTime = computed(() => formatTime(currentTime.value))
-const formattedDuration = computed(() => formatTime(duration.value))
+const progress = computed(() => playerStore.progress)
+const formattedCurrentTime = computed(() => formatTime(playerStore.currentTime))
+const formattedDuration = computed(() => formatTime(playerStore.duration))
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -35,35 +26,16 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function togglePlay() {
-  isPlaying.value = !isPlaying.value
-}
-
-function toggleMute() {
-  isMuted.value = !isMuted.value
-}
-
-function toggleRepeat() {
-  isRepeat.value = !isRepeat.value
-}
-
-function toggleShuffle() {
-  isShuffle.value = !isShuffle.value
-}
-
 function seekTo(event: MouseEvent) {
   const target = event.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
   const percent = (event.clientX - rect.left) / rect.width
-  currentTime.value = percent * duration.value
+  playerStore.seekByPercent(percent * 100)
 }
 
 function handleVolumeChange(event: Event) {
   const target = event.target as HTMLInputElement
-  volume.value = parseInt(target.value)
-  if (volume.value > 0) {
-    isMuted.value = false
-  }
+  playerStore.setVolume(parseInt(target.value))
 }
 </script>
 
@@ -71,13 +43,25 @@ function handleVolumeChange(event: Event) {
   <footer class="player-bar">
     <div class="now-playing">
       <div class="track-cover">
-        <div class="cover-placeholder">🎵</div>
+        <img
+          v-if="playerStore.currentVideo?.cover"
+          :src="playerStore.currentVideo.cover"
+          :alt="playerStore.currentVideo.title"
+        />
+        <div v-else class="cover-placeholder">
+          <span v-if="playerStore.isLoading">⏳</span>
+          <span v-else>🎵</span>
+        </div>
       </div>
       <div class="track-info">
-        <span class="track-title">等待播放...</span>
-        <span class="track-artist">选择一个视频开始播放</span>
+        <span class="track-title" :title="playerStore.currentVideo?.title">
+          {{ playerStore.currentVideo?.title || 'Waiting to play...' }}
+        </span>
+        <span class="track-artist">
+          {{ playerStore.currentVideo?.author || 'Select a video to play' }}
+        </span>
       </div>
-      <button class="like-btn">
+      <button class="like-btn" v-if="playerStore.hasVideo">
         <span class="like-icon">♡</span>
       </button>
     </div>
@@ -86,27 +70,43 @@ function handleVolumeChange(event: Event) {
       <div class="control-buttons">
         <button
           class="control-btn small"
-          :class="{ active: isShuffle }"
-          @click="toggleShuffle"
-          title="随机播放"
+          :class="{ active: playerStore.isShuffle }"
+          @click="playerStore.toggleShuffle"
+          title="Shuffle"
         >
           <Shuffle :size="16" />
         </button>
-        <button class="control-btn" title="上一首">
+        <button
+          class="control-btn"
+          title="Previous"
+          @click="playerStore.previous"
+          :disabled="!playerStore.hasPrevious"
+        >
           <SkipBack :size="20" />
         </button>
-        <button class="control-btn play-btn" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'">
-          <Play v-if="!isPlaying" :size="22" />
+        <button
+          class="control-btn play-btn"
+          @click="playerStore.togglePlay"
+          :title="playerStore.isPlaying ? 'Pause' : 'Play'"
+          :disabled="!playerStore.hasVideo"
+        >
+          <Loader2 v-if="playerStore.isLoading" :size="22" class="animate-spin" />
+          <Play v-else-if="!playerStore.isPlaying" :size="22" />
           <Pause v-else :size="22" />
         </button>
-        <button class="control-btn" title="下一首">
+        <button
+          class="control-btn"
+          title="Next"
+          @click="playerStore.next"
+          :disabled="!playerStore.hasNext"
+        >
           <SkipForward :size="20" />
         </button>
         <button
           class="control-btn small"
-          :class="{ active: isRepeat }"
-          @click="toggleRepeat"
-          title="循环播放"
+          :class="{ active: playerStore.isRepeat }"
+          @click="playerStore.toggleRepeat"
+          title="Repeat"
         >
           <Repeat :size="16" />
         </button>
@@ -121,17 +121,21 @@ function handleVolumeChange(event: Event) {
             </div>
           </div>
         </div>
-        <span class="time">{{ formattedDuration }}</span>
+        <span class="time">{{ formattedDuration || '0:00' }}</span>
       </div>
     </div>
 
     <div class="extra-controls">
-      <button class="control-btn small" title="播放列表">
+      <button class="control-btn small" title="Playlist">
         <ListMusic :size="18" />
       </button>
       <div class="volume-container">
-        <button class="control-btn small" @click="toggleMute" :title="isMuted ? '取消静音' : '静音'">
-          <VolumeX v-if="isMuted" :size="18" />
+        <button
+          class="control-btn small"
+          @click="playerStore.toggleMute"
+          :title="playerStore.isMuted ? 'Unmute' : 'Mute'"
+        >
+          <VolumeX v-if="playerStore.isMuted" :size="18" />
           <Volume2 v-else :size="18" />
         </button>
         <div class="volume-slider">
@@ -139,17 +143,24 @@ function handleVolumeChange(event: Event) {
             type="range"
             min="0"
             max="100"
-            :value="isMuted ? 0 : volume"
+            :value="playerStore.isMuted ? 0 : playerStore.volume"
             @input="handleVolumeChange"
           />
         </div>
       </div>
-      <button class="control-btn small" title="全屏">
+      <button class="control-btn small" title="Fullscreen">
         <Maximize2 :size="18" />
       </button>
     </div>
   </footer>
 </template>
+
+<script lang="ts">
+import { Loader2 } from 'lucide-vue-next'
+export default {
+  components: { Loader2 }
+}
+</script>
 
 <style scoped>
 .player-bar {
@@ -176,6 +187,12 @@ function handleVolumeChange(event: Event) {
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg-card);
+}
+
+.track-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cover-placeholder {
@@ -260,8 +277,13 @@ function handleVolumeChange(event: Event) {
   transition: all 0.2s;
 }
 
-.control-btn:hover {
+.control-btn:hover:not(:disabled) {
   color: var(--accent);
+}
+
+.control-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .control-btn.small {
@@ -270,7 +292,7 @@ function handleVolumeChange(event: Event) {
   color: var(--text-secondary);
 }
 
-.control-btn.small:hover {
+.control-btn.small:hover:not(:disabled) {
   color: var(--text-primary);
 }
 
@@ -290,10 +312,19 @@ function handleVolumeChange(event: Event) {
   color: var(--bg-primary) !important;
 }
 
-.play-btn:hover {
+.play-btn:hover:not(:disabled) {
   transform: scale(1.05);
   background: var(--text-primary) !important;
   color: var(--bg-primary) !important;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .progress-container {
