@@ -195,7 +195,9 @@ async function createSearchView(): Promise<BrowserView> {
           hasMore: false,
           error: error instanceof Error ? error.message : 'Failed to extract search results',
           extractedAt: Date.now(),
-          pageUrl: ''
+          pageUrl: '',
+          currentPage: 1,
+          nextOffset: null,
         } as SearchResult)
       }
     }
@@ -245,16 +247,16 @@ async function createPlayerView(): Promise<BrowserView> {
 }
 
 function setupIPC() {
-  ipcMain.handle('search:query', async (_event, query: string, page?: number): Promise<SearchResult> => {
-    console.log('[BliPod] Search query received:', query, 'page:', page)
+  ipcMain.handle('search:query', async (_event, query: string, offset?: number): Promise<SearchResult> => {
+    console.log('[BliPod] Search query received:', query, 'offset:', offset)
     
     try {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
       let searchUrl: string
       
-      if (page && page > 1) {
-        const offset = (page - 1) * 20
+      if (offset && offset > 0) {
+        const page = Math.floor(offset / 20) + 1
         searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
       } else {
         searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
@@ -269,7 +271,8 @@ function setupIPC() {
         hasMore: false,
         extractedAt: Date.now(),
         pageUrl: searchUrl,
-        page: page || 1
+        currentPage: 1,
+        nextOffset: null,
       }
     } catch (error) {
       console.error('[BliPod] Search error:', error)
@@ -280,7 +283,8 @@ function setupIPC() {
         error: error instanceof Error ? error.message : 'Search request failed',
         extractedAt: Date.now(),
         pageUrl: '',
-        page: page || 1
+        currentPage: 1,
+        nextOffset: null,
       }
     }
   })

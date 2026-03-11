@@ -9,6 +9,7 @@ export const useSearchStore = defineStore('search', () => {
   const error = ref<string | null>(null)
   const hasMore = ref(false)
   const currentPage = ref(1)
+  const nextOffset = ref<number | null>(null)
   const lastSearchTime = ref<number | null>(null)
   const searchHistory = ref<string[]>([])
   const maxHistorySize = 20
@@ -74,6 +75,7 @@ export const useSearchStore = defineStore('search', () => {
     error.value = null
     results.value = []
     currentPage.value = 1
+    nextOffset.value = null
     
     addToHistory(query.value)
 
@@ -84,6 +86,8 @@ export const useSearchStore = defineStore('search', () => {
         results.value = result.videos
         hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
+        currentPage.value = result.currentPage
+        nextOffset.value = result.nextOffset
       } else {
         error.value = result.error || 'Search failed'
       }
@@ -95,20 +99,20 @@ export const useSearchStore = defineStore('search', () => {
   }
 
   async function loadMore(): Promise<void> {
-    if (isLoadingMore.value || !hasMore.value) return
+    if (isLoadingMore.value || !hasMore.value || nextOffset.value === null) return
     
     isLoadingMore.value = true
-    const nextPage = currentPage.value + 1
     
     try {
-      const result = await window.electronAPI.search.search(query.value, nextPage)
+      const result = await window.electronAPI.search.search(query.value, nextOffset.value)
       
       if (result.success) {
         const newVideos = result.videos.filter(
           (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
         )
         results.value = [...results.value, ...newVideos]
-        currentPage.value = nextPage
+        currentPage.value = result.currentPage
+        nextOffset.value = result.nextOffset
         hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
       } else {
@@ -127,6 +131,7 @@ export const useSearchStore = defineStore('search', () => {
     error.value = null
     hasMore.value = false
     currentPage.value = 1
+    nextOffset.value = null
     lastSearchTime.value = null
   }
 
@@ -142,6 +147,8 @@ export const useSearchStore = defineStore('search', () => {
           results.value = result.videos
           currentPage.value = 1
         }
+        currentPage.value = result.currentPage
+        nextOffset.value = result.nextOffset
         hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
       } else {
@@ -164,6 +171,7 @@ export const useSearchStore = defineStore('search', () => {
     error,
     hasMore,
     currentPage,
+    nextOffset,
     lastSearchTime,
     searchHistory,
     hasResults,

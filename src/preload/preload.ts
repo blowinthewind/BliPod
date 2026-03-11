@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { SearchResult } from '../scripts/search-extractor'
 
 export interface PlayerProgress {
   currentTime: number
@@ -7,8 +6,30 @@ export interface PlayerProgress {
   paused: boolean
 }
 
+export interface ExtractedVideo {
+  bvid: string
+  title: string
+  cover: string
+  author: string
+  authorLink: string
+  duration: string
+  playCount: string
+  videoLink: string
+}
+
+export interface SearchResult {
+  success: boolean
+  videos: ExtractedVideo[]
+  hasMore: boolean
+  error?: string
+  extractedAt: number
+  pageUrl: string
+  currentPage: number
+  nextOffset: number | null
+}
+
 export interface SearchAPI {
-  search: (query: string, page?: number) => Promise<SearchResult>
+  search: (query: string, offset?: number) => Promise<SearchResult>
   playVideo: (bvid: string) => void
   pauseVideo: () => void
   resumeVideo: () => void
@@ -20,8 +41,8 @@ export interface SearchAPI {
 }
 
 const searchAPI: SearchAPI = {
-  search: (query: string, page: number = 1) => {
-    return ipcRenderer.invoke('search:query', query, page)
+  search: (query: string, offset?: number) => {
+    return ipcRenderer.invoke('search:query', query, offset)
   },
   playVideo: (bvid: string) => {
     ipcRenderer.send('player:play', bvid)

@@ -26,7 +26,8 @@ export interface SearchResult {
   error?: string
   extractedAt: number
   pageUrl: string
-  page?: number
+  currentPage: number
+  nextOffset: number | null
 }
 
 function extractVideoFromCard(card: Element): ExtractedVideo | null {
@@ -83,6 +84,29 @@ function checkHasMore(): boolean {
   return scrollHeight > clientHeight
 }
 
+function extractPageInfo(): { currentPage: number; nextOffset: number | null } {
+  const url = new URL(window.location.href)
+  const params = url.searchParams
+  
+  const pageStr = params.get('page')
+  const oStr = params.get('o')
+  
+  const currentPage = pageStr ? parseInt(pageStr, 10) : 1
+  const currentOffset = oStr ? parseInt(oStr, 10) : 0
+  
+  const videoCount = document.querySelectorAll('.bili-video-card, .video-list .video-item, [data-mod="search_list"] .video-item').length
+  
+  let nextOffset: number | null = null
+  
+  if (currentPage === 1 && currentOffset === 0) {
+    nextOffset = videoCount > 0 ? videoCount : null
+  } else if (currentOffset > 0) {
+    nextOffset = currentOffset + videoCount
+  }
+  
+  return { currentPage, nextOffset }
+}
+
 export function extractSearchResults(): SearchResult {
   const pageUrl = window.location.href
   
@@ -94,6 +118,8 @@ export function extractSearchResults(): SearchResult {
         hasMore: false,
         extractedAt: Date.now(),
         pageUrl,
+        currentPage: 1,
+        nextOffset: null,
       }
     }
     
@@ -116,12 +142,16 @@ export function extractSearchResults(): SearchResult {
       }
     }
     
+    const { currentPage, nextOffset } = extractPageInfo()
+    
     return {
       success: true,
       videos,
       hasMore: checkHasMore(),
       extractedAt: Date.now(),
       pageUrl,
+      currentPage,
+      nextOffset,
     }
   } catch (error) {
     return {
@@ -131,6 +161,8 @@ export function extractSearchResults(): SearchResult {
       error: error instanceof Error ? error.message : '未知错误',
       extractedAt: Date.now(),
       pageUrl,
+      currentPage: 1,
+      nextOffset: null,
     }
   }
 }
