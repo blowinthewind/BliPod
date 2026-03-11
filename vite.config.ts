@@ -33,6 +33,19 @@ export default defineConfig({
             }
           }
         }
+      },
+      {
+        entry: resolve(__dirname, 'src/scripts/inject-search.ts'),
+        vite: {
+          build: {
+            outDir: resolve(__dirname, 'dist/scripts'),
+            rollupOptions: {
+              output: {
+                entryFileNames: 'inject-search.js'
+              }
+            }
+          }
+        }
       }
     ]),
     autoImport({
