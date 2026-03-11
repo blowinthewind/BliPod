@@ -177,14 +177,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 280px;
-  min-width: 200px;
+  width: 320px;
+  min-width: 240px;
 }
 
 .track-cover {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 100px;
+  height: 56px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--bg-card);
   flex-shrink: 0;
