@@ -30,12 +30,6 @@ export interface SearchResult {
   nextOffset: number | null
 }
 
-export interface ClickNextPageResult {
-  success: boolean
-  hasMore: boolean
-  error?: string
-}
-
 function extractVideoFromCard(card: Element): ExtractedVideo | null {
   const titleResult = extractWithFallback(card, BILIBILI_SELECTORS.title, extractText)
   const coverResult = extractWithFallback(card, BILIBILI_SELECTORS.cover, extractSrc)
@@ -118,6 +112,29 @@ function extractPageInfo(): { currentPage: number; nextOffset: number | null } {
   return { currentPage, nextOffset }
 }
 
+function extractVideos(): ExtractedVideo[] {
+  const videos: ExtractedVideo[] = []
+  
+  for (const config of BILIBILI_SELECTORS.container) {
+    const cards = document.querySelectorAll(config.selector)
+    
+    if (cards.length > 0) {
+      cards.forEach(card => {
+        const video = extractVideoFromCard(card)
+        if (video && !videos.find(v => v.bvid === video.bvid)) {
+          videos.push(video)
+        }
+      })
+      
+      if (videos.length > 0) {
+        break
+      }
+    }
+  }
+  
+  return videos
+}
+
 export function extractSearchResults(): SearchResult {
   const pageUrl = window.location.href
   
@@ -134,25 +151,7 @@ export function extractSearchResults(): SearchResult {
       }
     }
     
-    const videos: ExtractedVideo[] = []
-    
-    for (const config of BILIBILI_SELECTORS.container) {
-      const cards = document.querySelectorAll(config.selector)
-      
-      if (cards.length > 0) {
-        cards.forEach(card => {
-          const video = extractVideoFromCard(card)
-          if (video && !videos.find(v => v.bvid === video.bvid)) {
-            videos.push(video)
-          }
-        })
-        
-        if (videos.length > 0) {
-          break
-        }
-      }
-    }
-    
+    const videos = extractVideos()
     const { currentPage, nextOffset } = extractPageInfo()
     
     return {
@@ -178,41 +177,92 @@ export function extractSearchResults(): SearchResult {
   }
 }
 
-export function clickNextPageButton(): ClickNextPageResult {
+export async function clickNextPageAndExtract(): Promise<SearchResult> {
+  const pageUrl = window.location.href
+  
   try {
+    let btn: HTMLElement | null = null
+    
     for (const config of SEARCH_PAGE_SELECTORS.nextPageButton) {
-      const btn = document.querySelector(config.selector) as HTMLElement
-      if (btn && !btn.classList.contains('disabled')) {
-        btn.click()
-        return {
-          success: true,
-          hasMore: true,
-        }
+      const el = document.querySelector(config.selector) as HTMLElement
+      if (el && !el.classList.contains('disabled')) {
+        btn = el
+        break
       }
     }
     
+    if (!btn) {
+      return {
+        success: false,
+        videos: [],
+        hasMore: false,
+        error: 'No next page button found or button is disabled',
+        extractedAt: Date.now(),
+        pageUrl,
+        currentPage: 1,
+        nextOffset: null,
+      }
+    }
+    
+    const prevVideoCount = extractVideos().length
+    const prevFirstBvid = extractVideos()[0]?.bvid || ''
+    
+    btn.click()
+    
+    await new Promise<void>((resolve) => {
+      let attempts = 0
+      const maxAttempts = 50
+      
+      const checkInterval = setInterval(() => {
+        attempts++
+        
+        const newVideos = extractVideos()
+        const newFirstBvid = newVideos[0]?.bvid || ''
+        const newVideoCount = newVideos.length
+        
+        if (newFirstBvid !== prevFirstBvid || newVideoCount > prevVideoCount || attempts >= maxAttempts) {
+          clearInterval(checkInterval)
+          resolve()
+        }
+      }, 200)
+    })
+    
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const videos = extractVideos()
+    const { currentPage, nextOffset } = extractPageInfo()
+    
     return {
-      success: false,
-      hasMore: false,
-      error: 'No next page button found or button is disabled',
+      success: true,
+      videos,
+      hasMore: checkHasMore(),
+      extractedAt: Date.now(),
+      pageUrl: window.location.href,
+      currentPage,
+      nextOffset,
     }
   } catch (error) {
     return {
       success: false,
+      videos: [],
       hasMore: false,
-      error: error instanceof Error ? error.message : 'Failed to click next page button',
+      error: error instanceof Error ? error.message : 'Failed to click next page',
+      extractedAt: Date.now(),
+      pageUrl,
+      currentPage: 1,
+      nextOffset: null,
     }
   }
 }
 
 export function injectSearchExtractor(): void {
   window.__BILI_EXTRACT_SEARCH__ = extractSearchResults
-  window.__BILI_CLICK_NEXT_PAGE__ = clickNextPageButton
+  window.__BILI_CLICK_NEXT_PAGE__ = clickNextPageAndExtract
 }
 
 declare global {
   interface Window {
     __BILI_EXTRACT_SEARCH__?: typeof extractSearchResults
-    __BILI_CLICK_NEXT_PAGE__?: typeof clickNextPageButton
+    __BILI_CLICK_NEXT_PAGE__?: typeof clickNextPageAndExtract
   }
 }

@@ -339,25 +339,14 @@ function setupIPC() {
         }
       }
       
-      const clickResult = await searchView.webContents.executeJavaScript(
-        'window.__BILI_CLICK_NEXT_PAGE__ ? window.__BILI_CLICK_NEXT_PAGE__() : null'
+      const result = await searchView.webContents.executeJavaScript(
+        'window.__BILI_CLICK_NEXT_PAGE__()'
       )
       
-      console.log('[BliPod] Click result:', JSON.stringify(clickResult, null, 2))
+      console.log('[BliPod] Click next page result:', JSON.stringify(result, null, 2))
       
-      if (!clickResult || !clickResult.success) {
-        if (mainWindow) {
-          mainWindow.webContents.send('search:result', {
-            success: false,
-            videos: [],
-            hasMore: false,
-            error: clickResult?.error || 'Failed to click next page',
-            extractedAt: Date.now(),
-            pageUrl: '',
-            currentPage: 1,
-            nextOffset: null,
-          } as SearchResult)
-        }
+      if (mainWindow) {
+        mainWindow.webContents.send('search:result', result)
       }
     } catch (error) {
       console.error('[BliPod] Failed to click next page:', error)
