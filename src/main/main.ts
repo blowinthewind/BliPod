@@ -6,6 +6,12 @@ let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
 
+const BILIBILI_SESSION = 'persist:bilibili'
+
+function getBilibiliSession() {
+  return session.fromPartition(BILIBILI_SESSION)
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -63,7 +69,8 @@ async function createSearchView(): Promise<BrowserView> {
       preload: join(__dirname, '../scripts/inject-search.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false
+      sandbox: false,
+      session: getBilibiliSession()
     }
   })
 
@@ -87,7 +94,7 @@ async function createSearchView(): Promise<BrowserView> {
           success: false,
           videos: [],
           hasMore: false,
-          error: error instanceof Error ? error.message : '提取搜索结果失败',
+          error: error instanceof Error ? error.message : 'Failed to extract search results',
           extractedAt: Date.now(),
           pageUrl: ''
         } as SearchResult)
@@ -107,7 +114,8 @@ async function createPlayerView(): Promise<BrowserView> {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true
+      sandbox: true,
+      session: getBilibiliSession()
     }
   })
 
@@ -141,7 +149,7 @@ function setupIPC() {
         success: false,
         videos: [],
         hasMore: false,
-        error: error instanceof Error ? error.message : '搜索请求失败',
+        error: error instanceof Error ? error.message : 'Search request failed',
         extractedAt: Date.now(),
         pageUrl: ''
       }
