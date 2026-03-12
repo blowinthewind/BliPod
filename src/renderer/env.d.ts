@@ -15,6 +15,7 @@ interface SearchResult {
   pageUrl: string
   currentPage: number
   nextOffset: number | null
+  uploader?: UploaderInfo
 }
 
 interface ExtractedVideo {
@@ -26,6 +27,12 @@ interface ExtractedVideo {
   duration: string
   playCount: string
   videoLink: string
+}
+
+interface UploaderInfo {
+  name: string
+  avatar: string
+  mid: string
 }
 
 interface PlayerProgress {

@@ -11,7 +11,7 @@ const playerStore = usePlayerStore()
 const videos = ref<ExtractedVideo[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-const uploaderName = ref('')
+const uploaderInfo = ref<UploaderInfo | null>(null)
 const hasMore = ref(false)
 const isLoadingMore = ref(false)
 const currentPage = ref(1)
@@ -58,6 +58,11 @@ function setupListeners() {
         videos.value = result.videos
         currentPage.value = 1
       }
+      
+      if (result.uploader && !uploaderInfo.value) {
+        uploaderInfo.value = result.uploader
+      }
+      
       currentPage.value = result.currentPage
       hasMore.value = result.videos.length >= 20
     } else {
@@ -78,13 +83,22 @@ async function loadUploaderVideos() {
   error.value = null
   videos.value = []
   currentPage.value = 1
+  uploaderInfo.value = null
   
   try {
     const result = await window.electronAPI.search.loadUploaderVideos(mid.value)
     
     if (result.success) {
       videos.value = result.videos
-      uploaderName.value = result.videos[0]?.author || `UP主 ${mid.value}`
+      if (result.uploader) {
+        uploaderInfo.value = result.uploader
+      } else if (result.videos.length > 0) {
+        uploaderInfo.value = {
+          name: result.videos[0].author,
+          avatar: '',
+          mid: mid.value,
+        }
+      }
       hasMore.value = result.videos.length >= 20
     } else {
       error.value = result.error || 'Failed to load videos'
@@ -122,9 +136,16 @@ function goBack() {
         <ArrowLeft :size="20" />
       </button>
       <div class="uploader-info">
-        <User :size="24" class="uploader-icon" />
+        <div class="uploader-avatar">
+          <img 
+            v-if="uploaderInfo?.avatar" 
+            :src="uploaderInfo.avatar" 
+            :alt="uploaderInfo.name"
+          />
+          <User v-else :size="24" class="uploader-icon" />
+        </div>
         <div class="uploader-text">
-          <h1 class="uploader-name">{{ uploaderName || 'Loading...' }}</h1>
+          <h1 class="uploader-name">{{ uploaderInfo?.name || 'Loading...' }}</h1>
           <p class="uploader-id">MID: {{ mid }}</p>
         </div>
       </div>
@@ -236,6 +257,24 @@ function goBack() {
   align-items: center;
   gap: 12px;
   flex: 1;
+}
+
+.uploader-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.uploader-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .uploader-icon {

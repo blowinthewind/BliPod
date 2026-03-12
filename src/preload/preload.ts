@@ -17,6 +17,12 @@ export interface ExtractedVideo {
   videoLink: string
 }
 
+export interface UploaderInfo {
+  name: string
+  avatar: string
+  mid: string
+}
+
 export interface SearchResult {
   success: boolean
   videos: ExtractedVideo[]
@@ -26,6 +32,7 @@ export interface SearchResult {
   pageUrl: string
   currentPage: number
   nextOffset: number | null
+  uploader?: UploaderInfo
 }
 
 export interface SearchAPI {

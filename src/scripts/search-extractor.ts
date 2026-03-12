@@ -19,6 +19,12 @@ export interface ExtractedVideo {
   videoLink: string
 }
 
+export interface UploaderInfo {
+  name: string
+  avatar: string
+  mid: string
+}
+
 export interface SearchResult {
   success: boolean
   videos: ExtractedVideo[]
@@ -28,6 +34,7 @@ export interface SearchResult {
   pageUrl: string
   currentPage: number
   nextOffset: number | null
+  uploader?: UploaderInfo
 }
 
 function extractVideoFromCard(card: Element): ExtractedVideo | null {
@@ -135,6 +142,56 @@ function extractVideos(): ExtractedVideo[] {
   return videos
 }
 
+function extractUploaderInfo(): UploaderInfo | undefined {
+  const url = new URL(window.location.href)
+  const pathParts = url.pathname.split('/')
+  const mid = pathParts[1] || ''
+  
+  const nameSelectors = [
+    '#h-name',
+    '.h-name',
+    '.nickname',
+    '.username',
+    '[class*="up-name"]',
+    '[class*="uploader-name"]',
+  ]
+  
+  const avatarSelectors = [
+    '.h-avatar img',
+    '.avatar img',
+    '.up-avatar img',
+    '[class*="avatar"] img',
+  ]
+  
+  let name = ''
+  for (const selector of nameSelectors) {
+    const el = document.querySelector(selector)
+    if (el && el.textContent) {
+      name = el.textContent.trim()
+      break
+    }
+  }
+  
+  let avatar = ''
+  for (const selector of avatarSelectors) {
+    const img = document.querySelector(selector) as HTMLImageElement
+    if (img && img.src) {
+      avatar = img.src
+      break
+    }
+  }
+  
+  if (name) {
+    return {
+      name,
+      avatar,
+      mid,
+    }
+  }
+  
+  return undefined
+}
+
 export function extractSearchResults(): SearchResult {
   const pageUrl = window.location.href
   
@@ -153,6 +210,18 @@ export function extractSearchResults(): SearchResult {
     
     const videos = extractVideos()
     const { currentPage, nextOffset } = extractPageInfo()
+    const uploader = extractUploaderInfo()
+    
+    if (uploader && videos.length > 0) {
+      videos.forEach(video => {
+        if (!video.author || video.author === '未知UP主') {
+          video.author = uploader.name
+        }
+        if (!video.authorLink) {
+          video.authorLink = `https://space.bilibili.com/${uploader.mid}`
+        }
+      })
+    }
     
     return {
       success: true,
@@ -162,6 +231,7 @@ export function extractSearchResults(): SearchResult {
       pageUrl,
       currentPage,
       nextOffset,
+      uploader,
     }
   } catch (error) {
     return {
