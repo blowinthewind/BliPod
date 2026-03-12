@@ -257,9 +257,9 @@ function setupIPC() {
       
       if (offset && offset > 0) {
         const page = Math.floor(offset / 20) + 1
-        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
+        searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
       } else {
-        searchUrl = `https://search.bilibili.com/all?keyword=${encodedQuery}&search_source=1`
+        searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1`
       }
       
       console.log('[BliPod] Loading search URL:', searchUrl)
