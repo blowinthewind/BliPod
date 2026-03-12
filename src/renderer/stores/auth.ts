@@ -80,7 +80,12 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggingIn.value = false
   }
 
-  function cancelLogin() {
+  async function cancelLogin() {
+    try {
+      await window.electronAPI.auth.cancelLogin()
+    } catch (e) {
+      console.error('Failed to cancel login:', e)
+    }
     isLoggingIn.value = false
     qrCodeUrl.value = null
     qrCodeDataUrl.value = null

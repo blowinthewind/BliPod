@@ -66,6 +66,7 @@ export interface SearchAPI {
 export interface AuthAPI {
   checkLogin: () => Promise<BiliAuthStatus>
   startLogin: () => Promise<void>
+  cancelLogin: () => Promise<void>
   logout: () => Promise<void>
   onQrCode: (callback: (url: string) => void) => () => void
   onLoginSuccess: (callback: (user: UserInfo) => void) => () => void
@@ -120,6 +121,9 @@ const authAPI: AuthAPI = {
   },
   startLogin: () => {
     return ipcRenderer.invoke('auth:startLogin')
+  },
+  cancelLogin: () => {
+    return ipcRenderer.invoke('auth:cancelLogin')
   },
   logout: () => {
     return ipcRenderer.invoke('auth:logout')

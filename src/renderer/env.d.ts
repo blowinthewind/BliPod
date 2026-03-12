@@ -72,6 +72,7 @@ interface SearchAPI {
 interface AuthAPI {
   checkLogin: () => Promise<BiliAuthStatus>
   startLogin: () => Promise<void>
+  cancelLogin: () => Promise<void>
   logout: () => Promise<void>
   onQrCode: (callback: (url: string) => void) => () => void
   onLoginSuccess: (callback: (user: UserInfo) => void) => () => void

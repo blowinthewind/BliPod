@@ -703,6 +703,11 @@ function setupIPC() {
     await startQrLogin()
   })
 
+  ipcMain.handle('auth:cancelLogin', async () => {
+    stopQrPoll()
+    console.log('[BliPod] Login cancelled, QR poll stopped')
+  })
+
   ipcMain.handle('auth:logout', async () => {
     await logout()
   })
