@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNavigationStore, type NavItem } from '@/stores/navigation'
 import { useAuthStore } from '@/stores/auth'
@@ -19,6 +19,8 @@ import {
 const router = useRouter()
 const navStore = useNavigationStore()
 const authStore = useAuthStore()
+
+const showLogoutConfirm = ref(false)
 
 interface NavMenuItem {
   id: NavItem
@@ -49,10 +51,19 @@ onUnmounted(() => {
 
 function handleUserClick() {
   if (authStore.isLoggedIn) {
-    authStore.logout()
+    showLogoutConfirm.value = true
   } else {
     router.push({ name: 'settings' })
   }
+}
+
+function confirmLogout() {
+  authStore.logout()
+  showLogoutConfirm.value = false
+}
+
+function cancelLogout() {
+  showLogoutConfirm.value = false
 }
 </script>
 
@@ -111,16 +122,29 @@ function handleUserClick() {
           </div>
         </div>
         <div class="user-details">
-          <span class="user-name">
-            {{ authStore.isLoggedIn && authStore.userInfo ? authStore.userInfo.name : 'Not logged in' }}
-          </span>
+          <div class="user-name-row">
+            <span class="user-name">
+              {{ authStore.isLoggedIn && authStore.userInfo ? authStore.userInfo.name : 'Not logged in' }}
+            </span>
+            <LogOut 
+              v-if="authStore.isLoggedIn" 
+              :size="16" 
+              class="logout-icon" 
+            />
+          </div>
           <span class="user-status">
-            <template v-if="authStore.isLoggedIn && authStore.userInfo">
-              Lv.{{ authStore.userInfo.level }}
-              <LogOut :size="10" class="logout-icon" />
-            </template>
-            <template v-else>Click to login</template>
+            {{ authStore.isLoggedIn ? 'Click to logout' : 'Click to login' }}
           </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="logout-confirm-overlay" v-if="showLogoutConfirm" @click.self="cancelLogout">
+      <div class="logout-confirm-dialog">
+        <p class="confirm-text">Confirm logout?</p>
+        <div class="confirm-actions">
+          <button class="confirm-btn cancel" @click="cancelLogout">Cancel</button>
+          <button class="confirm-btn logout" @click="confirmLogout">Logout</button>
         </div>
       </div>
     </div>
@@ -291,6 +315,7 @@ function handleUserClick() {
   border-radius: 50%;
   overflow: hidden;
   background: var(--accent);
+  flex-shrink: 0;
 }
 
 .avatar-img {
@@ -316,6 +341,12 @@ function handleUserClick() {
   flex: 1;
 }
 
+.user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .user-name {
   font-size: 13px;
   font-weight: 600;
@@ -325,10 +356,16 @@ function handleUserClick() {
   text-overflow: ellipsis;
 }
 
+.logout-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.user-info:hover .logout-icon {
+  color: var(--error);
+}
+
 .user-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -336,8 +373,69 @@ function handleUserClick() {
   text-overflow: ellipsis;
 }
 
-.logout-icon {
-  opacity: 0.6;
+.logout-confirm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+.logout-confirm-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin: 16px;
+}
+
+.confirm-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-btn.cancel {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.confirm-btn.cancel:hover {
+  background: var(--bg-primary);
+}
+
+.confirm-btn.logout {
+  background: var(--error);
+  color: white;
+}
+
+.confirm-btn.logout:hover {
+  opacity: 0.9;
 }
 
 .sidebar-overlay {
