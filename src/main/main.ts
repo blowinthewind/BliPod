@@ -305,11 +305,17 @@ async function checkLoginStatus(): Promise<BiliAuthStatus> {
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
   
   console.log('[BliPod] checkLoginStatus: found', cookies.length, 'cookies')
+  console.log('[BliPod] checkLoginStatus: cookie names:', cookies.map(c => c.name).join(', '))
   
   const sessdata = cookies.find(c => c.name === 'SESSDATA')
   
   if (!sessdata) {
     console.log('[BliPod] checkLoginStatus: no SESSDATA cookie found')
+    
+    const allCookies = await bilibiliSession.cookies.get({})
+    console.log('[BliPod] checkLoginStatus: all cookies in session:', allCookies.length)
+    console.log('[BliPod] checkLoginStatus: all cookie names:', allCookies.map(c => c.name).join(', '))
+    
     return { isLoggedIn: false, userInfo: null }
   }
   
@@ -392,6 +398,8 @@ async function startQrLogin() {
         if (statusResult.data?.code === 0) {
           stopQrPoll()
           
+          console.log('[BliPod] Login success! URL:', statusResult.data.url?.substring(0, 100) + '...')
+          
           const url = new URL(statusResult.data.url)
           const cookieParams = url.searchParams
           
@@ -402,12 +410,23 @@ async function startQrLogin() {
           const sessdata = cookieParams.get('SESSDATA')
           const biliJct = cookieParams.get('bili_jct')
           
+          console.log('[BliPod] Cookie params from URL:')
+          console.log('  DedeUserID:', dedeuserid ? 'present' : 'missing')
+          console.log('  DedeUserID__ckMd5:', dedeuseridCkMd5 ? 'present' : 'missing')
+          console.log('  SESSDATA:', sessdata ? 'present (length: ' + sessdata.length + ')' : 'missing')
+          console.log('  bili_jct:', biliJct ? 'present' : 'missing')
+          
           if (sessdata) {
+            const expirationDate = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60
+            
             const cookieOptions = {
               url: 'https://www.bilibili.com',
               domain: '.bilibili.com',
-              path: '/'
+              path: '/',
+              expirationDate
             }
+            
+            console.log('[BliPod] Setting cookies with expiration:', new Date(expirationDate * 1000).toISOString())
             
             if (dedeuserid) {
               await bilibiliSession.cookies.set({
@@ -415,6 +434,7 @@ async function startQrLogin() {
                 name: 'DedeUserID',
                 value: dedeuserid
               })
+              console.log('[BliPod] Set DedeUserID cookie')
             }
             
             if (dedeuseridCkMd5) {
@@ -423,6 +443,7 @@ async function startQrLogin() {
                 name: 'DedeUserID__ckMd5',
                 value: dedeuseridCkMd5
               })
+              console.log('[BliPod] Set DedeUserID__ckMd5 cookie')
             }
             
             await bilibiliSession.cookies.set({
@@ -432,6 +453,7 @@ async function startQrLogin() {
               secure: true,
               httpOnly: true
             })
+            console.log('[BliPod] Set SESSDATA cookie')
             
             if (biliJct) {
               await bilibiliSession.cookies.set({
@@ -439,7 +461,11 @@ async function startQrLogin() {
                 name: 'bili_jct',
                 value: biliJct
               })
+              console.log('[BliPod] Set bili_jct cookie')
             }
+            
+            const savedCookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
+            console.log('[BliPod] Cookies after saving:', savedCookies.map(c => c.name).join(', '))
             
             const userInfo = await fetchUserInfo()
             
