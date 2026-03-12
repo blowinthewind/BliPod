@@ -7,10 +7,9 @@ import type { UserInfo, BiliAuthStatus } from '../preload/preload'
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
-let loginView: BrowserView | null = null
 let extractorScript: string | null = null
 let progressInterval: NodeJS.Timeout | null = null
-let loginPollInterval: NodeJS.Timeout | null = null
+let qrPollInterval: NodeJS.Timeout | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
 
@@ -67,10 +66,10 @@ function stopProgressTracking() {
   }
 }
 
-function stopLoginPoll() {
-  if (loginPollInterval) {
-    clearInterval(loginPollInterval)
-    loginPollInterval = null
+function stopQrPoll() {
+  if (qrPollInterval) {
+    clearInterval(qrPollInterval)
+    qrPollInterval = null
   }
 }
 
@@ -98,9 +97,8 @@ function createWindow() {
     mainWindow = null
     searchView = null
     playerView = null
-    loginView = null
     stopProgressTracking()
-    stopLoginPoll()
+    stopQrPoll()
   })
 }
 
@@ -260,9 +258,18 @@ async function createPlayerView(): Promise<BrowserView> {
 
 async function fetchUserInfo(): Promise<UserInfo | null> {
   try {
+    const bilibiliSession = getBilibiliSession()
+    const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
+    
+    const sessdata = cookies.find(c => c.name === 'SESSDATA')
+    if (!sessdata) {
+      return null
+    }
+    
     const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
-        'Referer': 'https://www.bilibili.com/'
+        'Referer': 'https://www.bilibili.com/',
+        'Cookie': `SESSDATA=${sessdata.value}`
       }
     })
     
@@ -304,99 +311,146 @@ async function checkLoginStatus(): Promise<BiliAuthStatus> {
   }
 }
 
-async function createLoginView(): Promise<BrowserView> {
-  if (loginView) {
-    return loginView
+interface QrCodeResult {
+  code: number
+  data: {
+    url: string
+    qrcode_key: string
   }
+}
 
-  loginView = new BrowserView({
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: false,
-      session: getBilibiliSession(),
-      webSecurity: false
-    }
-  })
-
-  return loginView
+interface QrCodeStatus {
+  code: number
+  data: {
+    code: number
+    message: string
+    url: string
+    refresh_token: string
+    timestamp: number
+  }
 }
 
 async function startQrLogin() {
-  stopLoginPoll()
+  stopQrPoll()
   
   try {
-    const view = await createLoginView()
-    
-    await view.webContents.loadURL('https://passport.bilibili.com/qrcode/h5-login')
-    
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    const qrUrl = await view.webContents.executeJavaScript(`
-      (function() {
-        const img = document.querySelector('img.qrcode-img') || 
-                    document.querySelector('img[src*="qrcode"]') ||
-                    document.querySelector('.qrcode-box img');
-        return img ? img.src : null;
-      })()
-    `)
-    
-    if (qrUrl && mainWindow) {
-      mainWindow.webContents.send('auth:qrcode', qrUrl)
-    } else {
-      const pageUrl = view.webContents.getURL()
-      if (mainWindow) {
-        mainWindow.webContents.send('auth:qrcode', pageUrl)
+    const response = await fetch('https://passport.bilibili.com/x/passport-login/web/qrcode/generate', {
+      headers: {
+        'Referer': 'https://passport.bilibili.com/',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
+    })
+    
+    const result: QrCodeResult = await response.json()
+    
+    if (result.code !== 0 || !result.data?.url) {
+      throw new Error('Failed to generate QR code')
     }
     
-    loginPollInterval = setInterval(async () => {
-      if (!loginView || !mainWindow) {
-        stopLoginPoll()
+    const qrUrl = result.data.url
+    const qrcodeKey = result.data.qrcode_key
+    
+    if (mainWindow) {
+      mainWindow.webContents.send('auth:qrcode', qrUrl)
+    }
+    
+    qrPollInterval = setInterval(async () => {
+      if (!mainWindow) {
+        stopQrPoll()
         return
       }
       
       try {
-        const currentUrl = loginView.webContents.getURL()
-        
-        if (currentUrl.includes('bilibili.com') && !currentUrl.includes('passport')) {
-          stopLoginPoll()
-          
-          const userInfo = await fetchUserInfo()
-          
-          if (userInfo && mainWindow) {
-            mainWindow.webContents.send('auth:success', userInfo)
-          } else if (mainWindow) {
-            mainWindow.webContents.send('auth:error', 'Login verification failed')
+        const statusResponse = await fetch(
+          `https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcodeKey}`,
+          {
+            headers: {
+              'Referer': 'https://passport.bilibili.com/',
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
           }
-          
-          return
-        }
+        )
         
-        const loginSuccess = await loginView.webContents.executeJavaScript(`
-          (function() {
-            const success = document.querySelector('.login-success') ||
-                           document.querySelector('.status-success') ||
-                           document.querySelector('[class*="success"]');
-            return success !== null;
-          })()
-        `)
+        const statusResult: QrCodeStatus = await statusResponse.json()
         
-        if (loginSuccess) {
-          stopLoginPoll()
+        console.log('[BliPod] QR poll status:', statusResult.data?.code, statusResult.data?.message)
+        
+        if (statusResult.data?.code === 0) {
+          stopQrPoll()
           
-          const userInfo = await fetchUserInfo()
+          const url = new URL(statusResult.data.url)
+          const cookieParams = url.searchParams
           
-          if (userInfo && mainWindow) {
-            mainWindow.webContents.send('auth:success', userInfo)
+          const bilibiliSession = getBilibiliSession()
+          
+          const dedeuserid = cookieParams.get('DedeUserID')
+          const dedeuseridCkMd5 = cookieParams.get('DedeUserID__ckMd5')
+          const sessdata = cookieParams.get('SESSDATA')
+          const biliJct = cookieParams.get('bili_jct')
+          
+          if (sessdata) {
+            const cookieOptions = {
+              url: 'https://www.bilibili.com',
+              domain: '.bilibili.com',
+              path: '/'
+            }
+            
+            if (dedeuserid) {
+              await bilibiliSession.cookies.set({
+                ...cookieOptions,
+                name: 'DedeUserID',
+                value: dedeuserid
+              })
+            }
+            
+            if (dedeuseridCkMd5) {
+              await bilibiliSession.cookies.set({
+                ...cookieOptions,
+                name: 'DedeUserID__ckMd5',
+                value: dedeuseridCkMd5
+              })
+            }
+            
+            await bilibiliSession.cookies.set({
+              ...cookieOptions,
+              name: 'SESSDATA',
+              value: decodeURIComponent(sessdata),
+              secure: true,
+              httpOnly: true
+            })
+            
+            if (biliJct) {
+              await bilibiliSession.cookies.set({
+                ...cookieOptions,
+                name: 'bili_jct',
+                value: biliJct
+              })
+            }
+            
+            const userInfo = await fetchUserInfo()
+            
+            if (userInfo && mainWindow) {
+              mainWindow.webContents.send('auth:success', userInfo)
+            } else if (mainWindow) {
+              mainWindow.webContents.send('auth:error', 'Login verification failed')
+            }
           } else if (mainWindow) {
-            mainWindow.webContents.send('auth:error', 'Login verification failed')
+            mainWindow.webContents.send('auth:error', 'Failed to get session')
           }
+        } else if (statusResult.data?.code === 86038) {
+          stopQrPoll()
+          if (mainWindow) {
+            mainWindow.webContents.send('auth:error', 'QR code expired, please try again')
+          }
+        } else if (statusResult.data?.code === 86090) {
+          // QR code scanned but not confirmed, continue polling
+        } else if (statusResult.data?.code === 86101) {
+          // Not scanned yet, continue polling
         }
       } catch (error) {
-        console.error('[BliPod] Login poll error:', error)
+        console.error('[BliPod] QR poll error:', error)
       }
-    }, 1000)
+    }, 2000)
     
   } catch (error) {
     console.error('[BliPod] Failed to start QR login:', error)
@@ -407,7 +461,7 @@ async function startQrLogin() {
 }
 
 async function logout() {
-  stopLoginPoll()
+  stopQrPoll()
   
   const bilibiliSession = getBilibiliSession()
   
@@ -415,10 +469,6 @@ async function logout() {
   for (const cookie of cookies) {
     const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`
     await bilibiliSession.cookies.remove(url, cookie.name)
-  }
-  
-  if (loginView) {
-    loginView = null
   }
 }
 
