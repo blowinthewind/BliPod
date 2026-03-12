@@ -1,16 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
-import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut } from 'lucide-vue-next'
+import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
 const themeStore = useThemeStore()
+const authStore = useAuthStore()
 
 const volume = ref(80)
 const autoPlay = ref(true)
 const rememberPosition = ref(true)
 const showCreateTheme = ref(false)
 const showEditTheme = ref(false)
+const showLoginDialog = ref(false)
 const editingThemeId = ref<string | null>(null)
+
+let unsubscribe: (() => void) | null = null
+
+onMounted(() => {
+  unsubscribe = authStore.setLoginListener()
+  authStore.checkLoginStatus()
+})
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
 
 const defaultColors: ThemeColors = {
   bgPrimary: '#0d0d0d',
@@ -130,6 +147,18 @@ function getThemePreviewStyle(theme: Theme) {
   
   return style
 }
+
+function openLoginDialog() {
+  showLoginDialog.value = true
+}
+
+function closeLoginDialog() {
+  showLoginDialog.value = false
+}
+
+function handleLogout() {
+  authStore.logout()
+}
 </script>
 
 <template>
@@ -151,12 +180,31 @@ function getThemePreviewStyle(theme: Theme) {
           <div class="setting-item">
             <div class="setting-info">
               <span class="setting-label">Bilibili Account</span>
-              <span class="setting-desc">Login to get personalized recommendations and full features</span>
+              <span class="setting-desc" v-if="authStore.isLoggedIn && authStore.userInfo">
+                Logged in as {{ authStore.userInfo.name }}
+              </span>
+              <span class="setting-desc" v-else>
+                Login to get personalized recommendations and full features
+              </span>
             </div>
-            <button class="login-btn">
-              <LogIn :size="18" />
-              Login
-            </button>
+            <div class="account-actions">
+              <template v-if="authStore.isLoggedIn && authStore.userInfo">
+                <div class="user-badge">
+                  <img :src="authStore.userInfo.face" :alt="authStore.userInfo.name" class="user-avatar-small" />
+                  <span class="user-name-small">{{ authStore.userInfo.name }}</span>
+                </div>
+                <button class="logout-btn" @click="handleLogout">
+                  <LogOut :size="16" />
+                  Logout
+                </button>
+              </template>
+              <template v-else>
+                <button class="login-btn" @click="openLoginDialog">
+                  <LogIn :size="18" />
+                  Login
+                </button>
+              </template>
+            </div>
           </div>
         </div>
       </section>
@@ -281,6 +329,8 @@ function getThemePreviewStyle(theme: Theme) {
         </div>
       </section>
     </div>
+
+    <LoginDialog :visible="showLoginDialog" @close="closeLoginDialog" />
 
     <!-- Create Theme Modal -->
     <div class="modal-overlay" v-if="showCreateTheme" @click.self="showCreateTheme = false">
@@ -631,6 +681,34 @@ function getThemePreviewStyle(theme: Theme) {
   color: var(--text-secondary);
 }
 
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border-radius: 20px;
+}
+
+.user-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name-small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 .login-btn {
   display: flex;
   align-items: center;
@@ -648,6 +726,27 @@ function getThemePreviewStyle(theme: Theme) {
 
 .login-btn:hover {
   background: var(--accent-hover);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--error);
+  color: var(--error);
 }
 
 .add-theme-btn {

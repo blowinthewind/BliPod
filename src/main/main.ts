@@ -2,12 +2,15 @@ import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
+import type { UserInfo, BiliAuthStatus } from '../preload/preload'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
+let loginView: BrowserView | null = null
 let extractorScript: string | null = null
 let progressInterval: NodeJS.Timeout | null = null
+let loginPollInterval: NodeJS.Timeout | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
 
@@ -64,6 +67,13 @@ function stopProgressTracking() {
   }
 }
 
+function stopLoginPoll() {
+  if (loginPollInterval) {
+    clearInterval(loginPollInterval)
+    loginPollInterval = null
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -88,7 +98,9 @@ function createWindow() {
     mainWindow = null
     searchView = null
     playerView = null
+    loginView = null
     stopProgressTracking()
+    stopLoginPoll()
   })
 }
 
@@ -105,7 +117,7 @@ function setupCSP() {
           "connect-src 'self' https: ws:; " +
           "font-src 'self' data: https:; " +
           "media-src 'self' https: blob:; " +
-          "frame-src 'self' https://www.bilibili.com https://player.bilibili.com https://search.bilibili.com"
+          "frame-src 'self' https://www.bilibili.com https://player.bilibili.com https://search.bilibili.com https://passport.bilibili.com"
         ]
       }
     })
@@ -244,6 +256,170 @@ async function createPlayerView(): Promise<BrowserView> {
   })
 
   return playerView
+}
+
+async function fetchUserInfo(): Promise<UserInfo | null> {
+  try {
+    const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
+      headers: {
+        'Referer': 'https://www.bilibili.com/'
+      }
+    })
+    
+    const data = await response.json()
+    
+    if (data.code === 0 && data.data.isLogin) {
+      return {
+        mid: data.data.mid,
+        name: data.data.uname,
+        face: data.data.face,
+        sign: data.data.sign || '',
+        level: data.data.level_info?.current_level || 0,
+        vipType: data.data.vipType || 0
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('[BliPod] Failed to fetch user info:', error)
+    return null
+  }
+}
+
+async function checkLoginStatus(): Promise<BiliAuthStatus> {
+  const bilibiliSession = getBilibiliSession()
+  const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
+  
+  const sessdata = cookies.find(c => c.name === 'SESSDATA')
+  
+  if (!sessdata) {
+    return { isLoggedIn: false, userInfo: null }
+  }
+  
+  const userInfo = await fetchUserInfo()
+  
+  return {
+    isLoggedIn: userInfo !== null,
+    userInfo
+  }
+}
+
+async function createLoginView(): Promise<BrowserView> {
+  if (loginView) {
+    return loginView
+  }
+
+  loginView = new BrowserView({
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+      session: getBilibiliSession(),
+      webSecurity: false
+    }
+  })
+
+  return loginView
+}
+
+async function startQrLogin() {
+  stopLoginPoll()
+  
+  try {
+    const view = await createLoginView()
+    
+    await view.webContents.loadURL('https://passport.bilibili.com/qrcode/h5-login')
+    
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const qrUrl = await view.webContents.executeJavaScript(`
+      (function() {
+        const img = document.querySelector('img.qrcode-img') || 
+                    document.querySelector('img[src*="qrcode"]') ||
+                    document.querySelector('.qrcode-box img');
+        return img ? img.src : null;
+      })()
+    `)
+    
+    if (qrUrl && mainWindow) {
+      mainWindow.webContents.send('auth:qrcode', qrUrl)
+    } else {
+      const pageUrl = view.webContents.getURL()
+      if (mainWindow) {
+        mainWindow.webContents.send('auth:qrcode', pageUrl)
+      }
+    }
+    
+    loginPollInterval = setInterval(async () => {
+      if (!loginView || !mainWindow) {
+        stopLoginPoll()
+        return
+      }
+      
+      try {
+        const currentUrl = loginView.webContents.getURL()
+        
+        if (currentUrl.includes('bilibili.com') && !currentUrl.includes('passport')) {
+          stopLoginPoll()
+          
+          const userInfo = await fetchUserInfo()
+          
+          if (userInfo && mainWindow) {
+            mainWindow.webContents.send('auth:success', userInfo)
+          } else if (mainWindow) {
+            mainWindow.webContents.send('auth:error', 'Login verification failed')
+          }
+          
+          return
+        }
+        
+        const loginSuccess = await loginView.webContents.executeJavaScript(`
+          (function() {
+            const success = document.querySelector('.login-success') ||
+                           document.querySelector('.status-success') ||
+                           document.querySelector('[class*="success"]');
+            return success !== null;
+          })()
+        `)
+        
+        if (loginSuccess) {
+          stopLoginPoll()
+          
+          const userInfo = await fetchUserInfo()
+          
+          if (userInfo && mainWindow) {
+            mainWindow.webContents.send('auth:success', userInfo)
+          } else if (mainWindow) {
+            mainWindow.webContents.send('auth:error', 'Login verification failed')
+          }
+        }
+      } catch (error) {
+        console.error('[BliPod] Login poll error:', error)
+      }
+    }, 1000)
+    
+  } catch (error) {
+    console.error('[BliPod] Failed to start QR login:', error)
+    if (mainWindow) {
+      mainWindow.webContents.send('auth:error', error instanceof Error ? error.message : 'Failed to start login')
+    }
+  }
+}
+
+async function logout() {
+  stopLoginPoll()
+  
+  const bilibiliSession = getBilibiliSession()
+  
+  const cookies = await bilibiliSession.cookies.get({})
+  for (const cookie of cookies) {
+    const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`
+    await bilibiliSession.cookies.remove(url, cookie.name)
+  }
+  
+  if (loginView) {
+    loginView = null
+  }
 }
 
 function setupIPC() {
@@ -427,6 +603,18 @@ function setupIPC() {
         }
       `).catch(() => {})
     }
+  })
+
+  ipcMain.handle('auth:checkLogin', async (): Promise<BiliAuthStatus> => {
+    return checkLoginStatus()
+  })
+
+  ipcMain.handle('auth:startLogin', async () => {
+    await startQrLogin()
+  })
+
+  ipcMain.handle('auth:logout', async () => {
+    await logout()
   })
 }
 

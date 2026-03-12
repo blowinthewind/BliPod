@@ -35,6 +35,20 @@ export interface SearchResult {
   uploader?: UploaderInfo
 }
 
+export interface UserInfo {
+  mid: number
+  name: string
+  face: string
+  sign: string
+  level: number
+  vipType: number
+}
+
+export interface BiliAuthStatus {
+  isLoggedIn: boolean
+  userInfo: UserInfo | null
+}
+
 export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
@@ -47,6 +61,15 @@ export interface SearchAPI {
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
   onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
+}
+
+export interface AuthAPI {
+  checkLogin: () => Promise<BiliAuthStatus>
+  startLogin: () => Promise<void>
+  logout: () => Promise<void>
+  onQrCode: (callback: (url: string) => void) => () => void
+  onLoginSuccess: (callback: (user: UserInfo) => void) => () => void
+  onLoginError: (callback: (error: string) => void) => () => void
 }
 
 const searchAPI: SearchAPI = {
@@ -91,7 +114,35 @@ const searchAPI: SearchAPI = {
   }
 }
 
+const authAPI: AuthAPI = {
+  checkLogin: () => {
+    return ipcRenderer.invoke('auth:checkLogin')
+  },
+  startLogin: () => {
+    return ipcRenderer.invoke('auth:startLogin')
+  },
+  logout: () => {
+    return ipcRenderer.invoke('auth:logout')
+  },
+  onQrCode: (callback) => {
+    const handler = (_event: unknown, url: string) => callback(url)
+    ipcRenderer.on('auth:qrcode', handler)
+    return () => ipcRenderer.removeListener('auth:qrcode', handler)
+  },
+  onLoginSuccess: (callback) => {
+    const handler = (_event: unknown, user: UserInfo) => callback(user)
+    ipcRenderer.on('auth:success', handler)
+    return () => ipcRenderer.removeListener('auth:success', handler)
+  },
+  onLoginError: (callback) => {
+    const handler = (_event: unknown, error: string) => callback(error)
+    ipcRenderer.on('auth:error', handler)
+    return () => ipcRenderer.removeListener('auth:error', handler)
+  }
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
-  search: searchAPI
+  search: searchAPI,
+  auth: authAPI
 })

@@ -41,6 +41,20 @@ interface PlayerProgress {
   paused: boolean
 }
 
+interface UserInfo {
+  mid: number
+  name: string
+  face: string
+  sign: string
+  level: number
+  vipType: number
+}
+
+interface BiliAuthStatus {
+  isLoggedIn: boolean
+  userInfo: UserInfo | null
+}
+
 interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
@@ -55,9 +69,19 @@ interface SearchAPI {
   onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
 }
 
+interface AuthAPI {
+  checkLogin: () => Promise<BiliAuthStatus>
+  startLogin: () => Promise<void>
+  logout: () => Promise<void>
+  onQrCode: (callback: (url: string) => void) => () => void
+  onLoginSuccess: (callback: (user: UserInfo) => void) => () => void
+  onLoginError: (callback: (error: string) => void) => () => void
+}
+
 interface Window {
   electronAPI: {
     platform: NodeJS.Platform
     search: SearchAPI
+    auth: AuthAPI
   }
 }
