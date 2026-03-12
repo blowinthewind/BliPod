@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNavigationStore, type NavItem } from '@/stores/navigation'
+import { useAuthStore } from '@/stores/auth'
 import {
   Home,
   Search,
@@ -8,10 +11,14 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  LogIn,
+  LogOut
 } from 'lucide-vue-next'
 
+const router = useRouter()
 const navStore = useNavigationStore()
+const authStore = useAuthStore()
 
 interface NavMenuItem {
   id: NavItem
@@ -26,6 +33,27 @@ const menuItems: NavMenuItem[] = [
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
   { id: 'settings', label: 'Settings', icon: Settings }
 ]
+
+let unsubscribe: (() => void) | null = null
+
+onMounted(() => {
+  unsubscribe = authStore.setLoginListener()
+  authStore.checkLoginStatus()
+})
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe()
+  }
+})
+
+function handleUserClick() {
+  if (authStore.isLoggedIn) {
+    authStore.logout()
+  } else {
+    router.push({ name: 'settings' })
+  }
+}
 </script>
 
 <template>
@@ -70,14 +98,29 @@ const menuItems: NavMenuItem[] = [
     </nav>
 
     <div class="sidebar-footer" v-if="!navStore.sidebarCollapsed">
-      <div class="user-info">
+      <div class="user-info" @click="handleUserClick">
         <div class="user-avatar">
-          <img src="" alt="" class="avatar-img" />
-          <div class="avatar-placeholder">U</div>
+          <img 
+            v-if="authStore.isLoggedIn && authStore.userInfo?.face" 
+            :src="authStore.userInfo.face" 
+            :alt="authStore.userInfo.name"
+            class="avatar-img" 
+          />
+          <div v-else class="avatar-placeholder">
+            <LogIn :size="18" />
+          </div>
         </div>
         <div class="user-details">
-          <span class="user-name">Not logged in</span>
-          <span class="user-status">Click to login</span>
+          <span class="user-name">
+            {{ authStore.isLoggedIn && authStore.userInfo ? authStore.userInfo.name : 'Not logged in' }}
+          </span>
+          <span class="user-status">
+            <template v-if="authStore.isLoggedIn && authStore.userInfo">
+              Lv.{{ authStore.userInfo.level }}
+              <LogOut :size="10" class="logout-icon" />
+            </template>
+            <template v-else>Click to login</template>
+          </span>
         </div>
       </div>
     </div>
@@ -263,8 +306,6 @@ const menuItems: NavMenuItem[] = [
   width: 100%;
   height: 100%;
   color: white;
-  font-weight: 600;
-  font-size: 16px;
 }
 
 .user-details {
@@ -272,6 +313,7 @@ const menuItems: NavMenuItem[] = [
   flex-direction: column;
   gap: 2px;
   overflow: hidden;
+  flex: 1;
 }
 
 .user-name {
@@ -284,11 +326,18 @@ const menuItems: NavMenuItem[] = [
 }
 
 .user-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.logout-icon {
+  opacity: 0.6;
 }
 
 .sidebar-overlay {
