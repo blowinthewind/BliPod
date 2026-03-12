@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
+
+const router = useRouter()
 
 const {
   searchStore,
@@ -65,6 +68,17 @@ function blurInput() {
 
 async function handleLoadMore() {
   await searchStore.loadMore()
+}
+
+function handleAuthorClick(authorLink: string, event: Event) {
+  event.stopPropagation()
+  if (authorLink) {
+    const midMatch = authorLink.match(/space\.bilibili\.com\/(\d+)/)
+    if (midMatch) {
+      const mid = midMatch[1]
+      router.push({ name: 'uploader', params: { mid } })
+    }
+  }
 }
 </script>
 
@@ -160,7 +174,13 @@ async function handleLoadMore() {
           <div class="result-info">
             <h3 class="result-title" :title="result.title">{{ result.title }}</h3>
             <div class="result-meta">
-              <span class="meta-item author">{{ result.author }}</span>
+              <span 
+                class="meta-item author clickable" 
+                @click="handleAuthorClick(result.authorLink, $event)"
+                :title="`View ${result.author}'s videos`"
+              >
+                {{ result.author }}
+              </span>
               <span class="meta-divider">•</span>
               <span v-if="result.playCount" class="meta-item">{{ result.playCount }} plays</span>
             </div>
@@ -549,6 +569,16 @@ async function handleLoadMore() {
 
 .meta-item.author {
   color: var(--accent);
+}
+
+.meta-item.author.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.meta-item.author.clickable:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
 
 .meta-divider {

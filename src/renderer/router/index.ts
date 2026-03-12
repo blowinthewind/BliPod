@@ -13,6 +13,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SearchView.vue')
   },
   {
+    path: '/uploader/:mid',
+    name: 'uploader',
+    component: () => import('@/views/UploaderView.vue')
+  },
+  {
     path: '/favorites',
     name: 'favorites',
     component: () => import('@/views/FavoritesView.vue')

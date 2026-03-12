@@ -289,6 +289,40 @@ function setupIPC() {
     }
   })
 
+  ipcMain.handle('search:uploader', async (_event, mid: string): Promise<SearchResult> => {
+    console.log('[BliPod] Uploader videos request received:', mid)
+    
+    try {
+      const view = await createSearchView()
+      const uploaderUrl = `https://space.bilibili.com/${mid}/upload/video`
+      
+      console.log('[BliPod] Loading uploader URL:', uploaderUrl)
+      await view.webContents.loadURL(uploaderUrl)
+      
+      return {
+        success: true,
+        videos: [],
+        hasMore: false,
+        extractedAt: Date.now(),
+        pageUrl: uploaderUrl,
+        currentPage: 1,
+        nextOffset: null,
+      }
+    } catch (error) {
+      console.error('[BliPod] Uploader videos error:', error)
+      return {
+        success: false,
+        videos: [],
+        hasMore: false,
+        error: error instanceof Error ? error.message : 'Failed to load uploader videos',
+        extractedAt: Date.now(),
+        pageUrl: '',
+        currentPage: 1,
+        nextOffset: null,
+      }
+    }
+  })
+
   ipcMain.on('player:play', async (_event, bvid: string) => {
     console.log('[BliPod] Playing video:', bvid)
     

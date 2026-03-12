@@ -36,6 +36,7 @@ interface PlayerProgress {
 
 interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
+  loadUploaderVideos: (mid: string) => Promise<SearchResult>
   clickNextPage: () => void
   playVideo: (bvid: string) => void
   pauseVideo: () => void
