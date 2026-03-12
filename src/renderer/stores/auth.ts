@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import QRCode from 'qrcode'
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
   const isLoggingIn = ref(false)
   const userInfo = ref<UserInfo | null>(null)
   const qrCodeUrl = ref<string | null>(null)
+  const qrCodeDataUrl = ref<string | null>(null)
   const loginError = ref<string | null>(null)
 
   const userName = computed(() => userInfo.value?.name || 'Guest')
@@ -26,6 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggingIn.value = true
     loginError.value = null
     qrCodeUrl.value = null
+    qrCodeDataUrl.value = null
 
     try {
       await window.electronAPI.auth.startLogin()
@@ -45,8 +48,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function setQrCode(url: string) {
+  async function setQrCode(url: string) {
     qrCodeUrl.value = url
+    try {
+      const dataUrl = await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      })
+      qrCodeDataUrl.value = dataUrl
+    } catch (e) {
+      console.error('Failed to generate QR code:', e)
+      loginError.value = 'Failed to generate QR code image'
+    }
   }
 
   function setLoginSuccess(user: UserInfo) {
@@ -54,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     userInfo.value = user
     isLoggingIn.value = false
     qrCodeUrl.value = null
+    qrCodeDataUrl.value = null
     loginError.value = null
   }
 
@@ -65,12 +83,13 @@ export const useAuthStore = defineStore('auth', () => {
   function cancelLogin() {
     isLoggingIn.value = false
     qrCodeUrl.value = null
+    qrCodeDataUrl.value = null
     loginError.value = null
   }
 
   function setLoginListener() {
-    const unsubscribeQr = window.electronAPI.auth.onQrCode((url: string) => {
-      setQrCode(url)
+    const unsubscribeQr = window.electronAPI.auth.onQrCode(async (url: string) => {
+      await setQrCode(url)
     })
 
     const unsubscribeSuccess = window.electronAPI.auth.onLoginSuccess((user: UserInfo) => {
@@ -93,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggingIn,
     userInfo,
     qrCodeUrl,
+    qrCodeDataUrl,
     loginError,
     userName,
     userAvatar,

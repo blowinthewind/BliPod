@@ -71,8 +71,8 @@ function handleLogout() {
         </div>
 
         <div v-else-if="authStore.isLoggingIn" class="login-progress">
-          <div v-if="authStore.qrCodeUrl" class="qr-container">
-            <img :src="authStore.qrCodeUrl" alt="QR Code" class="qr-code" />
+          <div v-if="authStore.qrCodeDataUrl" class="qr-container">
+            <img :src="authStore.qrCodeDataUrl" alt="QR Code" class="qr-code" />
             <div class="qr-hint">
               <QrCode :size="16" />
               <span>Open Bilibili App to scan</span>
