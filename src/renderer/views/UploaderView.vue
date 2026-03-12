@@ -2,9 +2,11 @@
 import { Loader2, Play, ArrowLeft, User } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { usePlayerStore } from '../stores/player'
 
 const router = useRouter()
 const route = useRoute()
+const playerStore = usePlayerStore()
 
 const videos = ref<ExtractedVideo[]>([])
 const isLoading = ref(false)
@@ -18,6 +20,8 @@ const mid = computed(() => route.params.mid as string)
 const hasResults = computed(() => videos.value.length > 0)
 
 let unsubscribe: (() => void) | null = null
+let playerUnsubscribe: (() => void) | null = null
+let progressUnsubscribe: (() => void) | null = null
 
 onMounted(() => {
   loadUploaderVideos()
@@ -27,6 +31,12 @@ onMounted(() => {
 onUnmounted(() => {
   if (unsubscribe) {
     unsubscribe()
+  }
+  if (playerUnsubscribe) {
+    playerUnsubscribe()
+  }
+  if (progressUnsubscribe) {
+    progressUnsubscribe()
   }
 })
 
@@ -56,6 +66,9 @@ function setupListeners() {
     isLoading.value = false
     isLoadingMore.value = false
   })
+  
+  playerUnsubscribe = playerStore.setReadyListener()
+  progressUnsubscribe = playerStore.setProgressListener()
 }
 
 async function loadUploaderVideos() {
@@ -91,7 +104,10 @@ async function handleLoadMore() {
 }
 
 function handlePlay(bvid: string) {
-  window.electronAPI.search.playVideo(bvid)
+  const video = videos.value.find(v => v.bvid === bvid)
+  if (video) {
+    playerStore.playVideo(video, videos.value)
+  }
 }
 
 function goBack() {
