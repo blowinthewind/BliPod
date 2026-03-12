@@ -266,16 +266,23 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
       return null
     }
     
+    const cookieString = cookies
+      .map(c => `${c.name}=${c.value}`)
+      .join('; ')
+    
     const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
         'Referer': 'https://www.bilibili.com/',
-        'Cookie': `SESSDATA=${sessdata.value}`
+        'Cookie': cookieString,
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     })
     
     const data = await response.json()
     
-    if (data.code === 0 && data.data.isLogin) {
+    console.log('[BliPod] fetchUserInfo response:', data.code, data.message || 'ok')
+    
+    if (data.code === 0 && data.data?.isLogin) {
       return {
         mid: data.data.mid,
         name: data.data.uname,
@@ -297,13 +304,20 @@ async function checkLoginStatus(): Promise<BiliAuthStatus> {
   const bilibiliSession = getBilibiliSession()
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
   
+  console.log('[BliPod] checkLoginStatus: found', cookies.length, 'cookies')
+  
   const sessdata = cookies.find(c => c.name === 'SESSDATA')
   
   if (!sessdata) {
+    console.log('[BliPod] checkLoginStatus: no SESSDATA cookie found')
     return { isLoggedIn: false, userInfo: null }
   }
   
+  console.log('[BliPod] checkLoginStatus: SESSDATA found, fetching user info...')
+  
   const userInfo = await fetchUserInfo()
+  
+  console.log('[BliPod] checkLoginStatus: userInfo result:', userInfo ? userInfo.name : 'null')
   
   return {
     isLoggedIn: userInfo !== null,
