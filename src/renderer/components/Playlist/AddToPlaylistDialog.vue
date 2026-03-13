@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'added'): void
+  (e: 'removed'): void
 }>()
 
 const playlistsStore = usePlaylistsStore()
@@ -19,8 +20,7 @@ const playlists = computed(() => playlistsStore.playlists)
 
 const showCreateModal = ref(false)
 const newPlaylistName = ref('')
-const isAdding = ref<string | null>(null)
-const addedToPlaylists = ref<Set<string>>(new Set())
+const isProcessing = ref<string | null>(null)
 
 onMounted(() => {
   playlistsStore.loadPlaylists()
@@ -28,23 +28,36 @@ onMounted(() => {
 
 watch(() => props.visible, (visible) => {
   if (visible) {
-    addedToPlaylists.value.clear()
+    playlistsStore.loadPlaylists()
   }
 })
 
-async function addToPlaylist(playlistId: string) {
-  if (!props.video || isAdding.value) return
+function isVideoInPlaylist(playlistId: string): boolean {
+  if (!props.video) return false
+  const playlist = playlists.value.find(p => p.id === playlistId)
+  return playlist ? playlist.videos.some(v => v.bvid === props.video?.bvid) : false
+}
+
+async function togglePlaylist(playlistId: string) {
+  if (!props.video || isProcessing.value) return
   
-  isAdding.value = playlistId
+  isProcessing.value = playlistId
   const rawVideo = toRaw(props.video)
-  const success = await playlistsStore.addVideoToPlaylist(playlistId, rawVideo)
+  const isInPlaylist = isVideoInPlaylist(playlistId)
   
-  if (success) {
-    addedToPlaylists.value.add(playlistId)
-    emit('added')
+  if (isInPlaylist) {
+    const success = await playlistsStore.removeVideoFromPlaylist(playlistId, props.video.bvid)
+    if (success) {
+      emit('removed')
+    }
+  } else {
+    const success = await playlistsStore.addVideoToPlaylist(playlistId, rawVideo)
+    if (success) {
+      emit('added')
+    }
   }
   
-  isAdding.value = null
+  isProcessing.value = null
 }
 
 function openCreateModal() {
@@ -60,7 +73,6 @@ async function createAndAdd() {
   if (playlist) {
     const success = await playlistsStore.addVideoToPlaylist(playlist.id, rawVideo)
     if (success) {
-      addedToPlaylists.value.add(playlist.id)
       emit('added')
     }
     showCreateModal.value = false
@@ -71,12 +83,8 @@ function close() {
   emit('close')
 }
 
-function isAdded(playlistId: string): boolean {
-  return addedToPlaylists.value.has(playlistId)
-}
-
-function isAddingTo(playlistId: string): boolean {
-  return isAdding.value === playlistId
+function isProcessingPlaylist(playlistId: string): boolean {
+  return isProcessing.value === playlistId
 }
 </script>
 
@@ -116,9 +124,9 @@ function isAddingTo(playlistId: string): boolean {
             v-for="playlist in playlists"
             :key="playlist.id"
             class="playlist-item"
-            :class="{ added: isAdded(playlist.id) }"
-            :disabled="isAddingTo(playlist.id) || isAdded(playlist.id)"
-            @click="addToPlaylist(playlist.id)"
+            :class="{ added: isVideoInPlaylist(playlist.id) }"
+            :disabled="isProcessingPlaylist(playlist.id)"
+            @click="togglePlaylist(playlist.id)"
           >
             <div class="playlist-icon">
               <ListMusic :size="18" />
@@ -128,8 +136,10 @@ function isAddingTo(playlistId: string): boolean {
               <span class="playlist-count">{{ playlist.videos.length }} 个视频</span>
             </div>
             <div class="playlist-status">
-              <span v-if="isAddingTo(playlist.id)" class="loading">添加中...</span>
-              <Check v-else-if="isAdded(playlist.id)" :size="18" class="check-icon" />
+              <span v-if="isProcessingPlaylist(playlist.id)" class="loading">
+                {{ isVideoInPlaylist(playlist.id) ? '移除中...' : '添加中...' }}
+              </span>
+              <Check v-else-if="isVideoInPlaylist(playlist.id)" :size="18" class="check-icon" />
             </div>
           </button>
         </div>
