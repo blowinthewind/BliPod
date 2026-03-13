@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ListMusic, Play, Plus, Trash2, Edit3 } from 'lucide-vue-next'
+import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
 import { usePlaylistsStore } from '../stores/playlists'
-import { usePlayerStore } from '../stores/player'
 import type { Playlist } from '../../preload/preload'
 
 const router = useRouter()
 const playlistsStore = usePlaylistsStore()
-const playerStore = usePlayerStore()
 
 const isLoading = computed(() => playlistsStore.isLoading)
 const playlists = computed(() => playlistsStore.playlists)
@@ -75,13 +73,6 @@ function openPlaylist(playlist: Playlist) {
   router.push({ name: 'playlist-detail', params: { id: playlist.id } })
 }
 
-function playPlaylist(playlist: Playlist, event: Event) {
-  event.stopPropagation()
-  if (playlist.videos.length > 0) {
-    playerStore.playVideo(playlist.videos[0], playlist.videos)
-  }
-}
-
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp)
   return date.toLocaleDateString('zh-CN', {
@@ -123,13 +114,6 @@ function formatDate(timestamp: number): string {
           <div class="cover-placeholder">
             <ListMusic :size="32" />
           </div>
-          <button 
-            class="play-overlay" 
-            v-if="playlist.videos.length > 0"
-            @click="playPlaylist(playlist, $event)"
-          >
-            <Play :size="24" />
-          </button>
         </div>
         <div class="playlist-info">
           <h3 class="playlist-name">{{ playlist.name }}</h3>
@@ -323,34 +307,6 @@ function formatDate(timestamp: number): string {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
-}
-
-.play-overlay {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: all 0.2s;
-}
-
-.playlist-card:hover .play-overlay {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.play-overlay:hover {
-  transform: scale(1.1);
 }
 
 .playlist-info {
