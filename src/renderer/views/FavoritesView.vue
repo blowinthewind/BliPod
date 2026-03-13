@@ -42,7 +42,7 @@ function formatDate(timestamp: number): string {
 }
 
 function playVideo(video: FavoriteVideo) {
-  playerStore.playVideo(video)
+  playerStore.playVideo(video, favorites.value)
 }
 
 async function removeFavorite(bvid: string) {
