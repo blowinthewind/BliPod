@@ -9,16 +9,27 @@ import {
   Repeat,
   Shuffle,
   ListMusic,
-  Maximize2
+  Maximize2,
+  Heart
 } from 'lucide-vue-next'
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { usePlayerStore } from '../../stores/player'
+import { useFavoritesStore } from '../../stores/favorites'
 
 const playerStore = usePlayerStore()
+const favoritesStore = useFavoritesStore()
 
 const progress = computed(() => playerStore.progress)
 const formattedCurrentTime = computed(() => formatTime(playerStore.currentTime))
 const formattedDuration = computed(() => formatTime(playerStore.duration))
+const isCurrentFavorite = computed(() => {
+  if (!playerStore.currentVideo) return false
+  return favoritesStore.isFavoriteSync(playerStore.currentVideo.bvid)
+})
+
+onMounted(() => {
+  favoritesStore.loadFavorites()
+})
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -36,6 +47,15 @@ function seekTo(event: MouseEvent) {
 function handleVolumeChange(event: Event) {
   const target = event.target as HTMLInputElement
   playerStore.setVolume(parseInt(target.value))
+}
+
+async function toggleFavorite() {
+  if (!playerStore.currentVideo) return
+  if (isCurrentFavorite.value) {
+    await favoritesStore.removeFavorite(playerStore.currentVideo.bvid)
+  } else {
+    await favoritesStore.addFavorite(playerStore.currentVideo)
+  }
 }
 </script>
 
@@ -61,8 +81,14 @@ function handleVolumeChange(event: Event) {
           {{ playerStore.currentVideo?.author || 'Select a video to play' }}
         </span>
       </div>
-      <button class="like-btn" v-if="playerStore.hasVideo">
-        <span class="like-icon">♡</span>
+      <button 
+        class="like-btn" 
+        v-if="playerStore.hasVideo"
+        @click="toggleFavorite"
+        :title="isCurrentFavorite ? 'Remove from favorites' : 'Add to favorites'"
+        :class="{ active: isCurrentFavorite }"
+      >
+        <Heart :size="18" :fill="isCurrentFavorite ? 'currentColor' : 'none'" />
       </button>
     </div>
 
@@ -247,8 +273,8 @@ export default {
   color: var(--accent);
 }
 
-.like-icon {
-  font-size: 18px;
+.like-btn.active {
+  color: var(--accent);
 }
 
 .player-controls {

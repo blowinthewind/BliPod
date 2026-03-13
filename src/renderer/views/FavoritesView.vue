@@ -1,15 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Heart, Play, Trash2 } from 'lucide-vue-next'
+import { useFavoritesStore } from '../stores/favorites'
+import { usePlayerStore } from '../stores/player'
 
-const favorites = ref([
-  { id: 1, title: '收藏视频1', author: 'UP主A', duration: '10:30', addedAt: '2024-01-15' },
-  { id: 2, title: '收藏视频2', author: 'UP主B', duration: '15:45', addedAt: '2024-01-14' },
-  { id: 3, title: '收藏视频3', author: 'UP主C', duration: '8:20', addedAt: '2024-01-13' }
-])
+const favoritesStore = useFavoritesStore()
+const playerStore = usePlayerStore()
 
-function removeFavorite(id: number) {
-  favorites.value = favorites.value.filter(f => f.id !== id)
+const isLoading = computed(() => favoritesStore.isLoading)
+const favorites = computed(() => favoritesStore.favorites)
+
+onMounted(() => {
+  favoritesStore.loadFavorites()
+})
+
+function formatDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+}
+
+function playVideo(video: FavoriteVideo) {
+  playerStore.playVideo(video)
+}
+
+async function removeFavorite(bvid: string) {
+  await favoritesStore.removeFavorite(bvid)
 }
 </script>
 
@@ -25,28 +44,40 @@ function removeFavorite(id: number) {
       </div>
     </div>
 
-    <div class="favorites-list" v-if="favorites.length > 0">
+    <div v-if="isLoading" class="loading-state">
+      <span>加载中...</span>
+    </div>
+
+    <div class="favorites-list" v-else-if="favorites.length > 0">
       <div
         v-for="item in favorites"
-        :key="item.id"
+        :key="item.bvid"
         class="favorite-item"
+        @click="playVideo(item)"
       >
         <div class="item-cover">
-          <div class="cover-placeholder">🎵</div>
+          <img
+            v-if="item.cover"
+            :src="item.cover"
+            :alt="item.title"
+            loading="lazy"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          />
+          <div v-else class="cover-placeholder">🎵</div>
           <span class="item-duration">{{ item.duration }}</span>
         </div>
         <div class="item-info">
           <h3 class="item-title">{{ item.title }}</h3>
           <div class="item-meta">
             <span class="meta-author">{{ item.author }}</span>
-            <span class="meta-date">收藏于 {{ item.addedAt }}</span>
+            <span class="meta-date">收藏于 {{ formatDate(item.addedAt) }}</span>
           </div>
         </div>
         <div class="item-actions">
-          <button class="action-btn play" title="播放">
+          <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
             <Play :size="18" />
           </button>
-          <button class="action-btn remove" title="移除" @click="removeFavorite(item.id)">
+          <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
             <Trash2 :size="18" />
           </button>
         </div>
@@ -96,6 +127,14 @@ function removeFavorite(id: number) {
   color: var(--text-secondary);
 }
 
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: var(--text-secondary);
+}
+
 .favorites-list {
   display: flex;
   flex-direction: column;
@@ -109,6 +148,7 @@ function removeFavorite(id: number) {
   padding: 12px;
   border-radius: 8px;
   background: var(--bg-secondary);
+  cursor: pointer;
   transition: all 0.2s;
 }
 
@@ -124,6 +164,12 @@ function removeFavorite(id: number) {
   overflow: hidden;
   background: var(--bg-card);
   flex-shrink: 0;
+}
+
+.item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cover-placeholder {

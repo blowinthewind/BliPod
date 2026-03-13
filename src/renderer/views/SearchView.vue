@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
+import { useFavoritesStore } from '../stores/favorites'
 
 const router = useRouter()
 
@@ -16,6 +17,8 @@ const {
   playVideo
 } = useSearch({ maxRetries: 3, retryDelay: 1000 })
 
+const favoritesStore = useFavoritesStore()
+
 const searchQuery = ref('')
 const showHistory = ref(false)
 
@@ -24,6 +27,7 @@ const errorMessage = computed(() => searchStore.error || '')
 
 onMounted(() => {
   setupListeners()
+  favoritesStore.loadFavorites()
 })
 
 onUnmounted(() => {
@@ -79,6 +83,19 @@ function handleAuthorClick(authorLink: string, event: Event) {
       router.push({ name: 'uploader', params: { mid } })
     }
   }
+}
+
+async function toggleFavorite(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  if (favoritesStore.isFavoriteSync(video.bvid)) {
+    await favoritesStore.removeFavorite(video.bvid)
+  } else {
+    await favoritesStore.addFavorite(video)
+  }
+}
+
+function isFavorite(bvid: string): boolean {
+  return favoritesStore.isFavoriteSync(bvid)
 }
 </script>
 
@@ -185,6 +202,9 @@ function handleAuthorClick(authorLink: string, event: Event) {
               <span v-if="result.playCount" class="meta-item">{{ result.playCount }} plays</span>
             </div>
           </div>
+          <button class="favorite-btn" @click.stop="toggleFavorite(result, $event)" :title="isFavorite(result.bvid) ? 'Remove from favorites' : 'Add to favorites'">
+            <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
+          </button>
           <button class="play-btn" @click.stop="handlePlay(result.bvid)">
             <Play :size="18" />
           </button>
@@ -583,6 +603,35 @@ function handleAuthorClick(authorLink: string, event: Event) {
 
 .meta-divider {
   color: var(--border);
+}
+
+.favorite-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.result-item:hover .favorite-btn {
+  opacity: 1;
+}
+
+.favorite-btn:hover {
+  color: var(--accent);
+}
+
+.favorite-btn:has(svg[fill="currentColor"]) {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .play-btn {
