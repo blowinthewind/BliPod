@@ -93,7 +93,7 @@ function formatDate(timestamp: number): string {
         <h1 class="page-title">播放列表</h1>
         <p class="page-desc">{{ playlists.length }} 个列表</p>
       </div>
-      <button class="create-btn" @click="openCreateModal">
+      <button class="create-btn" v-if="playlists.length > 0" @click="openCreateModal">
         <Plus :size="18" />
         新建列表
       </button>
