@@ -55,6 +55,64 @@ interface BiliAuthStatus {
   userInfo: UserInfo | null
 }
 
+interface FavoriteVideo extends ExtractedVideo {
+  addedAt: number
+}
+
+interface PlaylistVideo extends ExtractedVideo {
+  addedAt: number
+}
+
+interface Playlist {
+  id: string
+  name: string
+  description?: string
+  cover?: string
+  videos: PlaylistVideo[]
+  createdAt: number
+  updatedAt: number
+}
+
+interface AppSettings {
+  volume: number
+  autoPlay: boolean
+  rememberPosition: boolean
+  currentThemeId: string
+}
+
+interface PlayPosition {
+  bvid: string
+  currentTime: number
+  duration: number
+  updatedAt: number
+}
+
+interface AppStore {
+  favorites: FavoriteVideo[]
+  playlists: Playlist[]
+  settings: AppSettings
+  playPositions: PlayPosition[]
+}
+
+interface StoreAPI {
+  getFavorites: () => Promise<FavoriteVideo[]>
+  addFavorite: (video: ExtractedVideo) => Promise<boolean>
+  removeFavorite: (bvid: string) => Promise<boolean>
+  isFavorite: (bvid: string) => Promise<boolean>
+  getPlaylists: () => Promise<Playlist[]>
+  createPlaylist: (name: string, description?: string) => Promise<Playlist>
+  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => Promise<Playlist | null>
+  deletePlaylist: (id: string) => Promise<boolean>
+  addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
+  removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
+  getSettings: () => Promise<AppSettings>
+  updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
+  getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
+  savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
+  exportData: () => Promise<AppStore>
+  importData: (data: Partial<AppStore>) => Promise<void>
+}
+
 interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
@@ -84,5 +142,6 @@ interface Window {
     platform: NodeJS.Platform
     search: SearchAPI
     auth: AuthAPI
+    store: StoreAPI
   }
 }

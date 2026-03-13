@@ -49,6 +49,64 @@ export interface BiliAuthStatus {
   userInfo: UserInfo | null
 }
 
+export interface FavoriteVideo extends ExtractedVideo {
+  addedAt: number
+}
+
+export interface PlaylistVideo extends ExtractedVideo {
+  addedAt: number
+}
+
+export interface Playlist {
+  id: string
+  name: string
+  description?: string
+  cover?: string
+  videos: PlaylistVideo[]
+  createdAt: number
+  updatedAt: number
+}
+
+export interface AppSettings {
+  volume: number
+  autoPlay: boolean
+  rememberPosition: boolean
+  currentThemeId: string
+}
+
+export interface PlayPosition {
+  bvid: string
+  currentTime: number
+  duration: number
+  updatedAt: number
+}
+
+export interface AppStore {
+  favorites: FavoriteVideo[]
+  playlists: Playlist[]
+  settings: AppSettings
+  playPositions: PlayPosition[]
+}
+
+export interface StoreAPI {
+  getFavorites: () => Promise<FavoriteVideo[]>
+  addFavorite: (video: ExtractedVideo) => Promise<boolean>
+  removeFavorite: (bvid: string) => Promise<boolean>
+  isFavorite: (bvid: string) => Promise<boolean>
+  getPlaylists: () => Promise<Playlist[]>
+  createPlaylist: (name: string, description?: string) => Promise<Playlist>
+  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => Promise<Playlist | null>
+  deletePlaylist: (id: string) => Promise<boolean>
+  addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
+  removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
+  getSettings: () => Promise<AppSettings>
+  updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
+  getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
+  savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
+  exportData: () => Promise<AppStore>
+  importData: (data: Partial<AppStore>) => Promise<void>
+}
+
 export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
@@ -145,8 +203,60 @@ const authAPI: AuthAPI = {
   }
 }
 
+const storeAPI: StoreAPI = {
+  getFavorites: () => {
+    return ipcRenderer.invoke('store:getFavorites')
+  },
+  addFavorite: (video: ExtractedVideo) => {
+    return ipcRenderer.invoke('store:addFavorite', video)
+  },
+  removeFavorite: (bvid: string) => {
+    return ipcRenderer.invoke('store:removeFavorite', bvid)
+  },
+  isFavorite: (bvid: string) => {
+    return ipcRenderer.invoke('store:isFavorite', bvid)
+  },
+  getPlaylists: () => {
+    return ipcRenderer.invoke('store:getPlaylists')
+  },
+  createPlaylist: (name: string, description?: string) => {
+    return ipcRenderer.invoke('store:createPlaylist', name, description)
+  },
+  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => {
+    return ipcRenderer.invoke('store:updatePlaylist', id, updates)
+  },
+  deletePlaylist: (id: string) => {
+    return ipcRenderer.invoke('store:deletePlaylist', id)
+  },
+  addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => {
+    return ipcRenderer.invoke('store:addVideoToPlaylist', playlistId, video)
+  },
+  removeVideoFromPlaylist: (playlistId: string, bvid: string) => {
+    return ipcRenderer.invoke('store:removeVideoFromPlaylist', playlistId, bvid)
+  },
+  getSettings: () => {
+    return ipcRenderer.invoke('store:getSettings')
+  },
+  updateSettings: (updates: Partial<AppSettings>) => {
+    return ipcRenderer.invoke('store:updateSettings', updates)
+  },
+  getPlayPosition: (bvid: string) => {
+    return ipcRenderer.invoke('store:getPlayPosition', bvid)
+  },
+  savePlayPosition: (bvid: string, currentTime: number, duration: number) => {
+    return ipcRenderer.invoke('store:savePlayPosition', bvid, currentTime, duration)
+  },
+  exportData: () => {
+    return ipcRenderer.invoke('store:exportData')
+  },
+  importData: (data: Partial<AppStore>) => {
+    return ipcRenderer.invoke('store:importData', data)
+  }
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   search: searchAPI,
-  auth: authAPI
+  auth: authAPI,
+  store: storeAPI
 })

@@ -2,7 +2,25 @@ import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
-import type { UserInfo, BiliAuthStatus } from '../preload/preload'
+import type { UserInfo, BiliAuthStatus, ExtractedVideo, AppSettings, AppStore } from '../preload/preload'
+import {
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  isFavorite,
+  getPlaylists,
+  createPlaylist,
+  updatePlaylist,
+  deletePlaylist,
+  addVideoToPlaylist,
+  removeVideoFromPlaylist,
+  getSettings,
+  updateSettings,
+  getPlayPosition,
+  savePlayPosition,
+  exportData,
+  importData
+} from './store'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
@@ -710,6 +728,70 @@ function setupIPC() {
 
   ipcMain.handle('auth:logout', async () => {
     await logout()
+  })
+
+  ipcMain.handle('store:getFavorites', async () => {
+    return getFavorites()
+  })
+
+  ipcMain.handle('store:addFavorite', async (_event, video: ExtractedVideo) => {
+    return addFavorite(video)
+  })
+
+  ipcMain.handle('store:removeFavorite', async (_event, bvid: string) => {
+    return removeFavorite(bvid)
+  })
+
+  ipcMain.handle('store:isFavorite', async (_event, bvid: string) => {
+    return isFavorite(bvid)
+  })
+
+  ipcMain.handle('store:getPlaylists', async () => {
+    return getPlaylists()
+  })
+
+  ipcMain.handle('store:createPlaylist', async (_event, name: string, description?: string) => {
+    return createPlaylist(name, description)
+  })
+
+  ipcMain.handle('store:updatePlaylist', async (_event, id: string, updates: Parameters<typeof updatePlaylist>[1]) => {
+    return updatePlaylist(id, updates)
+  })
+
+  ipcMain.handle('store:deletePlaylist', async (_event, id: string) => {
+    return deletePlaylist(id)
+  })
+
+  ipcMain.handle('store:addVideoToPlaylist', async (_event, playlistId: string, video: ExtractedVideo) => {
+    return addVideoToPlaylist(playlistId, video)
+  })
+
+  ipcMain.handle('store:removeVideoFromPlaylist', async (_event, playlistId: string, bvid: string) => {
+    return removeVideoFromPlaylist(playlistId, bvid)
+  })
+
+  ipcMain.handle('store:getSettings', async () => {
+    return getSettings()
+  })
+
+  ipcMain.handle('store:updateSettings', async (_event, updates: Partial<AppSettings>) => {
+    return updateSettings(updates)
+  })
+
+  ipcMain.handle('store:getPlayPosition', async (_event, bvid: string) => {
+    return getPlayPosition(bvid)
+  })
+
+  ipcMain.handle('store:savePlayPosition', async (_event, bvid: string, currentTime: number, duration: number) => {
+    return savePlayPosition(bvid, currentTime, duration)
+  })
+
+  ipcMain.handle('store:exportData', async () => {
+    return exportData()
+  })
+
+  ipcMain.handle('store:importData', async (_event, data: Partial<AppStore>) => {
+    return importData(data)
   })
 }
 

@@ -45,6 +45,7 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-store": "^11.0.2",
     "lucide-vue-next": "^0.577.0",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
