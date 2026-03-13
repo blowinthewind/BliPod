@@ -106,6 +106,7 @@ export interface ImportResult {
   stats?: {
     favoritesImported: number
     playlistsImported: number
+    videosImported: number
   }
 }
 

@@ -124,6 +124,7 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
   stats?: {
     favoritesImported: number
     playlistsImported: number
+    videosImported: number
   }
 }> {
   try {
@@ -150,21 +151,26 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
     
     let favoritesImported = 0
     let playlistsImported = 0
+    let videosImported = 0
     
     if (options.strategy === 'overwrite') {
       store.set('favorites', data.favorites)
       store.set('playlists', data.playlists)
       favoritesImported = data.favorites.length
       playlistsImported = data.playlists.length
+      videosImported = data.playlists.reduce((sum, p) => sum + p.videos.length, 0)
     } else {
       const existingFavorites = store.get('favorites')
       const existingPlaylists = store.get('playlists')
+      const existingVideosCount = existingPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
       
       const mergedFavorites = mergeFavorites(existingFavorites, data.favorites)
       const mergedPlaylists = mergePlaylists(existingPlaylists, data.playlists)
+      const mergedVideosCount = mergedPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
       
       favoritesImported = mergedFavorites.length - existingFavorites.length
       playlistsImported = mergedPlaylists.length - existingPlaylists.length
+      videosImported = mergedVideosCount - existingVideosCount
       
       store.set('favorites', mergedFavorites)
       store.set('playlists', mergedPlaylists)
@@ -172,7 +178,7 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
     
     return { 
       success: true, 
-      stats: { favoritesImported, playlistsImported }
+      stats: { favoritesImported, playlistsImported, videosImported }
     }
   } catch (error) {
     console.error('[BliPod] Import error:', error)

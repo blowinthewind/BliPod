@@ -92,7 +92,7 @@ async function handleImport() {
     if (result.success) {
       importMessage.value = { 
         type: 'success', 
-        text: `Imported ${result.stats?.favoritesImported || 0} favorites, ${result.stats?.playlistsImported || 0} playlists` 
+        text: `Imported ${result.stats?.favoritesImported || 0} favorites, ${result.stats?.playlistsImported || 0} playlists, ${result.stats?.videosImported || 0} videos` 
       }
       await loadDataStats()
       await favoritesStore.loadFavorites()
