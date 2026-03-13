@@ -12,7 +12,7 @@ import {
   Maximize2,
   Heart
 } from 'lucide-vue-next'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, toRaw } from 'vue'
 import { usePlayerStore } from '../../stores/player'
 import { useFavoritesStore } from '../../stores/favorites'
 
@@ -54,7 +54,8 @@ async function toggleFavorite() {
   if (isCurrentFavorite.value) {
     await favoritesStore.removeFavorite(playerStore.currentVideo.bvid)
   } else {
-    await favoritesStore.addFavorite(playerStore.currentVideo)
+    const rawVideo = toRaw(playerStore.currentVideo)
+    await favoritesStore.addFavorite(rawVideo)
   }
 }
 </script>

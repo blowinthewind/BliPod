@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart } from 'lucide-vue-next'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { useFavoritesStore } from '../stores/favorites'
@@ -90,7 +90,8 @@ async function toggleFavorite(video: ExtractedVideo, event: Event) {
   if (favoritesStore.isFavoriteSync(video.bvid)) {
     await favoritesStore.removeFavorite(video.bvid)
   } else {
-    await favoritesStore.addFavorite(video)
+    const rawVideo = toRaw(video)
+    await favoritesStore.addFavorite(rawVideo)
   }
 }
 
