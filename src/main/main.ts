@@ -21,6 +21,12 @@ import {
   exportData,
   importData
 } from './store'
+import {
+  exportDataToFile,
+  importDataFromFile,
+  getDataStats
+} from './dataImportExport'
+import type { ImportOptions } from './dataImportExport'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
@@ -792,6 +798,18 @@ function setupIPC() {
 
   ipcMain.handle('store:importData', async (_event, data: Partial<AppStore>) => {
     return importData(data)
+  })
+
+  ipcMain.handle('store:exportDataToFile', async () => {
+    return exportDataToFile()
+  })
+
+  ipcMain.handle('store:importDataFromFile', async (_event, options: ImportOptions) => {
+    return importDataFromFile(options)
+  })
+
+  ipcMain.handle('store:getDataStats', async () => {
+    return getDataStats()
   })
 }
 

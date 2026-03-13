@@ -94,6 +94,33 @@ interface AppStore {
   playPositions: PlayPosition[]
 }
 
+type ImportStrategy = 'merge' | 'overwrite'
+
+interface ImportOptions {
+  strategy: ImportStrategy
+}
+
+interface ExportResult {
+  success: boolean
+  error?: string
+  filePath?: string
+}
+
+interface ImportResult {
+  success: boolean
+  error?: string
+  stats?: {
+    favoritesImported: number
+    playlistsImported: number
+  }
+}
+
+interface DataStats {
+  favoritesCount: number
+  playlistsCount: number
+  totalVideosInPlaylists: number
+}
+
 interface StoreAPI {
   getFavorites: () => Promise<FavoriteVideo[]>
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
@@ -111,6 +138,9 @@ interface StoreAPI {
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
+  exportDataToFile: () => Promise<ExportResult>
+  importDataFromFile: (options: ImportOptions) => Promise<ImportResult>
+  getDataStats: () => Promise<DataStats>
 }
 
 interface SearchAPI {

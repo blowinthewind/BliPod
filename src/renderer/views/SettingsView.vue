@@ -2,11 +2,15 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
-import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut } from 'lucide-vue-next'
+import { useFavoritesStore } from '@/stores/favorites'
+import { usePlaylistsStore } from '@/stores/playlists'
+import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check } from 'lucide-vue-next'
 import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+const favoritesStore = useFavoritesStore()
+const playlistsStore = usePlaylistsStore()
 
 const volume = ref(80)
 const autoPlay = ref(true)
@@ -16,11 +20,23 @@ const showEditTheme = ref(false)
 const showLoginDialog = ref(false)
 const editingThemeId = ref<string | null>(null)
 
+const dataStats = ref<DataStats>({
+  favoritesCount: 0,
+  playlistsCount: 0,
+  totalVideosInPlaylists: 0
+})
+const importStrategy = ref<ImportStrategy>('merge')
+const isExporting = ref(false)
+const isImporting = ref(false)
+const exportMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+const importMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+
 let unsubscribe: (() => void) | null = null
 
-onMounted(() => {
+onMounted(async () => {
   unsubscribe = authStore.setLoginListener()
   authStore.checkLoginStatus()
+  await loadDataStats()
 })
 
 onUnmounted(() => {
@@ -28,6 +44,72 @@ onUnmounted(() => {
     unsubscribe()
   }
 })
+
+async function loadDataStats() {
+  try {
+    const stats = await window.electronAPI.store.getDataStats()
+    dataStats.value = stats
+  } catch (error) {
+    console.error('Failed to load data stats:', error)
+  }
+}
+
+async function handleExport() {
+  isExporting.value = true
+  exportMessage.value = null
+  
+  try {
+    const result = await window.electronAPI.store.exportDataToFile()
+    
+    if (result.success) {
+      exportMessage.value = { 
+        type: 'success', 
+        text: `Exported to ${result.filePath?.split('/').pop()}` 
+      }
+    } else if (result.error !== 'Export cancelled') {
+      exportMessage.value = { type: 'error', text: result.error || 'Export failed' }
+    }
+  } catch (error) {
+    exportMessage.value = { 
+      type: 'error', 
+      text: error instanceof Error ? error.message : 'Export failed' 
+    }
+  } finally {
+    isExporting.value = false
+    setTimeout(() => { exportMessage.value = null }, 5000)
+  }
+}
+
+async function handleImport() {
+  isImporting.value = true
+  importMessage.value = null
+  
+  try {
+    const result = await window.electronAPI.store.importDataFromFile({
+      strategy: importStrategy.value
+    })
+    
+    if (result.success) {
+      importMessage.value = { 
+        type: 'success', 
+        text: `Imported ${result.stats?.favoritesImported || 0} favorites, ${result.stats?.playlistsImported || 0} playlists` 
+      }
+      await loadDataStats()
+      await favoritesStore.loadFavorites()
+      await playlistsStore.loadPlaylists()
+    } else if (result.error !== 'Import cancelled') {
+      importMessage.value = { type: 'error', text: result.error || 'Import failed' }
+    }
+  } catch (error) {
+    importMessage.value = { 
+      type: 'error', 
+      text: error instanceof Error ? error.message : 'Import failed' 
+    }
+  } finally {
+    isImporting.value = false
+    setTimeout(() => { importMessage.value = null }, 5000)
+  }
+}
 
 const defaultColors: ThemeColors = {
   bgPrimary: '#0d0d0d',
@@ -305,14 +387,28 @@ function handleLogout() {
       <section class="settings-section">
         <h2 class="section-title">Data</h2>
         <div class="settings-card">
+          <div class="setting-item data-stats">
+            <div class="setting-info">
+              <span class="setting-label">Data Summary</span>
+              <span class="setting-desc">
+                {{ dataStats.favoritesCount }} favorites · {{ dataStats.playlistsCount }} playlists · {{ dataStats.totalVideosInPlaylists }} videos in playlists
+              </span>
+            </div>
+          </div>
+
           <div class="setting-item">
             <div class="setting-info">
               <span class="setting-label">Export Data</span>
               <span class="setting-desc">Export favorites and playlists to local file</span>
+              <div v-if="exportMessage" class="message-toast" :class="exportMessage.type">
+                <Check v-if="exportMessage.type === 'success'" :size="14" />
+                <AlertCircle v-else :size="14" />
+                {{ exportMessage.text }}
+              </div>
             </div>
-            <button class="action-btn">
-              <Download :size="18" />
-              Export
+            <button class="action-btn" :disabled="isExporting" @click="handleExport">
+              <Download :size="18" :class="{ 'animate-spin': isExporting }" />
+              {{ isExporting ? 'Exporting...' : 'Export' }}
             </button>
           </div>
 
@@ -320,11 +416,22 @@ function handleLogout() {
             <div class="setting-info">
               <span class="setting-label">Import Data</span>
               <span class="setting-desc">Import favorites and playlists from local file</span>
+              <div v-if="importMessage" class="message-toast" :class="importMessage.type">
+                <Check v-if="importMessage.type === 'success'" :size="14" />
+                <AlertCircle v-else :size="14" />
+                {{ importMessage.text }}
+              </div>
             </div>
-            <button class="action-btn">
-              <Download :size="18" class="rotate-180" />
-              Import
-            </button>
+            <div class="import-controls">
+              <select v-model="importStrategy" class="strategy-select">
+                <option value="merge">Merge (keep existing)</option>
+                <option value="overwrite">Overwrite (replace all)</option>
+              </select>
+              <button class="action-btn" :disabled="isImporting" @click="handleImport">
+                <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
+                {{ isImporting ? 'Importing...' : 'Import' }}
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -981,6 +1088,66 @@ function handleLogout() {
 
 .rotate-180 {
   transform: rotate(180deg);
+}
+
+.data-stats {
+  background: var(--bg-card);
+  border-radius: 8px;
+  margin: 4px 16px;
+}
+
+.import-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.strategy-select {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.strategy-select:focus {
+  border-color: var(--accent);
+}
+
+.message-toast {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.message-toast.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.message-toast.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Modal Styles */

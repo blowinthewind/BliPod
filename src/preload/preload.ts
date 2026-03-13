@@ -88,6 +88,33 @@ export interface AppStore {
   playPositions: PlayPosition[]
 }
 
+export type ImportStrategy = 'merge' | 'overwrite'
+
+export interface ImportOptions {
+  strategy: ImportStrategy
+}
+
+export interface ExportResult {
+  success: boolean
+  error?: string
+  filePath?: string
+}
+
+export interface ImportResult {
+  success: boolean
+  error?: string
+  stats?: {
+    favoritesImported: number
+    playlistsImported: number
+  }
+}
+
+export interface DataStats {
+  favoritesCount: number
+  playlistsCount: number
+  totalVideosInPlaylists: number
+}
+
 export interface StoreAPI {
   getFavorites: () => Promise<FavoriteVideo[]>
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
@@ -105,6 +132,9 @@ export interface StoreAPI {
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
+  exportDataToFile: () => Promise<ExportResult>
+  importDataFromFile: (options: ImportOptions) => Promise<ImportResult>
+  getDataStats: () => Promise<DataStats>
 }
 
 export interface SearchAPI {
@@ -251,6 +281,15 @@ const storeAPI: StoreAPI = {
   },
   importData: (data: Partial<AppStore>) => {
     return ipcRenderer.invoke('store:importData', data)
+  },
+  exportDataToFile: () => {
+    return ipcRenderer.invoke('store:exportDataToFile')
+  },
+  importDataFromFile: (options: ImportOptions) => {
+    return ipcRenderer.invoke('store:importDataFromFile', options)
+  },
+  getDataStats: () => {
+    return ipcRenderer.invoke('store:getDataStats')
   }
 }
 
