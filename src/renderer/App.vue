@@ -1,5 +1,21 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import MainLayout from '@/components/Layout/MainLayout.vue'
+import { usePlayerStore } from '@/stores/player'
+
+const playerStore = usePlayerStore()
+
+async function handleBeforeUnload() {
+  await playerStore.saveCurrentPosition()
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 </script>
 
 <template>

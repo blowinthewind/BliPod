@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAppSettingsStore } from './appSettings'
 
 export const usePlayerStore = defineStore('player', () => {
+  const appSettings = useAppSettingsStore()
   const currentVideo = ref<ExtractedVideo | null>(null)
   const isPlaying = ref(false)
   const isLoading = ref(false)
@@ -29,18 +31,58 @@ export const usePlayerStore = defineStore('player', () => {
     return currentIndex.value > 0
   })
 
-  function playVideo(video: ExtractedVideo, videoList?: ExtractedVideo[]) {
+  let pendingResumeTime: number | null = null
+
+  async function saveCurrentPosition(
+    video: ExtractedVideo | null = currentVideo.value,
+    time: number = currentTime.value,
+    dur: number = duration.value
+  ) {
+    if (!video || !appSettings.rememberPosition) return
+    if (time > 0 && dur > 0) {
+      try {
+        await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
+      } catch (e) {
+        console.error('Failed to save play position:', e)
+      }
+    }
+  }
+
+  async function playVideo(video: ExtractedVideo, videoList?: ExtractedVideo[]) {
+    const previousVideo = currentVideo.value
+    const previousTime = currentTime.value
+    const previousDuration = duration.value
+
+    if (previousVideo && previousTime > 0) {
+      await saveCurrentPosition(previousVideo, previousTime, previousDuration)
+    }
+
     currentVideo.value = video
     isLoading.value = true
     isPlaying.value = false
     currentTime.value = 0
     duration.value = 0
-    
+    pendingResumeTime = null
+
     if (videoList) {
       playlist.value = videoList
       currentIndex.value = videoList.findIndex((v: ExtractedVideo) => v.bvid === video.bvid)
     }
-    
+
+    if (appSettings.rememberPosition) {
+      try {
+        const position = await window.electronAPI.store.getPlayPosition(video.bvid)
+        if (position && position.currentTime > 0 && position.duration > 0) {
+          const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
+          if (resumeTime > 10) {
+            pendingResumeTime = resumeTime
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore play position:', e)
+      }
+    }
+
     window.electronAPI.search.playVideo(video.bvid)
   }
 
@@ -51,10 +93,11 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function pause() {
+  async function pause() {
     if (isPlaying.value) {
       window.electronAPI.search.pauseVideo()
       isPlaying.value = false
+      await saveCurrentPosition()
     }
   }
 
@@ -66,7 +109,8 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function stop() {
+  async function stop() {
+    await saveCurrentPosition()
     window.electronAPI.search.pauseVideo()
     currentVideo.value = null
     isPlaying.value = false
@@ -103,7 +147,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function next() {
     if (!hasNext.value) return
-    
+
     if (isShuffle.value) {
       const randomIndex = Math.floor(Math.random() * playlist.value.length)
       const video = playlist.value[randomIndex]
@@ -117,7 +161,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   function previous() {
     if (!hasPrevious.value) return
-    
+
     if (isShuffle.value) {
       const randomIndex = Math.floor(Math.random() * playlist.value.length)
       const video = playlist.value[randomIndex]
@@ -163,8 +207,16 @@ export const usePlayerStore = defineStore('player', () => {
       isLoading.value = false
       isPlaying.value = true
       window.electronAPI.search.setVolume(volume.value)
+
+      if (pendingResumeTime !== null) {
+        const targetTime = pendingResumeTime
+        pendingResumeTime = null
+        setTimeout(() => {
+          window.electronAPI.search.seekVideo(targetTime)
+        }, 100)
+      }
     })
-    
+
     return unsubscribe
   }
 
@@ -174,7 +226,7 @@ export const usePlayerStore = defineStore('player', () => {
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
     })
-    
+
     return unsubscribe
   }
 
@@ -195,6 +247,7 @@ export const usePlayerStore = defineStore('player', () => {
     progress,
     hasNext,
     hasPrevious,
+    saveCurrentPosition,
     playVideo,
     play,
     pause,
