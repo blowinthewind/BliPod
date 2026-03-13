@@ -119,7 +119,10 @@ function formatDuration(duration: string): string {
         <button class="back-btn" @click="goBack">
           <ArrowLeft :size="20" />
         </button>
-        <div class="header-icon">
+        <div class="header-cover" v-if="videos.length > 0 && videos[0].cover">
+          <img :src="videos[0].cover" :alt="playlist.name" />
+        </div>
+        <div class="header-icon" v-else>
           <ListMusic :size="24" />
         </div>
         <div class="header-text">
@@ -277,6 +280,22 @@ function formatDuration(duration: string): string {
   border-radius: 12px;
   background: linear-gradient(135deg, #7c3aed, #a855f7);
   color: white;
+  flex-shrink: 0;
+}
+
+.header-cover {
+  width: 100px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.header-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .header-text {

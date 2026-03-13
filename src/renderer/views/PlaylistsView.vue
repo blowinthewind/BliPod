@@ -111,8 +111,19 @@ function formatDate(timestamp: number): string {
         @click="openPlaylist(playlist)"
       >
         <div class="playlist-cover">
-          <div class="cover-placeholder">
+          <img
+            v-if="playlist.videos.length > 0 && playlist.videos[0].cover"
+            :src="playlist.videos[0].cover"
+            :alt="playlist.name"
+            class="cover-image"
+            loading="lazy"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          />
+          <div v-else class="cover-placeholder">
             <ListMusic :size="32" />
+          </div>
+          <div class="video-count-badge" v-if="playlist.videos.length > 0">
+            {{ playlist.videos.length }}
           </div>
         </div>
         <div class="playlist-info">
@@ -291,10 +302,19 @@ function formatDate(timestamp: number): string {
 .playlist-cover {
   position: relative;
   width: 100%;
-  padding-top: 100%;
+  padding-top: 56.25%;
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg-card);
+}
+
+.cover-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cover-placeholder {
@@ -307,6 +327,18 @@ function formatDate(timestamp: number): string {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
+}
+
+.video-count-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
 }
 
 .playlist-info {
