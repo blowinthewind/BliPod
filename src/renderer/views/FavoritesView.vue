@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { Heart, Play, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
@@ -10,9 +10,27 @@ const playerStore = usePlayerStore()
 const isLoading = computed(() => favoritesStore.isLoading)
 const favorites = computed(() => favoritesStore.favorites)
 
+let playerUnsubscribe: (() => void) | null = null
+let progressUnsubscribe: (() => void) | null = null
+
 onMounted(() => {
   favoritesStore.loadFavorites()
+  setupListeners()
 })
+
+onUnmounted(() => {
+  if (playerUnsubscribe) {
+    playerUnsubscribe()
+  }
+  if (progressUnsubscribe) {
+    progressUnsubscribe()
+  }
+})
+
+function setupListeners() {
+  playerUnsubscribe = playerStore.setReadyListener()
+  progressUnsubscribe = playerStore.setProgressListener()
+}
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp)
