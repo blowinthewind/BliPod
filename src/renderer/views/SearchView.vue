@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus } from 'lucide-vue-next'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { useFavoritesStore } from '../stores/favorites'
+import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
+import type { ExtractedVideo } from '../../preload/preload'
 
 const router = useRouter()
 
@@ -21,6 +23,8 @@ const favoritesStore = useFavoritesStore()
 
 const searchQuery = ref('')
 const showHistory = ref(false)
+const showPlaylistDialog = ref(false)
+const selectedVideo = ref<ExtractedVideo | null>(null)
 
 const hasError = computed(() => searchStore.error !== null)
 const errorMessage = computed(() => searchStore.error || '')
@@ -97,6 +101,17 @@ async function toggleFavorite(video: ExtractedVideo, event: Event) {
 
 function isFavorite(bvid: string): boolean {
   return favoritesStore.isFavoriteSync(bvid)
+}
+
+function openPlaylistDialog(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  selectedVideo.value = video
+  showPlaylistDialog.value = true
+}
+
+function closePlaylistDialog() {
+  showPlaylistDialog.value = false
+  selectedVideo.value = null
 }
 </script>
 
@@ -206,6 +221,9 @@ function isFavorite(bvid: string): boolean {
           <button class="favorite-btn" @click.stop="toggleFavorite(result, $event)" :title="isFavorite(result.bvid) ? 'Remove from favorites' : 'Add to favorites'">
             <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
           </button>
+          <button class="playlist-btn" @click.stop="openPlaylistDialog(result, $event)" title="Add to playlist">
+            <ListPlus :size="16" />
+          </button>
           <button class="play-btn" @click.stop="handlePlay(result.bvid)">
             <Play :size="18" />
           </button>
@@ -237,6 +255,12 @@ function isFavorite(bvid: string): boolean {
       <Loader2 :size="32" class="animate-spin" />
       <span>Searching...</span>
     </div>
+
+    <AddToPlaylistDialog
+      :visible="showPlaylistDialog"
+      :video="selectedVideo"
+      @close="closePlaylistDialog"
+    />
   </div>
 </template>
 
@@ -633,6 +657,31 @@ function isFavorite(bvid: string): boolean {
 .favorite-btn:has(svg[fill="currentColor"]) {
   color: var(--accent);
   opacity: 1;
+}
+
+.playlist-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.result-item:hover .playlist-btn {
+  opacity: 1;
+}
+
+.playlist-btn:hover {
+  color: var(--accent);
+  background: var(--bg-primary);
 }
 
 .play-btn {

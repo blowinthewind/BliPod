@@ -1,27 +1,94 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ListMusic, Play, Plus, MoreHorizontal } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ListMusic, Play, Plus, Trash2, Edit3 } from 'lucide-vue-next'
+import { usePlaylistsStore } from '../stores/playlists'
+import { usePlayerStore } from '../stores/player'
+import type { Playlist } from '../../preload/preload'
 
-const playlists = ref([
-  { id: 1, name: '学习资料', count: 12, createdAt: '2024-01-10' },
-  { id: 2, name: '音乐MV', count: 8, createdAt: '2024-01-08' },
-  { id: 3, name: '游戏视频', count: 5, createdAt: '2024-01-05' }
-])
+const router = useRouter()
+const playlistsStore = usePlaylistsStore()
+const playerStore = usePlayerStore()
+
+const isLoading = computed(() => playlistsStore.isLoading)
+const playlists = computed(() => playlistsStore.playlists)
 
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteConfirm = ref(false)
+const editingPlaylist = ref<Playlist | null>(null)
+const deletingPlaylist = ref<Playlist | null>(null)
 const newPlaylistName = ref('')
+const newPlaylistDescription = ref('')
 
-function createPlaylist() {
+onMounted(() => {
+  playlistsStore.loadPlaylists()
+})
+
+function openCreateModal() {
+  newPlaylistName.value = ''
+  newPlaylistDescription.value = ''
+  showCreateModal.value = true
+}
+
+async function createPlaylist() {
   if (newPlaylistName.value.trim()) {
-    playlists.value.push({
-      id: Date.now(),
-      name: newPlaylistName.value,
-      count: 0,
-      createdAt: new Date().toISOString().split('T')[0]
-    })
+    await playlistsStore.createPlaylist(newPlaylistName.value.trim(), newPlaylistDescription.value.trim() || undefined)
     newPlaylistName.value = ''
+    newPlaylistDescription.value = ''
     showCreateModal.value = false
   }
+}
+
+function openEditModal(playlist: Playlist) {
+  editingPlaylist.value = playlist
+  newPlaylistName.value = playlist.name
+  newPlaylistDescription.value = playlist.description || ''
+  showEditModal.value = true
+}
+
+async function updatePlaylist() {
+  if (editingPlaylist.value && newPlaylistName.value.trim()) {
+    await playlistsStore.updatePlaylist(editingPlaylist.value.id, {
+      name: newPlaylistName.value.trim(),
+      description: newPlaylistDescription.value.trim() || undefined
+    })
+    showEditModal.value = false
+    editingPlaylist.value = null
+  }
+}
+
+function openDeleteConfirm(playlist: Playlist) {
+  deletingPlaylist.value = playlist
+  showDeleteConfirm.value = true
+}
+
+async function deletePlaylist() {
+  if (deletingPlaylist.value) {
+    await playlistsStore.deletePlaylist(deletingPlaylist.value.id)
+    showDeleteConfirm.value = false
+    deletingPlaylist.value = null
+  }
+}
+
+function openPlaylist(playlist: Playlist) {
+  router.push({ name: 'playlist-detail', params: { id: playlist.id } })
+}
+
+function playPlaylist(playlist: Playlist, event: Event) {
+  event.stopPropagation()
+  if (playlist.videos.length > 0) {
+    playerStore.playVideo(playlist.videos[0], playlist.videos)
+  }
+}
+
+function formatDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
 </script>
 
@@ -35,33 +102,47 @@ function createPlaylist() {
         <h1 class="page-title">播放列表</h1>
         <p class="page-desc">{{ playlists.length }} 个列表</p>
       </div>
-      <button class="create-btn" @click="showCreateModal = true">
+      <button class="create-btn" @click="openCreateModal">
         <Plus :size="18" />
         新建列表
       </button>
     </div>
 
-    <div class="playlists-grid" v-if="playlists.length > 0">
+    <div v-if="isLoading" class="loading-state">
+      <span>加载中...</span>
+    </div>
+
+    <div class="playlists-grid" v-else-if="playlists.length > 0">
       <div
         v-for="playlist in playlists"
         :key="playlist.id"
         class="playlist-card"
+        @click="openPlaylist(playlist)"
       >
         <div class="playlist-cover">
           <div class="cover-placeholder">
             <ListMusic :size="32" />
           </div>
-          <button class="play-overlay">
+          <button 
+            class="play-overlay" 
+            v-if="playlist.videos.length > 0"
+            @click="playPlaylist(playlist, $event)"
+          >
             <Play :size="24" />
           </button>
         </div>
         <div class="playlist-info">
           <h3 class="playlist-name">{{ playlist.name }}</h3>
-          <p class="playlist-meta">{{ playlist.count }} 个视频</p>
+          <p class="playlist-meta">{{ playlist.videos.length }} 个视频 · {{ formatDate(playlist.createdAt) }}</p>
         </div>
-        <button class="more-btn">
-          <MoreHorizontal :size="18" />
-        </button>
+        <div class="card-actions">
+          <button class="action-btn edit" title="编辑" @click.stop="openEditModal(playlist)">
+            <Edit3 :size="16" />
+          </button>
+          <button class="action-btn delete" title="删除" @click.stop="openDeleteConfirm(playlist)">
+            <Trash2 :size="16" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -69,7 +150,7 @@ function createPlaylist() {
       <ListMusic :size="48" class="empty-icon" />
       <h3>暂无播放列表</h3>
       <p>创建你的第一个播放列表</p>
-      <button class="create-btn" @click="showCreateModal = true">
+      <button class="create-btn" @click="openCreateModal">
         <Plus :size="18" />
         新建列表
       </button>
@@ -85,9 +166,49 @@ function createPlaylist() {
           v-model="newPlaylistName"
           @keyup.enter="createPlaylist"
         />
+        <textarea
+          class="modal-textarea"
+          placeholder="输入描述（可选）..."
+          v-model="newPlaylistDescription"
+          rows="3"
+        ></textarea>
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="showCreateModal = false">取消</button>
-          <button class="modal-btn confirm" @click="createPlaylist">创建</button>
+          <button class="modal-btn confirm" @click="createPlaylist" :disabled="!newPlaylistName.trim()">创建</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" v-if="showEditModal" @click.self="showEditModal = false">
+      <div class="modal">
+        <h2 class="modal-title">编辑播放列表</h2>
+        <input
+          type="text"
+          class="modal-input"
+          placeholder="输入列表名称..."
+          v-model="newPlaylistName"
+          @keyup.enter="updatePlaylist"
+        />
+        <textarea
+          class="modal-textarea"
+          placeholder="输入描述（可选）..."
+          v-model="newPlaylistDescription"
+          rows="3"
+        ></textarea>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="showEditModal = false">取消</button>
+          <button class="modal-btn confirm" @click="updatePlaylist" :disabled="!newPlaylistName.trim()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
+      <div class="modal confirm-modal">
+        <h2 class="modal-title">确认删除</h2>
+        <p class="confirm-text">确定要删除播放列表「{{ deletingPlaylist?.name }}」吗？此操作不可撤销。</p>
+        <div class="modal-actions">
+          <button class="modal-btn cancel" @click="showDeleteConfirm = false">取消</button>
+          <button class="modal-btn delete" @click="deletePlaylist">删除</button>
         </div>
       </div>
     </div>
@@ -150,6 +271,14 @@ function createPlaylist() {
 
 .create-btn:hover {
   background: var(--accent-hover);
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  color: var(--text-secondary);
 }
 
 .playlists-grid {
@@ -220,6 +349,10 @@ function createPlaylist() {
   transform: translateY(0);
 }
 
+.play-overlay:hover {
+  transform: scale(1.1);
+}
+
 .playlist-info {
   display: flex;
   flex-direction: column;
@@ -237,10 +370,21 @@ function createPlaylist() {
   color: var(--text-secondary);
 }
 
-.more-btn {
+.card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.playlist-card:hover .card-actions {
+  opacity: 1;
+}
+
+.action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,15 +392,22 @@ function createPlaylist() {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   cursor: pointer;
-  opacity: 0;
   transition: all 0.2s;
 }
 
-.playlist-card:hover .more-btn {
-  opacity: 1;
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.action-btn.edit:hover {
+  color: var(--accent);
+}
+
+.action-btn.delete:hover {
+  color: #ff5252;
 }
 
 .empty-state {
@@ -330,6 +481,23 @@ function createPlaylist() {
   border-color: var(--accent);
 }
 
+.modal-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modal-textarea:focus {
+  border-color: var(--accent);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -346,6 +514,11 @@ function createPlaylist() {
   transition: all 0.2s;
 }
 
+.modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-btn.cancel {
   background: var(--bg-card);
   color: var(--text-primary);
@@ -360,7 +533,22 @@ function createPlaylist() {
   color: white;
 }
 
-.modal-btn.confirm:hover {
+.modal-btn.confirm:hover:not(:disabled) {
   background: var(--accent-hover);
+}
+
+.modal-btn.delete {
+  background: #ff5252;
+  color: white;
+}
+
+.modal-btn.delete:hover {
+  background: #ff1744;
+}
+
+.confirm-modal .confirm-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 </style>

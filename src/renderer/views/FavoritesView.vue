@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
-import { Heart, Play, Trash2 } from 'lucide-vue-next'
+import { computed, onMounted, onUnmounted, ref, toRaw } from 'vue'
+import { Heart, Play, Trash2, ListPlus } from 'lucide-vue-next'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
+import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
+import type { FavoriteVideo, ExtractedVideo } from '../../preload/preload'
 
 const favoritesStore = useFavoritesStore()
 const playerStore = usePlayerStore()
 
 const isLoading = computed(() => favoritesStore.isLoading)
 const favorites = computed(() => favoritesStore.favorites)
+
+const showPlaylistDialog = ref(false)
+const selectedVideo = ref<ExtractedVideo | null>(null)
 
 let playerUnsubscribe: (() => void) | null = null
 let progressUnsubscribe: (() => void) | null = null
@@ -47,6 +52,17 @@ function playVideo(video: FavoriteVideo) {
 
 async function removeFavorite(bvid: string) {
   await favoritesStore.removeFavorite(bvid)
+}
+
+function openPlaylistDialog(video: FavoriteVideo, event: Event) {
+  event.stopPropagation()
+  selectedVideo.value = toRaw(video)
+  showPlaylistDialog.value = true
+}
+
+function closePlaylistDialog() {
+  showPlaylistDialog.value = false
+  selectedVideo.value = null
 }
 </script>
 
@@ -95,6 +111,9 @@ async function removeFavorite(bvid: string) {
           <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
             <Play :size="18" />
           </button>
+          <button class="action-btn playlist" title="添加到播放列表" @click.stop="openPlaylistDialog(item, $event)">
+            <ListPlus :size="18" />
+          </button>
           <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
             <Trash2 :size="18" />
           </button>
@@ -107,6 +126,12 @@ async function removeFavorite(bvid: string) {
       <h3>暂无收藏</h3>
       <p>搜索并收藏你喜欢的视频</p>
     </div>
+
+    <AddToPlaylistDialog
+      :visible="showPlaylistDialog"
+      :video="selectedVideo"
+      @close="closePlaylistDialog"
+    />
   </div>
 </template>
 
@@ -261,6 +286,10 @@ async function removeFavorite(bvid: string) {
 }
 
 .action-btn.play:hover {
+  color: var(--accent);
+}
+
+.action-btn.playlist:hover {
   color: var(--accent);
 }
 
