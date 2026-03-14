@@ -36,7 +36,14 @@ onMounted(() => {
   setupListeners()
   favoritesStore.loadFavorites()
   // 设置 searchView 销毁监听器
-  viewDestroyedUnsubscribe = searchStore.setViewDestroyedListener()
+  viewDestroyedUnsubscribe = searchStore.setViewDestroyedListener((data) => {
+    // 更新搜索栏的值
+    if (data.lastQuery) {
+      searchQuery.value = data.lastQuery
+    }
+    // 滚动到页面顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  })
 })
 
 onUnmounted(() => {

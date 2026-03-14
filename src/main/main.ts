@@ -791,6 +791,7 @@ function setupIPC() {
     // 如果 searchView 已被销毁（超时清理），提示用户重新搜索
     if (!searchView) {
       console.log('[BliPod] Search view was destroyed due to timeout, notifying user')
+      console.log('[BliPod] lastSearchQuery:', lastSearchQuery)
       if (mainWindow) {
         mainWindow.webContents.send('search:viewDestroyed', {
           message: '搜索页面已超时关闭，请重新搜索',
