@@ -4,6 +4,8 @@ import {
   Pause,
   SkipBack,
   SkipForward,
+  StepBack,
+  StepForward,
   Volume2,
   VolumeX,
   Repeat,
@@ -125,7 +127,7 @@ async function toggleFavorite() {
           @click="playerStore.seekBackward(15)"
           :disabled="!playerStore.hasVideo"
         >
-          <SkipBack :size="14" />
+          <StepBack :size="14" />
           <span class="seek-label">15</span>
         </button>
         <button
@@ -160,7 +162,7 @@ async function toggleFavorite() {
           @click="playerStore.seekForward(30)"
           :disabled="!playerStore.hasVideo"
         >
-          <SkipForward :size="14" />
+          <StepForward :size="14" />
           <span class="seek-label">30</span>
         </button>
         <button
