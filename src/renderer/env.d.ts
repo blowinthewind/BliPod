@@ -156,6 +156,7 @@ interface StoreAPI {
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
+  clearPlayPosition: (bvid: string) => Promise<void>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
   exportDataToFile: () => Promise<ExportResult>

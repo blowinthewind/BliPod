@@ -205,6 +205,15 @@ export function savePlayPosition(bvid: string, currentTime: number, duration: nu
   store.set('playPositions', positions)
 }
 
+export function clearPlayPosition(bvid: string): void {
+  const positions = store.get('playPositions')
+  const index = positions.findIndex(p => p.bvid === bvid)
+  if (index !== -1) {
+    positions.splice(index, 1)
+    store.set('playPositions', positions)
+  }
+}
+
 export function exportData(): AppStore {
   return {
     favorites: store.get('favorites'),

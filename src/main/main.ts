@@ -18,6 +18,7 @@ import {
   updateSettings,
   getPlayPosition,
   savePlayPosition,
+  clearPlayPosition,
   exportData,
   importData
 } from './store'
@@ -950,6 +951,10 @@ function setupIPC() {
 
   ipcMain.handle('store:savePlayPosition', async (_event, bvid: string, currentTime: number, duration: number) => {
     return savePlayPosition(bvid, currentTime, duration)
+  })
+
+  ipcMain.handle('store:clearPlayPosition', async (_event, bvid: string) => {
+    return clearPlayPosition(bvid)
   })
 
   ipcMain.handle('store:exportData', async () => {

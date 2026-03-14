@@ -150,6 +150,7 @@ export interface StoreAPI {
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
+  clearPlayPosition: (bvid: string) => Promise<void>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
   exportDataToFile: () => Promise<ExportResult>
@@ -301,6 +302,9 @@ const storeAPI: StoreAPI = {
   },
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => {
     return ipcRenderer.invoke('store:savePlayPosition', bvid, currentTime, duration)
+  },
+  clearPlayPosition: (bvid: string) => {
+    return ipcRenderer.invoke('store:clearPlayPosition', bvid)
   },
   exportData: () => {
     return ipcRenderer.invoke('store:exportData')

@@ -53,7 +53,9 @@ export const usePlayerStore = defineStore('player', () => {
     const previousTime = currentTime.value
     const previousDuration = duration.value
 
-    if (previousVideo && previousTime > 0) {
+    // 只有在切换不同视频时才保存上一个视频的位置
+    // 如果是同一个视频重新播放（如播放完成后再次点击），不保存位置，避免覆盖已清除的记录
+    if (previousVideo && previousVideo.bvid !== video.bvid && previousTime > 0) {
       await saveCurrentPosition(previousVideo, previousTime, previousDuration)
     }
 
@@ -225,6 +227,16 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value = progress.currentTime
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
+
+      // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
+      if (progress.duration > 0 &&
+          progress.currentTime >= progress.duration * 0.99 &&
+          progress.paused &&
+          currentVideo.value &&
+          appSettings.rememberPosition) {
+        // 清除该视频的播放位置记录，下次播放将从开头开始
+        window.electronAPI.store.clearPlayPosition(currentVideo.value.bvid)
+      }
     })
 
     return unsubscribe
