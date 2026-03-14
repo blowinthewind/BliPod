@@ -1,26 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, toRaw } from 'vue'
-import { Heart, Play, Trash2, ListPlus, ListCheck } from 'lucide-vue-next'
+import { computed, onMounted } from 'vue'
+import { Heart, Play, Trash2 } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
-import { usePlaylistsStore } from '../stores/playlists'
-import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
-import type { FavoriteVideo, ExtractedVideo } from '../../preload/preload'
+import type { FavoriteVideo } from '../../preload/preload'
 
 const favoritesStore = useFavoritesStore()
 const playerStore = usePlayerStore()
-const playlistsStore = usePlaylistsStore()
 
 const isLoading = computed(() => favoritesStore.isLoading)
 const favorites = computed(() => favoritesStore.favorites)
 
-const showPlaylistDialog = ref(false)
-const selectedVideo = ref<ExtractedVideo | null>(null)
-
 onMounted(() => {
   favoritesStore.loadFavorites()
-  playlistsStore.loadPlaylists()
 })
 
 function formatDate(timestamp: number): string {
@@ -38,17 +31,6 @@ function playVideo(video: FavoriteVideo) {
 
 async function removeFavorite(bvid: string) {
   await favoritesStore.removeFavorite(bvid)
-}
-
-function openPlaylistDialog(video: FavoriteVideo, event: Event) {
-  event.stopPropagation()
-  selectedVideo.value = toRaw(video)
-  showPlaylistDialog.value = true
-}
-
-function closePlaylistDialog() {
-  showPlaylistDialog.value = false
-  selectedVideo.value = null
 }
 </script>
 
@@ -98,14 +80,6 @@ function closePlaylistDialog() {
           <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
             <Play :size="18" />
           </button>
-          <button
-            class="action-btn playlist"
-            :title="playlistsStore.isVideoInAnyPlaylist(item.bvid) ? '已添加到播放列表' : '添加到播放列表'"
-            @click.stop="openPlaylistDialog(item, $event)"
-          >
-            <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(item.bvid)" :size="18" />
-            <ListPlus v-else :size="18" />
-          </button>
           <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
             <Trash2 :size="18" />
           </button>
@@ -119,11 +93,6 @@ function closePlaylistDialog() {
       <p>搜索并收藏你喜欢的视频</p>
     </div>
 
-    <AddToPlaylistDialog
-      :visible="showPlaylistDialog"
-      :video="selectedVideo"
-      @close="closePlaylistDialog"
-    />
   </div>
 </template>
 
@@ -278,14 +247,6 @@ function closePlaylistDialog() {
 }
 
 .action-btn.play:hover {
-  color: var(--accent);
-}
-
-.action-btn.playlist:hover {
-  color: var(--accent);
-}
-
-.action-btn.playlist:has(.lucide-list-check) {
   color: var(--accent);
 }
 
