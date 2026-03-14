@@ -38,6 +38,7 @@ let memoryCleanupInterval: NodeJS.Timeout | null = null
 let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = 10 * 60 * 1000
+let lastSearchQuery: string = ''
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -155,28 +156,27 @@ async function clearSessionCache() {
 
 async function performMemoryCleanup() {
   console.log('[BliPod] Performing memory cleanup...')
-  
+
   const now = Date.now()
-  
+
+  // 只清理 searchView，保留 playerView（确保用户可以随时恢复播放）
   if (searchView && (now - searchViewLastUsed) > viewIdleTimeout) {
     console.log('[BliPod] Search view idle timeout reached, destroying...')
     destroySearchView()
   }
-  
-  if (playerView && (now - playerViewLastUsed) > viewIdleTimeout) {
-    console.log('[BliPod] Player view idle timeout reached, destroying...')
-    destroyPlayerView()
-  }
-  
-  if (searchView || playerView) {
+
+  // 注意：playerView 不清理，确保用户长时间暂停后仍可恢复播放
+
+  // 只在 searchView 存在时清理缓存（避免影响 playerView）
+  if (searchView) {
     await clearSessionCache()
   }
-  
+
   if (global.gc) {
     global.gc()
     console.log('[BliPod] Manual GC triggered')
   }
-  
+
   const memoryUsage = process.memoryUsage()
   console.log('[BliPod] Memory usage after cleanup:', {
     heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
@@ -679,7 +679,10 @@ async function logout() {
 function setupIPC() {
   ipcMain.handle('search:query', async (_event, query: string, offset?: number): Promise<SearchResult> => {
     console.log('[BliPod] Search query received:', query, 'offset:', offset)
-    
+
+    // 保存搜索词，用于超时后提示用户
+    lastSearchQuery = query
+
     try {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
@@ -784,9 +787,16 @@ function setupIPC() {
 
   ipcMain.on('search:clickNextPage', async () => {
     console.log('[BliPod] Clicking next page button')
-    
+
+    // 如果 searchView 已被销毁（超时清理），提示用户重新搜索
     if (!searchView) {
-      console.error('[BliPod] Search view not found')
+      console.log('[BliPod] Search view was destroyed due to timeout, notifying user')
+      if (mainWindow) {
+        mainWindow.webContents.send('search:viewDestroyed', {
+          message: '搜索页面已超时关闭，请重新搜索',
+          lastQuery: lastSearchQuery
+        })
+      }
       return
     }
     

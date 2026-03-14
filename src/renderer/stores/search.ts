@@ -138,7 +138,21 @@ export const useSearchStore = defineStore('search', () => {
       isSearching.value = false
       isLoadingMore.value = false
     })
-    
+
+    return unsubscribe
+  }
+
+  function setViewDestroyedListener() {
+    const unsubscribe = window.electronAPI.search.onViewDestroyed((data) => {
+      // searchView 被销毁，显示提示并保存上次搜索词
+      error.value = data.message
+      // 如果当前没有搜索词，使用返回的上次搜索词
+      if (!query.value && data.lastQuery) {
+        query.value = data.lastQuery
+      }
+      isLoadingMore.value = false
+    })
+
     return unsubscribe
   }
 
@@ -164,5 +178,6 @@ export const useSearchStore = defineStore('search', () => {
     removeFromHistory,
     clearHistory,
     setResultListener,
+    setViewDestroyedListener,
   }
 })

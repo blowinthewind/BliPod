@@ -175,6 +175,7 @@ interface SearchAPI {
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
   onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
+  onViewDestroyed: (callback: (data: { message: string; lastQuery: string }) => void) => () => void
 }
 
 interface AuthAPI {

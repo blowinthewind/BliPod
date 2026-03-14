@@ -4,7 +4,7 @@ import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '
 import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
 import { usePlaylistsStore } from '@/stores/playlists'
-import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check } from 'lucide-vue-next'
+import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check, MemoryStick } from 'lucide-vue-next'
 import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
 const themeStore = useThemeStore()
@@ -31,12 +31,20 @@ const isImporting = ref(false)
 const exportMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const importMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
+// 内存管理设置
+const memorySettings = ref({
+  searchViewTimeout: 10 * 60 * 1000, // 默认10分钟
+  cleanupMessage: '' as string | null
+})
+
 let unsubscribe: (() => void) | null = null
 
 onMounted(async () => {
   unsubscribe = authStore.setLoginListener()
   authStore.checkLoginStatus()
   await loadDataStats()
+  // 加载内存管理设置
+  loadMemorySettings()
 })
 
 onUnmounted(() => {
@@ -241,6 +249,54 @@ function closeLoginDialog() {
 function handleLogout() {
   authStore.logout()
 }
+
+// 加载内存管理设置
+function loadMemorySettings() {
+  try {
+    const stored = localStorage.getItem('blipod_memory_settings')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      memorySettings.value.searchViewTimeout = parsed.searchViewTimeout || 10 * 60 * 1000
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// 更新内存管理设置
+async function updateMemoryTimeout() {
+  try {
+    await window.electronAPI.memory.setIdleTimeout(memorySettings.value.searchViewTimeout)
+    localStorage.setItem('blipod_memory_settings', JSON.stringify({
+      searchViewTimeout: memorySettings.value.searchViewTimeout
+    }))
+    memorySettings.value.cleanupMessage = '设置已保存'
+    setTimeout(() => { memorySettings.value.cleanupMessage = null }, 3000)
+  } catch (error) {
+    memorySettings.value.cleanupMessage = '保存失败'
+  }
+}
+
+// 立即清理内存
+async function cleanupMemoryNow() {
+  try {
+    await window.electronAPI.memory.cleanup()
+    memorySettings.value.cleanupMessage = '内存已清理'
+    setTimeout(() => { memorySettings.value.cleanupMessage = null }, 3000)
+  } catch (error) {
+    memorySettings.value.cleanupMessage = '清理失败'
+  }
+}
+
+// 显示内存状态
+async function showMemoryStats() {
+  try {
+    const stats = await window.electronAPI.memory.getStats()
+    alert(`内存使用: ${stats.heapUsed}MB / ${stats.heapTotal}MB\nRSS: ${stats.rss}MB\nSearchView: ${stats.searchViewActive ? '活跃' : '未创建'}\nPlayerView: ${stats.playerViewActive ? '活跃' : '未创建'}`)
+  } catch (error) {
+    alert('获取内存状态失败')
+  }
+}
 </script>
 
 <template>
@@ -380,6 +436,47 @@ function handleLogout() {
               <input type="checkbox" v-model="rememberPosition" />
               <span class="toggle-slider"></span>
             </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="section-title">
+          <MemoryStick :size="18" />
+          Memory Management
+        </h2>
+        <div class="settings-card">
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Search Page Timeout</span>
+              <span class="setting-desc">Time before search page is cleaned up to free memory</span>
+              <div v-if="memorySettings.cleanupMessage" class="message-toast success">
+                <Check :size="14" />
+                {{ memorySettings.cleanupMessage }}
+              </div>
+            </div>
+            <select v-model="memorySettings.searchViewTimeout" @change="updateMemoryTimeout" class="timeout-select">
+              <option :value="5 * 60 * 1000">5 minutes</option>
+              <option :value="10 * 60 * 1000">10 minutes (default)</option>
+              <option :value="15 * 60 * 1000">15 minutes</option>
+              <option :value="20 * 60 * 1000">20 minutes</option>
+              <option :value="30 * 60 * 1000">30 minutes</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Memory Status</span>
+              <span class="setting-desc">View current memory usage and active views</span>
+            </div>
+            <div class="memory-actions">
+              <button class="action-btn" @click="showMemoryStats">
+                View Stats
+              </button>
+              <button class="action-btn" @click="cleanupMemoryNow">
+                Cleanup Now
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1115,6 +1212,27 @@ function handleLogout() {
 
 .strategy-select:focus {
   border-color: var(--accent);
+}
+
+.timeout-select {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  min-width: 140px;
+}
+
+.timeout-select:focus {
+  border-color: var(--accent);
+}
+
+.memory-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .message-toast {

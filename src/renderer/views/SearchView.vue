@@ -19,6 +19,9 @@ const {
   playVideo
 } = useSearch({ maxRetries: 3, retryDelay: 1000 })
 
+// 用于 viewDestroyed 监听器的取消函数
+let viewDestroyedUnsubscribe: (() => void) | null = null
+
 const favoritesStore = useFavoritesStore()
 
 const searchQuery = ref('')
@@ -32,10 +35,17 @@ const errorMessage = computed(() => searchStore.error || '')
 onMounted(() => {
   setupListeners()
   favoritesStore.loadFavorites()
+  // 设置 searchView 销毁监听器
+  viewDestroyedUnsubscribe = searchStore.setViewDestroyedListener()
 })
 
 onUnmounted(() => {
   cleanupListeners()
+  // 清理 viewDestroyed 监听器
+  if (viewDestroyedUnsubscribe) {
+    viewDestroyedUnsubscribe()
+    viewDestroyedUnsubscribe = null
+  }
 })
 
 async function handleSearch() {
@@ -172,10 +182,18 @@ function closePlaylistDialog() {
       </div>
     </div>
 
-    <div v-if="hasError" class="error-message">
+    <div v-if="hasError" class="error-message" :class="{ 'timeout-error': errorMessage.includes('超时') }">
       <AlertCircle :size="20" />
       <span>{{ errorMessage }}</span>
       <span v-if="isRetrying" class="retry-info">(Retrying... {{ retryCount }}/3)</span>
+      <!-- 超时错误时显示重新搜索按钮 -->
+      <button
+        v-if="errorMessage.includes('超时') && searchStore.query"
+        class="re-search-btn"
+        @click="handleSearch"
+      >
+        重新搜索 "{{ searchStore.query }}"
+      </button>
     </div>
 
     <div class="search-results" v-if="searchStore.hasResults">
@@ -496,11 +514,35 @@ function closePlaylistDialog() {
   border-radius: 8px;
   color: #ef4444;
   font-size: 14px;
+  flex-wrap: wrap;
+}
+
+.error-message.timeout-error {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
 }
 
 .retry-info {
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.re-search-btn {
+  margin-left: auto;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.re-search-btn:hover {
+  background: var(--accent-hover);
 }
 
 .search-results {

@@ -169,6 +169,7 @@ export interface SearchAPI {
   onSearchResult: (callback: (result: SearchResult) => void) => () => void
   onPlayerReady: (callback: () => void) => () => void
   onPlayerProgress: (callback: (progress: PlayerProgress) => void) => () => void
+  onViewDestroyed: (callback: (data: { message: string; lastQuery: string }) => void) => () => void
 }
 
 export interface AuthAPI {
@@ -220,6 +221,11 @@ const searchAPI: SearchAPI = {
     const handler = (_event: unknown, progress: PlayerProgress) => callback(progress)
     ipcRenderer.on('player:progress', handler)
     return () => ipcRenderer.removeListener('player:progress', handler)
+  },
+  onViewDestroyed: (callback) => {
+    const handler = (_event: unknown, data: { message: string; lastQuery: string }) => callback(data)
+    ipcRenderer.on('search:viewDestroyed', handler)
+    return () => ipcRenderer.removeListener('search:viewDestroyed', handler)
   }
 }
 
