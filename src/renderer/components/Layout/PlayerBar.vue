@@ -8,16 +8,20 @@ import {
   VolumeX,
   Repeat,
   Shuffle,
-  ListMusic,
+  ListCheck,
+  ListPlus,
   Maximize2,
   Heart
 } from 'lucide-vue-next'
-import { computed, onMounted, toRaw } from 'vue'
+import { computed, onMounted, ref, toRaw } from 'vue'
 import { usePlayerStore } from '../../stores/player'
 import { useFavoritesStore } from '../../stores/favorites'
+import { usePlaylistsStore } from '../../stores/playlists'
+import AddToPlaylistDialog from '../Playlist/AddToPlaylistDialog.vue'
 
 const playerStore = usePlayerStore()
 const favoritesStore = useFavoritesStore()
+const playlistsStore = usePlaylistsStore()
 
 const progress = computed(() => playerStore.progress)
 const formattedCurrentTime = computed(() => formatTime(playerStore.currentTime))
@@ -27,9 +31,21 @@ const isCurrentFavorite = computed(() => {
   return favoritesStore.isFavoriteSync(playerStore.currentVideo.bvid)
 })
 
+const showPlaylistDialog = ref(false)
+
 onMounted(() => {
   favoritesStore.loadFavorites()
+  playlistsStore.loadPlaylists()
 })
+
+function openPlaylistDialog() {
+  if (!playerStore.currentVideo) return
+  showPlaylistDialog.value = true
+}
+
+function closePlaylistDialog() {
+  showPlaylistDialog.value = false
+}
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -171,8 +187,14 @@ async function toggleFavorite() {
     </div>
 
     <div class="extra-controls">
-      <button class="control-btn small" title="Playlist">
-        <ListMusic :size="18" />
+      <button
+        class="control-btn small playlist-btn"
+        v-if="playerStore.hasVideo"
+        @click="openPlaylistDialog"
+        :title="playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid) ? '已添加到播放列表' : '添加到播放列表'"
+      >
+        <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid)" :size="18" />
+        <ListPlus v-else :size="18" />
       </button>
       <div class="volume-container">
         <button
@@ -197,6 +219,12 @@ async function toggleFavorite() {
         <Maximize2 :size="18" />
       </button>
     </div>
+
+    <AddToPlaylistDialog
+      :visible="showPlaylistDialog"
+      :video="playerStore.currentVideo"
+      @close="closePlaylistDialog"
+    />
   </footer>
 </template>
 
@@ -343,6 +371,10 @@ export default {
 }
 
 .control-btn.small.active {
+  color: var(--accent);
+}
+
+.control-btn.small:has(.lucide-list-check) {
   color: var(--accent);
 }
 
