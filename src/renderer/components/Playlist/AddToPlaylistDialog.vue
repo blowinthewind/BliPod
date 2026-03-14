@@ -16,7 +16,20 @@ const emit = defineEmits<{
 }>()
 
 const playlistsStore = usePlaylistsStore()
-const playlists = computed(() => playlistsStore.playlists)
+
+// 排序后的播放列表：包含当前视频的播放列表置顶
+const sortedPlaylists = computed(() => {
+  if (!props.video) return playlistsStore.playlists
+  
+  return [...playlistsStore.playlists].sort((a, b) => {
+    const aHasVideo = a.videos.some(v => v.bvid === props.video?.bvid)
+    const bHasVideo = b.videos.some(v => v.bvid === props.video?.bvid)
+    
+    if (aHasVideo && !bHasVideo) return -1
+    if (!aHasVideo && bHasVideo) return 1
+    return 0
+  })
+})
 
 const showCreateModal = ref(false)
 const newPlaylistName = ref('')
@@ -34,7 +47,7 @@ watch(() => props.visible, (visible) => {
 
 function isVideoInPlaylist(playlistId: string): boolean {
   if (!props.video) return false
-  const playlist = playlists.value.find(p => p.id === playlistId)
+  const playlist = sortedPlaylists.value.find(p => p.id === playlistId)
   return playlist ? playlist.videos.some(v => v.bvid === props.video?.bvid) : false
 }
 
@@ -119,9 +132,9 @@ function isProcessingPlaylist(playlistId: string): boolean {
           新建播放列表
         </button>
 
-        <div class="playlists-list" v-if="playlists.length > 0">
+        <div class="playlists-list" v-if="sortedPlaylists.length > 0">
           <button
-            v-for="playlist in playlists"
+            v-for="playlist in sortedPlaylists"
             :key="playlist.id"
             class="playlist-item"
             :class="{ added: isVideoInPlaylist(playlist.id) }"
