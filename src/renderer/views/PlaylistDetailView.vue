@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
 import { usePlaylistsStore } from '../stores/playlists'
@@ -20,27 +20,9 @@ const showEditModal = ref(false)
 const editName = ref('')
 const editDescription = ref('')
 
-let playerUnsubscribe: (() => void) | null = null
-let progressUnsubscribe: (() => void) | null = null
-
 onMounted(() => {
   playlistsStore.loadPlaylists()
-  setupListeners()
 })
-
-onUnmounted(() => {
-  if (playerUnsubscribe) {
-    playerUnsubscribe()
-  }
-  if (progressUnsubscribe) {
-    progressUnsubscribe()
-  }
-})
-
-function setupListeners() {
-  playerUnsubscribe = playerStore.setReadyListener()
-  progressUnsubscribe = playerStore.setProgressListener()
-}
 
 watch(playlist, (newPlaylist) => {
   if (newPlaylist) {

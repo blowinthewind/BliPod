@@ -1,7 +1,30 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue'
 import Sidebar from './Sidebar.vue'
 import Header from './Header.vue'
 import PlayerBar from './PlayerBar.vue'
+import { usePlayerStore } from '../../stores/player'
+
+const playerStore = usePlayerStore()
+
+let playerUnsubscribe: (() => void) | null = null
+let progressUnsubscribe: (() => void) | null = null
+
+onMounted(() => {
+  // 在全局布局中设置播放器事件监听器
+  // 这样无论切换到哪个页面，playerbar 都能正常更新
+  playerUnsubscribe = playerStore.setReadyListener()
+  progressUnsubscribe = playerStore.setProgressListener()
+})
+
+onUnmounted(() => {
+  if (playerUnsubscribe) {
+    playerUnsubscribe()
+  }
+  if (progressUnsubscribe) {
+    progressUnsubscribe()
+  }
+})
 </script>
 
 <template>

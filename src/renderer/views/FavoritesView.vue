@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, toRaw } from 'vue'
+import { computed, onMounted, ref, toRaw } from 'vue'
 import { Heart, Play, Trash2, ListPlus } from 'lucide-vue-next'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
@@ -15,27 +15,9 @@ const favorites = computed(() => favoritesStore.favorites)
 const showPlaylistDialog = ref(false)
 const selectedVideo = ref<ExtractedVideo | null>(null)
 
-let playerUnsubscribe: (() => void) | null = null
-let progressUnsubscribe: (() => void) | null = null
-
 onMounted(() => {
   favoritesStore.loadFavorites()
-  setupListeners()
 })
-
-onUnmounted(() => {
-  if (playerUnsubscribe) {
-    playerUnsubscribe()
-  }
-  if (progressUnsubscribe) {
-    progressUnsubscribe()
-  }
-})
-
-function setupListeners() {
-  playerUnsubscribe = playerStore.setReadyListener()
-  progressUnsubscribe = playerStore.setProgressListener()
-}
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp)

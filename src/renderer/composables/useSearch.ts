@@ -9,35 +9,25 @@ export interface UseSearchOptions {
 
 export function useSearch(options: UseSearchOptions = {}) {
   const { maxRetries = 3, retryDelay = 1000 } = options
-  
+
   const searchStore = useSearchStore()
   const playerStore = usePlayerStore()
-  
+
   const retryCount = ref(0)
   const isRetrying = ref(false)
 
   let searchUnsubscribe: (() => void) | null = null
-  let playerUnsubscribe: (() => void) | null = null
-  let progressUnsubscribe: (() => void) | null = null
 
   function setupListeners() {
+    // 只设置搜索结果监听器
+    // 播放器事件监听器现在在 MainLayout 中全局设置
     searchUnsubscribe = searchStore.setResultListener()
-    playerUnsubscribe = playerStore.setReadyListener()
-    progressUnsubscribe = playerStore.setProgressListener()
   }
 
   function cleanupListeners() {
     if (searchUnsubscribe) {
       searchUnsubscribe()
       searchUnsubscribe = null
-    }
-    if (playerUnsubscribe) {
-      playerUnsubscribe()
-      playerUnsubscribe = null
-    }
-    if (progressUnsubscribe) {
-      progressUnsubscribe()
-      progressUnsubscribe = null
     }
   }
 
