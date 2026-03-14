@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { Loader2, Play, ArrowLeft, User } from 'lucide-vue-next'
+import { Loader2, Play, ArrowLeft, User, Heart, ListPlus } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
+import { useFavoritesStore } from '../stores/favorites'
+import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
 const playerStore = usePlayerStore()
+const favoritesStore = useFavoritesStore()
 
 const videos = ref<ExtractedVideo[]>([])
 const isLoading = ref(false)
@@ -16,6 +19,8 @@ const uploaderInfo = ref<UploaderInfo | null>(null)
 const hasMore = ref(false)
 const isLoadingMore = ref(false)
 const currentPage = ref(1)
+const showPlaylistDialog = ref(false)
+const selectedVideo = ref<ExtractedVideo | null>(null)
 
 const mid = computed(() => route.params.mid as string)
 const hasResults = computed(() => videos.value.length > 0)
@@ -27,6 +32,7 @@ let progressUnsubscribe: (() => void) | null = null
 onMounted(() => {
   loadUploaderVideos()
   setupListeners()
+  favoritesStore.loadFavorites()
 })
 
 onUnmounted(() => {
@@ -128,6 +134,31 @@ function handlePlay(bvid: string) {
 function goBack() {
   router.back()
 }
+
+async function toggleFavorite(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  if (favoritesStore.isFavoriteSync(video.bvid)) {
+    await favoritesStore.removeFavorite(video.bvid)
+  } else {
+    const rawVideo = toRaw(video)
+    await favoritesStore.addFavorite(rawVideo)
+  }
+}
+
+function isFavorite(bvid: string): boolean {
+  return favoritesStore.isFavoriteSync(bvid)
+}
+
+function openPlaylistDialog(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  selectedVideo.value = video
+  showPlaylistDialog.value = true
+}
+
+function closePlaylistDialog() {
+  showPlaylistDialog.value = false
+  selectedVideo.value = null
+}
 </script>
 
 <template>
@@ -192,6 +223,12 @@ function goBack() {
               <span v-if="video.playCount" class="meta-item">{{ video.playCount }} plays</span>
             </div>
           </div>
+          <button class="favorite-btn" @click.stop="toggleFavorite(video, $event)" :title="isFavorite(video.bvid) ? 'Remove from favorites' : 'Add to favorites'">
+            <Heart :size="16" :fill="isFavorite(video.bvid) ? 'currentColor' : 'none'" />
+          </button>
+          <button class="playlist-btn" @click.stop="openPlaylistDialog(video, $event)" title="Add to playlist">
+            <ListPlus :size="16" />
+          </button>
           <button class="play-btn" @click.stop="handlePlay(video.bvid)">
             <Play :size="18" />
           </button>
@@ -222,6 +259,12 @@ function goBack() {
       <Loader2 :size="32" class="animate-spin" />
       <span>Loading videos...</span>
     </div>
+
+    <AddToPlaylistDialog
+      :visible="showPlaylistDialog"
+      :video="selectedVideo"
+      @close="closePlaylistDialog"
+    />
   </div>
 </template>
 
@@ -447,6 +490,60 @@ function goBack() {
 
 .play-btn:hover {
   transform: scale(1.1);
+}
+
+.favorite-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.video-item:hover .favorite-btn {
+  opacity: 1;
+}
+
+.favorite-btn:hover {
+  color: var(--accent);
+}
+
+.favorite-btn:has(svg[fill="currentColor"]) {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.playlist-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.video-item:hover .playlist-btn {
+  opacity: 1;
+}
+
+.playlist-btn:hover {
+  color: var(--accent);
+  background: var(--bg-primary);
 }
 
 .load-more-container {
