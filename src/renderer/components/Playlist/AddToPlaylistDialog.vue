@@ -149,10 +149,7 @@ function isProcessingPlaylist(playlistId: string): boolean {
               <span class="playlist-count">{{ playlist.videos.length }} 个视频</span>
             </div>
             <div class="playlist-status">
-              <span v-if="isProcessingPlaylist(playlist.id)" class="loading">
-                {{ isVideoInPlaylist(playlist.id) ? '移除中...' : '添加中...' }}
-              </span>
-              <Check v-else-if="isVideoInPlaylist(playlist.id)" :size="18" class="check-icon" />
+              <Check v-if="isVideoInPlaylist(playlist.id)" :size="18" class="check-icon" />
             </div>
           </button>
         </div>
