@@ -159,6 +159,12 @@ async function performMemoryCleanup() {
 
   const now = Date.now()
 
+  // 如果 searchView 正在加载页面，不清理
+  if (searchView && searchView.webContents.isLoading()) {
+    console.log('[BliPod] Search view is loading, skipping cleanup')
+    return
+  }
+
   // 只清理 searchView，保留 playerView（确保用户可以随时恢复播放）
   if (searchView && (now - searchViewLastUsed) > viewIdleTimeout) {
     console.log('[BliPod] Search view idle timeout reached, destroying...')
@@ -800,7 +806,10 @@ function setupIPC() {
       }
       return
     }
-    
+
+    // 更新最后使用时间，防止翻页过程中被清理
+    searchViewLastUsed = Date.now()
+
     try {
       const hasFunction = await searchView.webContents.executeJavaScript(
         'typeof window.__BILI_CLICK_NEXT_PAGE__ === "function"'
