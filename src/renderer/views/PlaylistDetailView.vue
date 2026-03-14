@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
+import LazyImage from '../components/ui/LazyImage.vue'
 import { usePlaylistsStore } from '../stores/playlists'
 import { usePlayerStore } from '../stores/player'
 import type { PlaylistVideo } from '../../preload/preload'
@@ -102,7 +103,13 @@ function formatDuration(duration: string): string {
           <ArrowLeft :size="20" />
         </button>
         <div class="header-cover" v-if="videos.length > 0 && videos[0].cover">
-          <img :src="videos[0].cover" :alt="playlist.name" />
+          <LazyImage
+            :src="videos[0].cover"
+            :alt="playlist.name"
+            :width="320"
+            aspect-ratio="16/9"
+            placeholder-icon="image"
+          />
         </div>
         <div class="header-icon" v-else>
           <ListMusic :size="24" />
@@ -146,12 +153,13 @@ function formatDuration(duration: string): string {
         >
           <span class="item-index">{{ index + 1 }}</span>
           <div class="item-cover">
-            <img
+            <LazyImage
               v-if="video.cover"
               :src="video.cover"
               :alt="video.title"
-              loading="lazy"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
             />
             <div v-else class="cover-placeholder">🎵</div>
             <span class="item-duration">{{ formatDuration(video.duration) }}</span>

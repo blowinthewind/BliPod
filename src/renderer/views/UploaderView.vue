@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Loader2, Play, ArrowLeft, User } from 'lucide-vue-next'
+import LazyImage from '../components/ui/LazyImage.vue'
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
@@ -137,10 +138,13 @@ function goBack() {
       </button>
       <div class="uploader-info">
         <div class="uploader-avatar">
-          <img 
-            v-if="uploaderInfo?.avatar" 
-            :src="uploaderInfo.avatar" 
-            :alt="uploaderInfo.name"
+          <LazyImage
+            v-if="uploaderInfo?.avatar"
+            :src="uploaderInfo.avatar"
+            :alt="uploaderInfo.name || 'Avatar'"
+            :width="96"
+            aspect-ratio="1/1"
+            placeholder-icon="image"
           />
           <User v-else :size="24" class="uploader-icon" />
         </div>
@@ -169,12 +173,13 @@ function goBack() {
           @click="handlePlay(video.bvid)"
         >
           <div class="video-cover">
-            <img
+            <LazyImage
               v-if="video.cover"
               :src="video.cover"
               :alt="video.title"
-              loading="lazy"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
             />
             <div v-else class="cover-placeholder">
               <Play :size="24" />
@@ -260,6 +265,7 @@ function goBack() {
 }
 
 .uploader-avatar {
+  position: relative;
   width: 48px;
   height: 48px;
   border-radius: 50%;

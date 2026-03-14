@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus } from 'lucide-vue-next'
+import LazyImage from '../components/ui/LazyImage.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
@@ -214,12 +215,13 @@ function closePlaylistDialog() {
           @click="handlePlay(result.bvid)"
         >
           <div class="result-cover">
-            <img
+            <LazyImage
               v-if="result.cover"
               :src="result.cover"
               :alt="result.title"
-              loading="lazy"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
             />
             <div v-else class="cover-placeholder">
               <Play :size="24" />

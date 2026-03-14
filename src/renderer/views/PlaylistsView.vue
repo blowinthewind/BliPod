@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
+import LazyImage from '../components/ui/LazyImage.vue'
 import { usePlaylistsStore } from '../stores/playlists'
 import type { Playlist } from '../../preload/preload'
 
@@ -111,13 +112,13 @@ function formatDate(timestamp: number): string {
         @click="openPlaylist(playlist)"
       >
         <div class="playlist-cover">
-          <img
+          <LazyImage
             v-if="playlist.videos.length > 0 && playlist.videos[0].cover"
             :src="playlist.videos[0].cover"
             :alt="playlist.name"
-            class="cover-image"
-            loading="lazy"
-            @error="($event.target as HTMLImageElement).style.display = 'none'"
+            :width="480"
+            aspect-ratio="16/9"
+            placeholder-icon="image"
           />
           <div v-else class="cover-placeholder">
             <ListMusic :size="32" />
@@ -302,7 +303,7 @@ function formatDate(timestamp: number): string {
 .playlist-cover {
   position: relative;
   width: 100%;
-  padding-top: 56.25%;
+  aspect-ratio: 16 / 9;
   border-radius: 6px;
   overflow: hidden;
   background: var(--bg-card);

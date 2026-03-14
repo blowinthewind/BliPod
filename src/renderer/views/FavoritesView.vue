@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, toRaw } from 'vue'
 import { Heart, Play, Trash2, ListPlus } from 'lucide-vue-next'
+import LazyImage from '../components/ui/LazyImage.vue'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
 import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
@@ -72,12 +73,13 @@ function closePlaylistDialog() {
         @click="playVideo(item)"
       >
         <div class="item-cover">
-          <img
+          <LazyImage
             v-if="item.cover"
             :src="item.cover"
             :alt="item.title"
-            loading="lazy"
-            @error="($event.target as HTMLImageElement).style.display = 'none'"
+            :width="320"
+            aspect-ratio="16/9"
+            placeholder-icon="play"
           />
           <div v-else class="cover-placeholder">🎵</div>
           <span class="item-duration">{{ item.duration }}</span>

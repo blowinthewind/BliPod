@@ -17,6 +17,7 @@ declare module 'vue' {
     CardTitle: typeof import('./components/ui/CardTitle.vue')['default']
     Header: typeof import('./components/Layout/Header.vue')['default']
     Input: typeof import('./components/ui/Input.vue')['default']
+    LazyImage: typeof import('./components/ui/LazyImage.vue')['default']
     LoginDialog: typeof import('./components/Layout/LoginDialog.vue')['default']
     MainLayout: typeof import('./components/Layout/MainLayout.vue')['default']
     PlayerBar: typeof import('./components/Layout/PlayerBar.vue')['default']
