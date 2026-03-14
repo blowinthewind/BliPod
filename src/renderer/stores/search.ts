@@ -146,11 +146,13 @@ export const useSearchStore = defineStore('search', () => {
     const unsubscribe = window.electronAPI.search.onViewDestroyed((data) => {
       // searchView 被销毁，显示提示并保存上次搜索词
       error.value = data.message
-      // 如果当前没有搜索词，使用返回的上次搜索词
-      if (!query.value && data.lastQuery) {
+      // 将上次搜索词填入搜索栏（即使已有搜索词也更新，确保是最新的）
+      if (data.lastQuery) {
         query.value = data.lastQuery
       }
       isLoadingMore.value = false
+      // 滚动到页面顶部，方便用户看到提示信息
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     })
 
     return unsubscribe

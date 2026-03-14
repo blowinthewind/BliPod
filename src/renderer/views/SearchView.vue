@@ -186,14 +186,6 @@ function closePlaylistDialog() {
       <AlertCircle :size="20" />
       <span>{{ errorMessage }}</span>
       <span v-if="isRetrying" class="retry-info">(Retrying... {{ retryCount }}/3)</span>
-      <!-- 超时错误时显示重新搜索按钮 -->
-      <button
-        v-if="errorMessage.includes('超时') && searchStore.query"
-        class="re-search-btn"
-        @click="handleSearch"
-      >
-        重新搜索 "{{ searchStore.query }}"
-      </button>
     </div>
 
     <div class="search-results" v-if="searchStore.hasResults">
@@ -526,23 +518,6 @@ function closePlaylistDialog() {
 .retry-info {
   color: var(--text-secondary);
   font-size: 12px;
-}
-
-.re-search-btn {
-  margin-left: auto;
-  padding: 6px 12px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.re-search-btn:hover {
-  background: var(--accent-hover);
 }
 
 .search-results {
