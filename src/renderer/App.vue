@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import MainLayout from '@/components/Layout/MainLayout.vue'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 import { usePlayerStore } from '@/stores/player'
 
 const playerStore = usePlayerStore()
@@ -22,6 +23,7 @@ onUnmounted(() => {
   <MainLayout>
     <router-view />
   </MainLayout>
+  <ToastContainer />
 </template>
 
 <style>

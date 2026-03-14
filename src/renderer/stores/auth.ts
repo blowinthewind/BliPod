@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import QRCode from 'qrcode'
+import { useToast } from '../composables/useToast'
+import { getUserFriendlyErrorMessage, getSuccessMessage } from '../utils/errorMessages'
+import { logger } from '../utils/logger'
 
 export const useAuthStore = defineStore('auth', () => {
+  const toast = useToast()
   const isLoggedIn = ref(false)
   const isLoggingIn = ref(false)
   const userInfo = ref<UserInfo | null>(null)
@@ -21,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (e) {
       isLoggedIn.value = false
       userInfo.value = null
+      logger.warn('Failed to check login status:', e)
     }
   }
 
@@ -33,8 +38,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await window.electronAPI.auth.startLogin()
     } catch (e) {
-      loginError.value = e instanceof Error ? e.message : 'Failed to start login'
+      const friendlyError = getUserFriendlyErrorMessage(e, '启动登录失败')
+      loginError.value = friendlyError
+      toast.error(friendlyError)
       isLoggingIn.value = false
+      logger.error('Failed to start login:', e)
     }
   }
 
@@ -43,8 +51,12 @@ export const useAuthStore = defineStore('auth', () => {
       await window.electronAPI.auth.logout()
       isLoggedIn.value = false
       userInfo.value = null
+      toast.success(getSuccessMessage('logout'))
     } catch (e) {
-      loginError.value = e instanceof Error ? e.message : 'Failed to logout'
+      const friendlyError = getUserFriendlyErrorMessage(e, '退出登录失败')
+      loginError.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to logout:', e)
     }
   }
 
@@ -61,8 +73,10 @@ export const useAuthStore = defineStore('auth', () => {
       })
       qrCodeDataUrl.value = dataUrl
     } catch (e) {
-      console.error('Failed to generate QR code:', e)
-      loginError.value = 'Failed to generate QR code image'
+      logger.error('Failed to generate QR code:', e)
+      const friendlyError = '生成二维码失败，请重试'
+      loginError.value = friendlyError
+      toast.error(friendlyError)
     }
   }
 
@@ -73,18 +87,22 @@ export const useAuthStore = defineStore('auth', () => {
     qrCodeUrl.value = null
     qrCodeDataUrl.value = null
     loginError.value = null
+    toast.success(getSuccessMessage('login'))
   }
 
   function setLoginError(error: string) {
-    loginError.value = error
+    const friendlyError = getUserFriendlyErrorMessage(error, '登录失败')
+    loginError.value = friendlyError
     isLoggingIn.value = false
+    toast.error(friendlyError)
+    logger.error('Login error:', error)
   }
 
   async function cancelLogin() {
     try {
       await window.electronAPI.auth.cancelLogin()
     } catch (e) {
-      console.error('Failed to cancel login:', e)
+      logger.warn('Failed to cancel login:', e)
     }
     isLoggingIn.value = false
     qrCodeUrl.value = null

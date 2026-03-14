@@ -28,6 +28,7 @@ import {
   getDataStats
 } from './dataImportExport'
 import type { ImportOptions } from './dataImportExport'
+import { logger } from './utils/logger'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
@@ -53,7 +54,7 @@ function getExtractorScript(): string {
     try {
       extractorScript = readFileSync(join(__dirname, '../scripts/inject-search.js'), 'utf-8')
     } catch (error) {
-      console.error('[BliPod] Failed to read extractor script:', error)
+      logger.error('Failed to read extractor script:', error)
       extractorScript = ''
     }
   }
@@ -84,8 +85,9 @@ function startProgressTracking() {
       if (state && mainWindow) {
         mainWindow.webContents.send('player:progress', state)
       }
-    } catch {
-      // ignore
+    } catch (error) {
+      // 静默忽略进度追踪错误，但记录日志
+      logger.debug('Progress tracking error (ignored):', error)
     }
   }, 500)
 }
@@ -106,7 +108,7 @@ function stopQrPoll() {
 
 function destroySearchView() {
   if (searchView) {
-    console.log('[BliPod] Destroying search view for memory cleanup')
+    logger.info('Destroying search view for memory cleanup')
     try {
       searchView.webContents.removeAllListeners()
       if (mainWindow) {
@@ -118,7 +120,7 @@ function destroySearchView() {
       searchView.webContents.close()
       searchView = null
     } catch (error) {
-      console.error('[BliPod] Error destroying search view:', error)
+      logger.error('Error destroying search view:', error)
       searchView = null
     }
   }
@@ -126,7 +128,7 @@ function destroySearchView() {
 
 function destroyPlayerView() {
   if (playerView) {
-    console.log('[BliPod] Destroying player view for memory cleanup')
+    logger.info('Destroying player view for memory cleanup')
     stopProgressTracking()
     try {
       playerView.webContents.removeAllListeners()
@@ -139,7 +141,7 @@ function destroyPlayerView() {
       playerView.webContents.close()
       playerView = null
     } catch (error) {
-      console.error('[BliPod] Error destroying player view:', error)
+      logger.error('Error destroying player view:', error)
       playerView = null
     }
   }
@@ -149,26 +151,26 @@ async function clearSessionCache() {
   try {
     const bilibiliSession = getBilibiliSession()
     await bilibiliSession.clearCache()
-    console.log('[BliPod] Session cache cleared')
+    logger.info('Session cache cleared')
   } catch (error) {
-    console.error('[BliPod] Error clearing session cache:', error)
+    logger.error('Error clearing session cache:', error)
   }
 }
 
 async function performMemoryCleanup() {
-  console.log('[BliPod] Performing memory cleanup...')
+  logger.info('Performing memory cleanup...')
 
   const now = Date.now()
 
   // 如果 searchView 正在加载页面，不清理
   if (searchView && searchView.webContents.isLoading()) {
-    console.log('[BliPod] Search view is loading, skipping cleanup')
+    logger.info('Search view is loading, skipping cleanup')
     return
   }
 
   // 只清理 searchView，保留 playerView（确保用户可以随时恢复播放）
   if (searchView && (now - searchViewLastUsed) > viewIdleTimeout) {
-    console.log('[BliPod] Search view idle timeout reached, destroying...')
+    logger.info('Search view idle timeout reached, destroying...')
     destroySearchView()
   }
 
@@ -181,11 +183,11 @@ async function performMemoryCleanup() {
 
   if (global.gc) {
     global.gc()
-    console.log('[BliPod] Manual GC triggered')
+    logger.info('Manual GC triggered')
   }
 
   const memoryUsage = process.memoryUsage()
-  console.log('[BliPod] Memory usage after cleanup:', {
+  logger.info('Memory usage after cleanup:', {
     heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
     heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
     rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`
@@ -196,36 +198,36 @@ function startMemoryManagement() {
   if (memoryCleanupInterval) {
     clearInterval(memoryCleanupInterval)
   }
-  
+
   memoryCleanupInterval = setInterval(() => {
     performMemoryCleanup().catch(err => {
-      console.error('[BliPod] Memory cleanup error:', err)
+      logger.error('Memory cleanup error:', err)
     })
   }, MEMORY_CLEANUP_INTERVAL)
-  
+
   process.on('warning', (warning) => {
-    if (warning.name === 'MaxListenersExceededWarning' || 
+    if (warning.name === 'MaxListenersExceededWarning' ||
         warning.message.includes('memory')) {
-      console.log('[BliPod] Memory warning received:', warning.message)
+      logger.warn('Memory warning received:', warning.message)
       performMemoryCleanup().catch(() => {})
     }
   })
-  
+
   const checkMemoryUsage = () => {
     const memoryUsage = process.memoryUsage()
     const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024
     const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024
     const usageRatio = heapUsedMB / heapTotalMB
-    
+
     if (usageRatio > 0.9) {
-      console.log('[BliPod] High memory usage detected:', Math.round(usageRatio * 100) + '%')
+      logger.warn('High memory usage detected:', `${Math.round(usageRatio * 100)}%`)
       performMemoryCleanup().catch(() => {})
     }
   }
-  
+
   setInterval(checkMemoryUsage, 60000)
-  
-  console.log('[BliPod] Memory management started')
+
+  logger.info('Memory management started')
 }
 
 function stopMemoryManagement() {
@@ -340,31 +342,31 @@ async function createSearchView(): Promise<BrowserView> {
   }
 
   searchView.webContents.on('did-finish-load', async () => {
-    console.log('[BliPod] Search page finished loading')
+    logger.info('Search page finished loading')
     searchViewLastUsed = Date.now()
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
-      
+
       const script = getExtractorScript()
       if (!script) {
         throw new Error('Extractor script not found')
       }
-      
+
       await searchView!.webContents.executeJavaScript(script)
-      console.log('[BliPod] Extractor script injected')
-      
+      logger.info('Extractor script injected')
+
       const result = await searchView!.webContents.executeJavaScript(
         'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
       ) as SearchResult | null
 
-      console.log('[BliPod] Extract result:', JSON.stringify(result, null, 2))
+      logger.info('Extract result:', JSON.stringify(result, null, 2))
 
       if (result && mainWindow) {
         mainWindow.webContents.send('search:result', result)
       }
     } catch (error) {
-      console.error('[BliPod] Failed to extract search results:', error)
+      logger.error('Failed to extract search results:', error)
       if (mainWindow) {
         mainWindow.webContents.send('search:result', {
           success: false,
@@ -402,9 +404,9 @@ async function createPlayerView(): Promise<BrowserView> {
   playerViewLastUsed = Date.now()
 
   playerView.webContents.on('did-finish-load', () => {
-    console.log('[BliPod] Player page finished loading')
+    logger.info('Player page finished loading')
     playerViewLastUsed = Date.now()
-    
+
     playerView!.webContents.executeJavaScript(`
       (function() {
         const style = document.createElement('style');
@@ -415,12 +417,12 @@ async function createPlayerView(): Promise<BrowserView> {
         \`;
         document.head.appendChild(style);
       })();
-    `).catch(err => console.error('[BliPod] Failed to inject player styles:', err))
-    
+    `).catch(err => logger.error('Failed to inject player styles:', err))
+
     if (mainWindow) {
       mainWindow.webContents.send('player:ready')
     }
-    
+
     startProgressTracking()
   })
 
@@ -450,9 +452,9 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
     })
     
     const data = await response.json()
-    
-    console.log('[BliPod] fetchUserInfo response:', data.code, data.message || 'ok')
-    
+
+    logger.info('fetchUserInfo response:', `${data.code} ${data.message || 'ok'}`)
+
     if (data.code === 0 && data.data?.isLogin) {
       return {
         mid: data.data.mid,
@@ -463,10 +465,10 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
         vipType: data.data.vipType || 0
       }
     }
-    
+
     return null
   } catch (error) {
-    console.error('[BliPod] Failed to fetch user info:', error)
+    logger.error('Failed to fetch user info:', error)
     return null
   }
 }
@@ -474,28 +476,28 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
 async function checkLoginStatus(): Promise<BiliAuthStatus> {
   const bilibiliSession = getBilibiliSession()
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
-  
-  console.log('[BliPod] checkLoginStatus: found', cookies.length, 'cookies')
-  console.log('[BliPod] checkLoginStatus: cookie names:', cookies.map(c => c.name).join(', '))
-  
+
+  logger.debug('checkLoginStatus: found', `${cookies.length} cookies`)
+  logger.debug('checkLoginStatus: cookie names:', cookies.map(c => c.name).join(', '))
+
   const sessdata = cookies.find(c => c.name === 'SESSDATA')
-  
+
   if (!sessdata) {
-    console.log('[BliPod] checkLoginStatus: no SESSDATA cookie found')
-    
+    logger.debug('checkLoginStatus: no SESSDATA cookie found')
+
     const allCookies = await bilibiliSession.cookies.get({})
-    console.log('[BliPod] checkLoginStatus: all cookies in session:', allCookies.length)
-    console.log('[BliPod] checkLoginStatus: all cookie names:', allCookies.map(c => c.name).join(', '))
-    
+    logger.debug('checkLoginStatus: all cookies in session:', `${allCookies.length}`)
+    logger.debug('checkLoginStatus: all cookie names:', allCookies.map(c => c.name).join(', '))
+
     return { isLoggedIn: false, userInfo: null }
   }
-  
-  console.log('[BliPod] checkLoginStatus: SESSDATA found, fetching user info...')
-  
+
+  logger.debug('checkLoginStatus: SESSDATA found, fetching user info...')
+
   const userInfo = await fetchUserInfo()
-  
-  console.log('[BliPod] checkLoginStatus: userInfo result:', userInfo ? userInfo.name : 'null')
-  
+
+  logger.debug('checkLoginStatus: userInfo result:', userInfo ? userInfo.name : 'null')
+
   return {
     isLoggedIn: userInfo !== null,
     userInfo
@@ -563,60 +565,60 @@ async function startQrLogin() {
         )
         
         const statusResult: QrCodeStatus = await statusResponse.json()
-        
-        console.log('[BliPod] QR poll status:', statusResult.data?.code, statusResult.data?.message)
-        
+
+        logger.debug('QR poll status:', `${statusResult.data?.code} ${statusResult.data?.message}`)
+
         if (statusResult.data?.code === 0) {
           stopQrPoll()
-          
-          console.log('[BliPod] Login success! URL:', statusResult.data.url?.substring(0, 100) + '...')
-          
+
+          logger.info('Login success! URL:', statusResult.data.url?.substring(0, 100) + '...')
+
           const url = new URL(statusResult.data.url)
           const cookieParams = url.searchParams
-          
+
           const bilibiliSession = getBilibiliSession()
-          
+
           const dedeuserid = cookieParams.get('DedeUserID')
           const dedeuseridCkMd5 = cookieParams.get('DedeUserID__ckMd5')
           const sessdata = cookieParams.get('SESSDATA')
           const biliJct = cookieParams.get('bili_jct')
-          
-          console.log('[BliPod] Cookie params from URL:')
-          console.log('  DedeUserID:', dedeuserid ? 'present' : 'missing')
-          console.log('  DedeUserID__ckMd5:', dedeuseridCkMd5 ? 'present' : 'missing')
-          console.log('  SESSDATA:', sessdata ? 'present (length: ' + sessdata.length + ')' : 'missing')
-          console.log('  bili_jct:', biliJct ? 'present' : 'missing')
-          
+
+          logger.debug('Cookie params from URL:')
+          logger.debug('  DedeUserID:', dedeuserid ? 'present' : 'missing')
+          logger.debug('  DedeUserID__ckMd5:', dedeuseridCkMd5 ? 'present' : 'missing')
+          logger.debug('  SESSDATA:', sessdata ? `present (length: ${sessdata.length})` : 'missing')
+          logger.debug('  bili_jct:', biliJct ? 'present' : 'missing')
+
           if (sessdata) {
             const expirationDate = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60
-            
+
             const cookieOptions = {
               url: 'https://www.bilibili.com',
               domain: '.bilibili.com',
               path: '/',
               expirationDate
             }
-            
-            console.log('[BliPod] Setting cookies with expiration:', new Date(expirationDate * 1000).toISOString())
-            
+
+            logger.debug('Setting cookies with expiration:', new Date(expirationDate * 1000).toISOString())
+
             if (dedeuserid) {
               await bilibiliSession.cookies.set({
                 ...cookieOptions,
                 name: 'DedeUserID',
                 value: dedeuserid
               })
-              console.log('[BliPod] Set DedeUserID cookie')
+              logger.debug('Set DedeUserID cookie')
             }
-            
+
             if (dedeuseridCkMd5) {
               await bilibiliSession.cookies.set({
                 ...cookieOptions,
                 name: 'DedeUserID__ckMd5',
                 value: dedeuseridCkMd5
               })
-              console.log('[BliPod] Set DedeUserID__ckMd5 cookie')
+              logger.debug('Set DedeUserID__ckMd5 cookie')
             }
-            
+
             await bilibiliSession.cookies.set({
               ...cookieOptions,
               name: 'SESSDATA',
@@ -624,22 +626,22 @@ async function startQrLogin() {
               secure: true,
               httpOnly: true
             })
-            console.log('[BliPod] Set SESSDATA cookie')
-            
+            logger.debug('Set SESSDATA cookie')
+
             if (biliJct) {
               await bilibiliSession.cookies.set({
                 ...cookieOptions,
                 name: 'bili_jct',
                 value: biliJct
               })
-              console.log('[BliPod] Set bili_jct cookie')
+              logger.debug('Set bili_jct cookie')
             }
-            
+
             const savedCookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
-            console.log('[BliPod] Cookies after saving:', savedCookies.map(c => c.name).join(', '))
-            
+            logger.debug('Cookies after saving:', savedCookies.map(c => c.name).join(', '))
+
             const userInfo = await fetchUserInfo()
-            
+
             if (userInfo && mainWindow) {
               mainWindow.webContents.send('auth:success', userInfo)
             } else if (mainWindow) {
@@ -659,12 +661,12 @@ async function startQrLogin() {
           // Not scanned yet, continue polling
         }
       } catch (error) {
-        console.error('[BliPod] QR poll error:', error)
+        logger.error('QR poll error:', error)
       }
     }, 2000)
-    
+
   } catch (error) {
-    console.error('[BliPod] Failed to start QR login:', error)
+    logger.error('Failed to start QR login:', error)
     if (mainWindow) {
       mainWindow.webContents.send('auth:error', error instanceof Error ? error.message : 'Failed to start login')
     }
@@ -685,7 +687,7 @@ async function logout() {
 
 function setupIPC() {
   ipcMain.handle('search:query', async (_event, query: string, offset?: number): Promise<SearchResult> => {
-    console.log('[BliPod] Search query received:', query, 'offset:', offset)
+    logger.info('Search query received:', `${query} offset: ${offset}`)
 
     // 保存搜索词，用于超时后提示用户
     lastSearchQuery = query
@@ -694,17 +696,17 @@ function setupIPC() {
       const view = await createSearchView()
       const encodedQuery = encodeURIComponent(query)
       let searchUrl: string
-      
+
       if (offset && offset > 0) {
         const page = Math.floor(offset / 20) + 1
         searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
       } else {
         searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1`
       }
-      
-      console.log('[BliPod] Loading search URL:', searchUrl)
+
+      logger.info('Loading search URL:', searchUrl)
       await view.webContents.loadURL(searchUrl)
-      
+
       return {
         success: true,
         videos: [],
@@ -715,7 +717,7 @@ function setupIPC() {
         nextOffset: null,
       }
     } catch (error) {
-      console.error('[BliPod] Search error:', error)
+      logger.error('Search error:', error)
       return {
         success: false,
         videos: [],
@@ -730,15 +732,15 @@ function setupIPC() {
   })
 
   ipcMain.handle('search:uploader', async (_event, mid: string): Promise<SearchResult> => {
-    console.log('[BliPod] Uploader videos request received:', mid)
-    
+    logger.info('Uploader videos request received:', mid)
+
     try {
       const view = await createSearchView()
       const uploaderUrl = `https://space.bilibili.com/${mid}/upload/video`
-      
-      console.log('[BliPod] Loading uploader URL:', uploaderUrl)
+
+      logger.info('Loading uploader URL:', uploaderUrl)
       await view.webContents.loadURL(uploaderUrl)
-      
+
       return {
         success: true,
         videos: [],
@@ -749,7 +751,7 @@ function setupIPC() {
         nextOffset: null,
       }
     } catch (error) {
-      console.error('[BliPod] Uploader videos error:', error)
+      logger.error('Uploader videos error:', error)
       return {
         success: false,
         videos: [],
@@ -764,21 +766,21 @@ function setupIPC() {
   })
 
   ipcMain.on('player:play', async (_event, bvid: string) => {
-    console.log('[BliPod] Playing video:', bvid)
-    
+    logger.info('Playing video:', bvid)
+
     try {
       const view = await createPlayerView()
       const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1&muted=0`
-      
+
       await view.webContents.loadURL(playUrl)
-      
+
       if (mainWindow) {
         mainWindow.setBrowserView(view)
         const bounds = mainWindow.getBounds()
         view.setBounds({ x: 0, y: bounds.height, width: 1, height: 1 })
       }
     } catch (error) {
-      console.error('[BliPod] Failed to play video:', error)
+      logger.error('Failed to play video:', error)
     }
   })
 
@@ -793,12 +795,12 @@ function setupIPC() {
   })
 
   ipcMain.on('search:clickNextPage', async () => {
-    console.log('[BliPod] Clicking next page button')
+    logger.info('Clicking next page button')
 
     // 如果 searchView 已被销毁（超时清理），提示用户重新搜索
     if (!searchView) {
-      console.log('[BliPod] Search view was destroyed due to timeout, notifying user')
-      console.log('[BliPod] lastSearchQuery:', lastSearchQuery)
+      logger.info('Search view was destroyed due to timeout, notifying user')
+      logger.debug('lastSearchQuery:', lastSearchQuery)
       if (mainWindow) {
         mainWindow.webContents.send('search:viewDestroyed', {
           message: '搜索页面已超时关闭，请重新搜索',
@@ -815,26 +817,26 @@ function setupIPC() {
       const hasFunction = await searchView.webContents.executeJavaScript(
         'typeof window.__BILI_CLICK_NEXT_PAGE__ === "function"'
       )
-      
+
       if (!hasFunction) {
-        console.log('[BliPod] Re-injecting extractor script')
+        logger.info('Re-injecting extractor script')
         const script = getExtractorScript()
         if (script) {
           await searchView.webContents.executeJavaScript(script)
         }
       }
-      
+
       const result = await searchView.webContents.executeJavaScript(
         'window.__BILI_CLICK_NEXT_PAGE__()'
       )
-      
-      console.log('[BliPod] Click next page result:', JSON.stringify(result, null, 2))
-      
+
+      logger.info('Click next page result:', JSON.stringify(result, null, 2))
+
       if (mainWindow) {
         mainWindow.webContents.send('search:result', result)
       }
     } catch (error) {
-      console.error('[BliPod] Failed to click next page:', error)
+      logger.error('Failed to click next page:', error)
       if (mainWindow) {
         mainWindow.webContents.send('search:result', {
           success: false,
@@ -890,7 +892,7 @@ function setupIPC() {
 
   ipcMain.handle('auth:cancelLogin', async () => {
     stopQrPoll()
-    console.log('[BliPod] Login cancelled, QR poll stopped')
+    logger.info('Login cancelled, QR poll stopped')
   })
 
   ipcMain.handle('auth:logout', async () => {
@@ -1004,12 +1006,51 @@ function setupIPC() {
 
   ipcMain.handle('memory:setIdleTimeout', async (_event, timeoutMs: number) => {
     viewIdleTimeout = timeoutMs
-    console.log('[BliPod] View idle timeout set to:', Math.round(timeoutMs / 1000), 'seconds')
+    logger.info('View idle timeout set to:', `${Math.round(timeoutMs / 1000)} seconds`)
     return true
   })
 }
 
+// 全局错误处理器
+function setupGlobalErrorHandlers(): void {
+  // 捕获未处理的异常
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error)
+    // 发送错误到渲染进程显示
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app:error', {
+        type: 'fatal',
+        message: '应用发生严重错误，建议重启应用',
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+  })
+
+  // 捕获未处理的Promise拒绝
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled Rejection:', reason)
+  })
+
+  // 监听渲染进程崩溃
+  app.on('render-process-gone', (_event, _webContents, details) => {
+    logger.error('Render process gone:', details)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app:error', {
+        type: 'error',
+        message: `渲染进程异常: ${details.reason}`,
+        error: details.reason
+      })
+    }
+  })
+
+  // 监听子进程崩溃
+  app.on('child-process-gone', (_event, details) => {
+    logger.error('Child process gone:', details)
+  })
+}
+
 app.whenReady().then(() => {
+  setupGlobalErrorHandlers()
   setupCSP()
   setupBilibiliImageReferer()
   setupIPC()

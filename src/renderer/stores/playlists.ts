@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Playlist, ExtractedVideo } from '../../preload/preload'
+import { useToast } from '../composables/useToast'
+import { getUserFriendlyErrorMessage, getSuccessMessage, getErrorMessage } from '../utils/errorMessages'
+import { logger } from '../utils/logger'
 
 export const usePlaylistsStore = defineStore('playlists', () => {
+  const toast = useToast()
   const playlists = ref<Playlist[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -17,7 +21,10 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     try {
       playlists.value = await window.electronAPI.store.getPlaylists()
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load playlists'
+      const friendlyError = getUserFriendlyErrorMessage(e, '加载播放列表失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to load playlists:', e)
     } finally {
       isLoading.value = false
     }
@@ -27,9 +34,13 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     try {
       const playlist = await window.electronAPI.store.createPlaylist(name, description)
       playlists.value.push(playlist)
+      toast.success(getSuccessMessage('createPlaylist'))
       return playlist
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to create playlist'
+      const friendlyError = getUserFriendlyErrorMessage(e, '创建播放列表失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to create playlist:', e)
       return null
     }
   }
@@ -42,10 +53,16 @@ export const usePlaylistsStore = defineStore('playlists', () => {
         if (index !== -1) {
           playlists.value[index] = result
         }
+        toast.success(getSuccessMessage('updatePlaylist'))
+      } else {
+        toast.error(getErrorMessage('updatePlaylist'))
       }
       return result !== null
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to update playlist'
+      const friendlyError = getUserFriendlyErrorMessage(e, '更新播放列表失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to update playlist:', e)
       return false
     }
   }
@@ -58,10 +75,16 @@ export const usePlaylistsStore = defineStore('playlists', () => {
         if (currentPlaylist.value?.id === id) {
           currentPlaylist.value = null
         }
+        toast.success(getSuccessMessage('deletePlaylist'))
+      } else {
+        toast.error(getErrorMessage('deletePlaylist'))
       }
       return result
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to delete playlist'
+      const friendlyError = getUserFriendlyErrorMessage(e, '删除播放列表失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to delete playlist:', e)
       return false
     }
   }
@@ -71,10 +94,16 @@ export const usePlaylistsStore = defineStore('playlists', () => {
       const result = await window.electronAPI.store.addVideoToPlaylist(playlistId, video)
       if (result) {
         await loadPlaylists()
+        toast.success(getSuccessMessage('addToPlaylist'))
+      } else {
+        toast.error(getErrorMessage('addToPlaylist'))
       }
       return result
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to add video to playlist'
+      const friendlyError = getUserFriendlyErrorMessage(e, '添加到播放列表失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to add video to playlist:', e)
       return false
     }
   }
@@ -88,10 +117,16 @@ export const usePlaylistsStore = defineStore('playlists', () => {
           playlist.videos = playlist.videos.filter(v => v.bvid !== bvid)
           playlist.updatedAt = Date.now()
         }
+        toast.success(getSuccessMessage('removeFromPlaylist'))
+      } else {
+        toast.error(getErrorMessage('removeFromPlaylist'))
       }
       return result
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to remove video from playlist'
+      const friendlyError = getUserFriendlyErrorMessage(e, '从播放列表移除失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to remove video from playlist:', e)
       return false
     }
   }

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAppSettingsStore } from './appSettings'
+import { logger } from '../utils/logger'
 
 export const usePlayerStore = defineStore('player', () => {
   const appSettings = useAppSettingsStore()
@@ -43,7 +44,7 @@ export const usePlayerStore = defineStore('player', () => {
       try {
         await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
       } catch (e) {
-        console.error('Failed to save play position:', e)
+        logger.warn('Failed to save play position:', e)
       }
     }
   }
@@ -81,7 +82,7 @@ export const usePlayerStore = defineStore('player', () => {
           }
         }
       } catch (e) {
-        console.error('Failed to restore play position:', e)
+        logger.warn('Failed to restore play position:', e)
       }
     }
 

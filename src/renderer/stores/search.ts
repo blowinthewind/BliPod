@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useToast } from '../composables/useToast'
+import { getUserFriendlyErrorMessage } from '../utils/errorMessages'
+import { logger } from '../utils/logger'
 
 export const useSearchStore = defineStore('search', () => {
+  const toast = useToast()
   const query = ref('')
   const results = ref<ExtractedVideo[]>([])
   const isSearching = ref(false)
@@ -51,8 +55,8 @@ export const useSearchStore = defineStore('search', () => {
   function saveHistory() {
     try {
       localStorage.setItem('blipod_search_history', JSON.stringify(searchHistory.value))
-    } catch {
-      // ignore
+    } catch (e) {
+      logger.warn('Failed to save search history:', e)
     }
   }
 
@@ -62,26 +66,26 @@ export const useSearchStore = defineStore('search', () => {
       if (stored) {
         searchHistory.value = JSON.parse(stored)
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      logger.warn('Failed to load search history:', e)
     }
   }
 
   async function search(searchQuery: string): Promise<void> {
     if (!searchQuery.trim()) return
-    
+
     query.value = searchQuery.trim()
     isSearching.value = true
     error.value = null
     results.value = []
     currentPage.value = 1
     nextOffset.value = null
-    
+
     addToHistory(query.value)
 
     try {
       const result = await window.electronAPI.search.search(query.value)
-      
+
       if (result.success) {
         results.value = result.videos
         hasMore.value = result.videos.length >= 20
@@ -89,10 +93,16 @@ export const useSearchStore = defineStore('search', () => {
         currentPage.value = result.currentPage
         nextOffset.value = result.nextOffset
       } else {
-        error.value = result.error || 'Search failed'
+        const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
+        error.value = friendlyError
+        toast.error(friendlyError)
+        logger.error('Search failed:', result.error)
       }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Unknown error occurred'
+      const friendlyError = getUserFriendlyErrorMessage(e, '搜索失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Search error:', e)
     } finally {
       isSearching.value = false
     }
@@ -133,7 +143,10 @@ export const useSearchStore = defineStore('search', () => {
         hasMore.value = result.videos.length >= 20
         lastSearchTime.value = result.extractedAt
       } else {
-        error.value = result.error || 'Search failed'
+        const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
+        error.value = friendlyError
+        toast.error(friendlyError)
+        logger.error('Search result error:', result.error)
       }
       isSearching.value = false
       isLoadingMore.value = false

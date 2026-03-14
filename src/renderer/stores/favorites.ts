@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { FavoriteVideo, ExtractedVideo } from '../../preload/preload'
+import { useToast } from '../composables/useToast'
+import { getUserFriendlyErrorMessage, getSuccessMessage, getErrorMessage } from '../utils/errorMessages'
+import { logger } from '../utils/logger'
 
 export const useFavoritesStore = defineStore('favorites', () => {
+  const toast = useToast()
   const favorites = ref<FavoriteVideo[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -16,7 +20,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
     try {
       favorites.value = await window.electronAPI.store.getFavorites()
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load favorites'
+      const friendlyError = getUserFriendlyErrorMessage(e, '加载收藏失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to load favorites:', e)
     } finally {
       isLoading.value = false
     }
@@ -27,10 +34,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
       const result = await window.electronAPI.store.addFavorite(video)
       if (result) {
         await loadFavorites()
+        toast.success(getSuccessMessage('favorite'))
+      } else {
+        toast.error(getErrorMessage('favorite'))
       }
       return result
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to add favorite'
+      const friendlyError = getUserFriendlyErrorMessage(e, '添加收藏失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to add favorite:', e)
       return false
     }
   }
@@ -40,10 +53,16 @@ export const useFavoritesStore = defineStore('favorites', () => {
       const result = await window.electronAPI.store.removeFavorite(bvid)
       if (result) {
         favorites.value = favorites.value.filter(f => f.bvid !== bvid)
+        toast.success(getSuccessMessage('unfavorite'))
+      } else {
+        toast.error(getErrorMessage('unfavorite'))
       }
       return result
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to remove favorite'
+      const friendlyError = getUserFriendlyErrorMessage(e, '移除收藏失败')
+      error.value = friendlyError
+      toast.error(friendlyError)
+      logger.error('Failed to remove favorite:', e)
       return false
     }
   }
@@ -51,7 +70,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
   async function isFavorite(bvid: string): Promise<boolean> {
     try {
       return await window.electronAPI.store.isFavorite(bvid)
-    } catch {
+    } catch (e) {
+      logger.warn('Failed to check favorite status:', e)
       return false
     }
   }
