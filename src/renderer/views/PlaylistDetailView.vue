@@ -274,6 +274,7 @@ function formatDuration(duration: string): string {
 }
 
 .header-cover {
+  position: relative;
   width: 100px;
   height: 56px;
   border-radius: 8px;
