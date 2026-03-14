@@ -34,8 +34,13 @@ let playerView: BrowserView | null = null
 let extractorScript: string | null = null
 let progressInterval: NodeJS.Timeout | null = null
 let qrPollInterval: NodeJS.Timeout | null = null
+let memoryCleanupInterval: NodeJS.Timeout | null = null
+let searchViewLastUsed: number = 0
+let playerViewLastUsed: number = 0
+let viewIdleTimeout: number = 10 * 60 * 1000
 
 const BILIBILI_SESSION = 'persist:bilibili'
+const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
@@ -97,6 +102,132 @@ function stopQrPoll() {
   }
 }
 
+function destroySearchView() {
+  if (searchView) {
+    console.log('[BliPod] Destroying search view for memory cleanup')
+    try {
+      searchView.webContents.removeAllListeners()
+      if (mainWindow) {
+        const views = mainWindow.getBrowserViews()
+        if (views.includes(searchView)) {
+          mainWindow.removeBrowserView(searchView)
+        }
+      }
+      searchView.webContents.close()
+      searchView = null
+    } catch (error) {
+      console.error('[BliPod] Error destroying search view:', error)
+      searchView = null
+    }
+  }
+}
+
+function destroyPlayerView() {
+  if (playerView) {
+    console.log('[BliPod] Destroying player view for memory cleanup')
+    stopProgressTracking()
+    try {
+      playerView.webContents.removeAllListeners()
+      if (mainWindow) {
+        const views = mainWindow.getBrowserViews()
+        if (views.includes(playerView)) {
+          mainWindow.removeBrowserView(playerView)
+        }
+      }
+      playerView.webContents.close()
+      playerView = null
+    } catch (error) {
+      console.error('[BliPod] Error destroying player view:', error)
+      playerView = null
+    }
+  }
+}
+
+async function clearSessionCache() {
+  try {
+    const bilibiliSession = getBilibiliSession()
+    await bilibiliSession.clearCache()
+    console.log('[BliPod] Session cache cleared')
+  } catch (error) {
+    console.error('[BliPod] Error clearing session cache:', error)
+  }
+}
+
+async function performMemoryCleanup() {
+  console.log('[BliPod] Performing memory cleanup...')
+  
+  const now = Date.now()
+  
+  if (searchView && (now - searchViewLastUsed) > viewIdleTimeout) {
+    console.log('[BliPod] Search view idle timeout reached, destroying...')
+    destroySearchView()
+  }
+  
+  if (playerView && (now - playerViewLastUsed) > viewIdleTimeout) {
+    console.log('[BliPod] Player view idle timeout reached, destroying...')
+    destroyPlayerView()
+  }
+  
+  if (searchView || playerView) {
+    await clearSessionCache()
+  }
+  
+  if (global.gc) {
+    global.gc()
+    console.log('[BliPod] Manual GC triggered')
+  }
+  
+  const memoryUsage = process.memoryUsage()
+  console.log('[BliPod] Memory usage after cleanup:', {
+    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+    rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`
+  })
+}
+
+function startMemoryManagement() {
+  if (memoryCleanupInterval) {
+    clearInterval(memoryCleanupInterval)
+  }
+  
+  memoryCleanupInterval = setInterval(() => {
+    performMemoryCleanup().catch(err => {
+      console.error('[BliPod] Memory cleanup error:', err)
+    })
+  }, MEMORY_CLEANUP_INTERVAL)
+  
+  process.on('warning', (warning) => {
+    if (warning.name === 'MaxListenersExceededWarning' || 
+        warning.message.includes('memory')) {
+      console.log('[BliPod] Memory warning received:', warning.message)
+      performMemoryCleanup().catch(() => {})
+    }
+  })
+  
+  const checkMemoryUsage = () => {
+    const memoryUsage = process.memoryUsage()
+    const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024
+    const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024
+    const usageRatio = heapUsedMB / heapTotalMB
+    
+    if (usageRatio > 0.9) {
+      console.log('[BliPod] High memory usage detected:', Math.round(usageRatio * 100) + '%')
+      performMemoryCleanup().catch(() => {})
+    }
+  }
+  
+  setInterval(checkMemoryUsage, 60000)
+  
+  console.log('[BliPod] Memory management started')
+}
+
+function stopMemoryManagement() {
+  if (memoryCleanupInterval) {
+    clearInterval(memoryCleanupInterval)
+    memoryCleanupInterval = null
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -118,11 +249,12 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
-    mainWindow = null
-    searchView = null
-    playerView = null
+    destroySearchView()
+    destroyPlayerView()
     stopProgressTracking()
     stopQrPoll()
+    stopMemoryManagement()
+    mainWindow = null
   })
 }
 
@@ -180,6 +312,7 @@ function setupBilibiliImageReferer() {
 
 async function createSearchView(): Promise<BrowserView> {
   if (searchView && mainWindow) {
+    searchViewLastUsed = Date.now()
     return searchView
   }
 
@@ -192,6 +325,8 @@ async function createSearchView(): Promise<BrowserView> {
       webSecurity: false
     }
   })
+  
+  searchViewLastUsed = Date.now()
 
   if (mainWindow) {
     mainWindow.setBrowserView(null)
@@ -199,6 +334,7 @@ async function createSearchView(): Promise<BrowserView> {
 
   searchView.webContents.on('did-finish-load', async () => {
     console.log('[BliPod] Search page finished loading')
+    searchViewLastUsed = Date.now()
     
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
@@ -242,6 +378,7 @@ async function createSearchView(): Promise<BrowserView> {
 
 async function createPlayerView(): Promise<BrowserView> {
   if (playerView) {
+    playerViewLastUsed = Date.now()
     return playerView
   }
 
@@ -254,9 +391,12 @@ async function createPlayerView(): Promise<BrowserView> {
       webSecurity: false
     }
   })
+  
+  playerViewLastUsed = Date.now()
 
   playerView.webContents.on('did-finish-load', () => {
     console.log('[BliPod] Player page finished loading')
+    playerViewLastUsed = Date.now()
     
     playerView!.webContents.executeJavaScript(`
       (function() {
@@ -811,12 +951,44 @@ function setupIPC() {
   ipcMain.handle('store:getDataStats', async () => {
     return getDataStats()
   })
+
+  ipcMain.handle('memory:getStats', async () => {
+    const memoryUsage = process.memoryUsage()
+    return {
+      heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+      rss: Math.round(memoryUsage.rss / 1024 / 1024),
+      external: Math.round(memoryUsage.external / 1024 / 1024),
+      searchViewActive: searchView !== null,
+      playerViewActive: playerView !== null,
+      searchViewIdleTime: searchView ? Math.round((Date.now() - searchViewLastUsed) / 1000) : 0,
+      playerViewIdleTime: playerView ? Math.round((Date.now() - playerViewLastUsed) / 1000) : 0,
+      viewIdleTimeout: Math.round(viewIdleTimeout / 1000)
+    }
+  })
+
+  ipcMain.handle('memory:cleanup', async () => {
+    await performMemoryCleanup()
+    return true
+  })
+
+  ipcMain.handle('memory:clearCache', async () => {
+    await clearSessionCache()
+    return true
+  })
+
+  ipcMain.handle('memory:setIdleTimeout', async (_event, timeoutMs: number) => {
+    viewIdleTimeout = timeoutMs
+    console.log('[BliPod] View idle timeout set to:', Math.round(timeoutMs / 1000), 'seconds')
+    return true
+  })
 }
 
 app.whenReady().then(() => {
   setupCSP()
   setupBilibiliImageReferer()
   setupIPC()
+  startMemoryManagement()
   createWindow()
 })
 

@@ -116,6 +116,25 @@ export interface DataStats {
   totalVideosInPlaylists: number
 }
 
+export interface MemoryStats {
+  heapUsed: number
+  heapTotal: number
+  rss: number
+  external: number
+  searchViewActive: boolean
+  playerViewActive: boolean
+  searchViewIdleTime: number
+  playerViewIdleTime: number
+  viewIdleTimeout: number
+}
+
+export interface MemoryAPI {
+  getStats: () => Promise<MemoryStats>
+  cleanup: () => Promise<boolean>
+  clearCache: () => Promise<boolean>
+  setIdleTimeout: (timeoutMs: number) => Promise<boolean>
+}
+
 export interface StoreAPI {
   getFavorites: () => Promise<FavoriteVideo[]>
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
@@ -294,9 +313,25 @@ const storeAPI: StoreAPI = {
   }
 }
 
+const memoryAPI: MemoryAPI = {
+  getStats: () => {
+    return ipcRenderer.invoke('memory:getStats')
+  },
+  cleanup: () => {
+    return ipcRenderer.invoke('memory:cleanup')
+  },
+  clearCache: () => {
+    return ipcRenderer.invoke('memory:clearCache')
+  },
+  setIdleTimeout: (timeoutMs: number) => {
+    return ipcRenderer.invoke('memory:setIdleTimeout', timeoutMs)
+  }
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   search: searchAPI,
   auth: authAPI,
-  store: storeAPI
+  store: storeAPI,
+  memory: memoryAPI
 })

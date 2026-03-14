@@ -122,6 +122,25 @@ interface DataStats {
   totalVideosInPlaylists: number
 }
 
+interface MemoryStats {
+  heapUsed: number
+  heapTotal: number
+  rss: number
+  external: number
+  searchViewActive: boolean
+  playerViewActive: boolean
+  searchViewIdleTime: number
+  playerViewIdleTime: number
+  viewIdleTimeout: number
+}
+
+interface MemoryAPI {
+  getStats: () => Promise<MemoryStats>
+  cleanup: () => Promise<boolean>
+  clearCache: () => Promise<boolean>
+  setIdleTimeout: (timeoutMs: number) => Promise<boolean>
+}
+
 interface StoreAPI {
   getFavorites: () => Promise<FavoriteVideo[]>
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
@@ -174,5 +193,6 @@ interface Window {
     search: SearchAPI
     auth: AuthAPI
     store: StoreAPI
+    memory: MemoryAPI
   }
 }
