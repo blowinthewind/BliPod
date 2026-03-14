@@ -15,6 +15,22 @@ export const usePlaylistsStore = defineStore('playlists', () => {
   const hasPlaylists = computed(() => playlists.value.length > 0)
   const playlistsCount = computed(() => playlists.value.length)
 
+  // 计算属性：所有播放列表中的视频 bvid 集合（用于快速查找）
+  const allPlaylistBvids = computed(() => {
+    const set = new Set<string>()
+    playlists.value.forEach(playlist => {
+      playlist.videos.forEach(video => {
+        set.add(video.bvid)
+      })
+    })
+    return set
+  })
+
+  // 检查视频是否存在于任意播放列表中
+  function isVideoInAnyPlaylist(bvid: string): boolean {
+    return allPlaylistBvids.value.has(bvid)
+  }
+
   async function loadPlaylists() {
     isLoading.value = true
     error.value = null
@@ -146,6 +162,8 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     currentPlaylist,
     hasPlaylists,
     playlistsCount,
+    allPlaylistBvids,
+    isVideoInAnyPlaylist,
     loadPlaylists,
     createPlaylist,
     updatePlaylist,

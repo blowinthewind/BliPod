@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { useFavoritesStore } from '../stores/favorites'
+import { usePlaylistsStore } from '../stores/playlists'
 import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 import type { ExtractedVideo } from '../../preload/preload'
 
@@ -24,6 +25,7 @@ const {
 let viewDestroyedUnsubscribe: (() => void) | null = null
 
 const favoritesStore = useFavoritesStore()
+const playlistsStore = usePlaylistsStore()
 
 const searchQuery = ref('')
 const showHistory = ref(false)
@@ -36,6 +38,7 @@ const errorMessage = computed(() => searchStore.error || '')
 onMounted(() => {
   setupListeners()
   favoritesStore.loadFavorites()
+  playlistsStore.loadPlaylists()
   // 设置 searchView 销毁监听器
   viewDestroyedUnsubscribe = searchStore.setViewDestroyedListener((data) => {
     // 更新搜索栏的值
@@ -245,8 +248,13 @@ function closePlaylistDialog() {
           <button class="favorite-btn" @click.stop="toggleFavorite(result, $event)" :title="isFavorite(result.bvid) ? 'Remove from favorites' : 'Add to favorites'">
             <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
           </button>
-          <button class="playlist-btn" @click.stop="openPlaylistDialog(result, $event)" title="Add to playlist">
-            <ListPlus :size="16" />
+          <button
+            class="playlist-btn"
+            @click.stop="openPlaylistDialog(result, $event)"
+            :title="playlistsStore.isVideoInAnyPlaylist(result.bvid) ? '已添加到播放列表' : '添加到播放列表'"
+          >
+            <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(result.bvid)" :size="16" />
+            <ListPlus v-else :size="16" />
           </button>
           <button class="play-btn" @click.stop="handlePlay(result.bvid)">
             <Play :size="18" />
@@ -713,6 +721,11 @@ function closePlaylistDialog() {
 .playlist-btn:hover {
   color: var(--accent);
   background: var(--bg-primary);
+}
+
+.playlist-btn:has(.lucide-list-check) {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .play-btn {

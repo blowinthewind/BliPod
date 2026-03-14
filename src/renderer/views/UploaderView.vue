@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { Loader2, Play, ArrowLeft, User, Heart, ListPlus } from 'lucide-vue-next'
+import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { useFavoritesStore } from '../stores/favorites'
+import { usePlaylistsStore } from '../stores/playlists'
 import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
 const playerStore = usePlayerStore()
 const favoritesStore = useFavoritesStore()
+const playlistsStore = usePlaylistsStore()
 
 const videos = ref<ExtractedVideo[]>([])
 const isLoading = ref(false)
@@ -33,6 +35,7 @@ onMounted(() => {
   loadUploaderVideos()
   setupListeners()
   favoritesStore.loadFavorites()
+  playlistsStore.loadPlaylists()
 })
 
 onUnmounted(() => {
@@ -226,8 +229,13 @@ function closePlaylistDialog() {
           <button class="favorite-btn" @click.stop="toggleFavorite(video, $event)" :title="isFavorite(video.bvid) ? 'Remove from favorites' : 'Add to favorites'">
             <Heart :size="16" :fill="isFavorite(video.bvid) ? 'currentColor' : 'none'" />
           </button>
-          <button class="playlist-btn" @click.stop="openPlaylistDialog(video, $event)" title="Add to playlist">
-            <ListPlus :size="16" />
+          <button
+            class="playlist-btn"
+            @click.stop="openPlaylistDialog(video, $event)"
+            :title="playlistsStore.isVideoInAnyPlaylist(video.bvid) ? '已添加到播放列表' : '添加到播放列表'"
+          >
+            <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(video.bvid)" :size="16" />
+            <ListPlus v-else :size="16" />
           </button>
           <button class="play-btn" @click.stop="handlePlay(video.bvid)">
             <Play :size="18" />
@@ -544,6 +552,11 @@ function closePlaylistDialog() {
 .playlist-btn:hover {
   color: var(--accent);
   background: var(--bg-primary);
+}
+
+.playlist-btn:has(.lucide-list-check) {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .load-more-container {
