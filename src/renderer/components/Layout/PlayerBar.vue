@@ -104,6 +104,15 @@ async function toggleFavorite() {
           <Shuffle :size="16" />
         </button>
         <button
+          class="control-btn small seek-btn"
+          title="快退15秒"
+          @click="playerStore.seekBackward(15)"
+          :disabled="!playerStore.hasVideo"
+        >
+          <SkipBack :size="14" />
+          <span class="seek-label">15</span>
+        </button>
+        <button
           class="control-btn"
           title="Previous"
           @click="playerStore.previous"
@@ -128,6 +137,15 @@ async function toggleFavorite() {
           :disabled="!playerStore.hasNext"
         >
           <SkipForward :size="20" />
+        </button>
+        <button
+          class="control-btn small seek-btn"
+          title="快进30秒"
+          @click="playerStore.seekForward(30)"
+          :disabled="!playerStore.hasVideo"
+        >
+          <SkipForward :size="14" />
+          <span class="seek-label">30</span>
         </button>
         <button
           class="control-btn small"
@@ -445,5 +463,26 @@ export default {
   background: var(--text-primary);
   border-radius: 50%;
   cursor: pointer;
+}
+
+.seek-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seek-btn :deep(svg) {
+  position: relative;
+}
+
+.seek-label {
+  position: absolute;
+  font-size: 7px;
+  font-weight: 600;
+  line-height: 1;
+  color: inherit;
+  bottom: 4px;
+  pointer-events: none;
 }
 </style>

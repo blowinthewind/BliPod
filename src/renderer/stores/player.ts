@@ -130,6 +130,14 @@ export const usePlayerStore = defineStore('player', () => {
     seek((percent / 100) * duration.value)
   }
 
+  function seekForward(seconds: number = 30) {
+    seek(currentTime.value + seconds)
+  }
+
+  function seekBackward(seconds: number = 15) {
+    seek(currentTime.value - seconds)
+  }
+
   function setVolume(value: number) {
     volume.value = Math.max(0, Math.min(100, value))
     window.electronAPI.search.setVolume(volume.value)
@@ -267,6 +275,8 @@ export const usePlayerStore = defineStore('player', () => {
     stop,
     seek,
     seekByPercent,
+    seekForward,
+    seekBackward,
     setVolume,
     toggleMute,
     setPlaybackRate,
