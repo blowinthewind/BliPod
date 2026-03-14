@@ -41,8 +41,13 @@ onMounted(() => {
     if (data.lastQuery) {
       searchQuery.value = data.lastQuery
     }
-    // 滚动到页面顶部
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // 滚动到页面顶部 - 使用 MainLayout 中的 content-area 容器
+    setTimeout(() => {
+      const contentArea = document.querySelector('.content-area')
+      if (contentArea) {
+        contentArea.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }, 100)
   })
 })
 
