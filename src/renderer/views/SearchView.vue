@@ -143,9 +143,9 @@ function closePlaylistDialog() {
   selectedVideo.value = null
 }
 
-function addToQueue(video: ExtractedVideo, event: Event) {
+async function addToQueue(video: ExtractedVideo, event: Event) {
   event.stopPropagation()
-  const success = playerStore.addToUserQueue(video)
+  const success = await playerStore.addToUserQueue(video)
   if (success) {
     // 可以添加提示
   }

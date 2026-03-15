@@ -86,6 +86,7 @@ export interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  userQueue: ExtractedVideo[]
 }
 
 export type ImportStrategy = 'merge' | 'overwrite'
@@ -151,6 +152,12 @@ export interface StoreAPI {
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   clearPlayPosition: (bvid: string) => Promise<void>
+  getUserQueue: () => Promise<ExtractedVideo[]>
+  setUserQueue: (queue: ExtractedVideo[]) => Promise<void>
+  addToUserQueue: (video: ExtractedVideo) => Promise<boolean>
+  removeFromUserQueue: (bvid: string) => Promise<boolean>
+  clearUserQueue: () => Promise<void>
+  moveUserQueueItem: (fromIndex: number, toIndex: number) => Promise<boolean>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
   exportDataToFile: () => Promise<ExportResult>
@@ -305,6 +312,24 @@ const storeAPI: StoreAPI = {
   },
   clearPlayPosition: (bvid: string) => {
     return ipcRenderer.invoke('store:clearPlayPosition', bvid)
+  },
+  getUserQueue: () => {
+    return ipcRenderer.invoke('store:getUserQueue')
+  },
+  setUserQueue: (queue: ExtractedVideo[]) => {
+    return ipcRenderer.invoke('store:setUserQueue', queue)
+  },
+  addToUserQueue: (video: ExtractedVideo) => {
+    return ipcRenderer.invoke('store:addToUserQueue', video)
+  },
+  removeFromUserQueue: (bvid: string) => {
+    return ipcRenderer.invoke('store:removeFromUserQueue', bvid)
+  },
+  clearUserQueue: () => {
+    return ipcRenderer.invoke('store:clearUserQueue')
+  },
+  moveUserQueueItem: (fromIndex: number, toIndex: number) => {
+    return ipcRenderer.invoke('store:moveUserQueueItem', fromIndex, toIndex)
   },
   exportData: () => {
     return ipcRenderer.invoke('store:exportData')

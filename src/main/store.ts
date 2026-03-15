@@ -38,6 +38,7 @@ export interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  userQueue: ExtractedVideo[]
 }
 
 const defaults: AppStore = {
@@ -49,7 +50,8 @@ const defaults: AppStore = {
     rememberPosition: true,
     currentThemeId: 'dark'
   },
-  playPositions: []
+  playPositions: [],
+  userQueue: []
 }
 
 export const store = new Store<AppStore>({
@@ -214,12 +216,60 @@ export function clearPlayPosition(bvid: string): void {
   }
 }
 
+const MAX_USER_QUEUE_SIZE = 50
+
+export function getUserQueue(): ExtractedVideo[] {
+  return store.get('userQueue')
+}
+
+export function setUserQueue(queue: ExtractedVideo[]): void {
+  store.set('userQueue', queue.slice(0, MAX_USER_QUEUE_SIZE))
+}
+
+export function addToUserQueue(video: ExtractedVideo): boolean {
+  const queue = store.get('userQueue')
+  if (queue.find(v => v.bvid === video.bvid)) {
+    return false
+  }
+  if (queue.length >= MAX_USER_QUEUE_SIZE) {
+    return false
+  }
+  store.set('userQueue', [...queue, video])
+  return true
+}
+
+export function removeFromUserQueue(bvid: string): boolean {
+  const queue = store.get('userQueue')
+  const index = queue.findIndex(v => v.bvid === bvid)
+  if (index === -1) return false
+  queue.splice(index, 1)
+  store.set('userQueue', queue)
+  return true
+}
+
+export function clearUserQueue(): void {
+  store.set('userQueue', [])
+}
+
+export function moveUserQueueItem(fromIndex: number, toIndex: number): boolean {
+  const queue = store.get('userQueue')
+  if (fromIndex < 0 || fromIndex >= queue.length) return false
+  if (toIndex < 0 || toIndex >= queue.length) return false
+  if (fromIndex === toIndex) return false
+  const item = queue[fromIndex]
+  queue.splice(fromIndex, 1)
+  queue.splice(toIndex, 0, item)
+  store.set('userQueue', queue)
+  return true
+}
+
 export function exportData(): AppStore {
   return {
     favorites: store.get('favorites'),
     playlists: store.get('playlists'),
     settings: store.get('settings'),
-    playPositions: store.get('playPositions')
+    playPositions: store.get('playPositions'),
+    userQueue: store.get('userQueue')
   }
 }
 
@@ -235,5 +285,8 @@ export function importData(data: Partial<AppStore>): void {
   }
   if (data.playPositions) {
     store.set('playPositions', data.playPositions)
+  }
+  if (data.userQueue) {
+    store.set('userQueue', data.userQueue)
   }
 }

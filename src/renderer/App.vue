@@ -10,8 +10,10 @@ async function handleBeforeUnload() {
   await playerStore.saveCurrentPosition()
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('beforeunload', handleBeforeUnload)
+  // 加载持久化的用户播放队列
+  await playerStore.loadUserQueue()
 })
 
 onUnmounted(() => {

@@ -103,14 +103,14 @@ function playFromQueue(index: number) {
   playerStore.playFromUserQueue(index)
 }
 
-function removeFromQueue(bvid: string, event: Event) {
+async function removeFromQueue(bvid: string, event: Event) {
   event.stopPropagation()
-  playerStore.removeFromUserQueue(bvid)
+  await playerStore.removeFromUserQueue(bvid)
 }
 
-function clearQueue() {
+async function clearQueue() {
   if (confirm('确定要清空播放队列吗？')) {
-    playerStore.clearUserQueue()
+    await playerStore.clearUserQueue()
   }
 }
 </script>

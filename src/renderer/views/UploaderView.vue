@@ -164,9 +164,9 @@ function closePlaylistDialog() {
   selectedVideo.value = null
 }
 
-function addToQueue(video: ExtractedVideo, event: Event) {
+async function addToQueue(video: ExtractedVideo, event: Event) {
   event.stopPropagation()
-  playerStore.addToUserQueue(video)
+  await playerStore.addToUserQueue(video)
 }
 
 function isInQueue(bvid: string): boolean {

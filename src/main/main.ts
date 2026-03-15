@@ -19,6 +19,12 @@ import {
   getPlayPosition,
   savePlayPosition,
   clearPlayPosition,
+  getUserQueue,
+  setUserQueue,
+  addToUserQueue,
+  removeFromUserQueue,
+  clearUserQueue,
+  moveUserQueueItem,
   exportData,
   importData
 } from './store'
@@ -965,6 +971,30 @@ function setupIPC() {
 
   ipcMain.handle('store:importData', async (_event, data: Partial<AppStore>) => {
     return importData(data)
+  })
+
+  ipcMain.handle('store:getUserQueue', async () => {
+    return getUserQueue()
+  })
+
+  ipcMain.handle('store:setUserQueue', async (_event, queue: ExtractedVideo[]) => {
+    return setUserQueue(queue)
+  })
+
+  ipcMain.handle('store:addToUserQueue', async (_event, video: ExtractedVideo) => {
+    return addToUserQueue(video)
+  })
+
+  ipcMain.handle('store:removeFromUserQueue', async (_event, bvid: string) => {
+    return removeFromUserQueue(bvid)
+  })
+
+  ipcMain.handle('store:clearUserQueue', async () => {
+    return clearUserQueue()
+  })
+
+  ipcMain.handle('store:moveUserQueueItem', async (_event, fromIndex: number, toIndex: number) => {
+    return moveUserQueueItem(fromIndex, toIndex)
   })
 
   ipcMain.handle('store:exportDataToFile', async () => {

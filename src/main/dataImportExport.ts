@@ -2,6 +2,7 @@ import { dialog } from 'electron'
 import { writeFile, readFile } from 'fs/promises'
 import { app } from 'electron'
 import type { FavoriteVideo, Playlist, PlaylistVideo } from './store'
+import type { ExtractedVideo } from '../preload/preload'
 import { store } from './store'
 
 const CURRENT_EXPORT_VERSION = '1.0.0'
@@ -12,6 +13,7 @@ export interface ExportData {
   appVersion: string
   favorites: FavoriteVideo[]
   playlists: Playlist[]
+  userQueue: ExtractedVideo[]
 }
 
 export type ImportStrategy = 'merge' | 'overwrite'
@@ -66,20 +68,21 @@ function mergePlaylists(existing: Playlist[], imported: Playlist[]): Playlist[] 
 
 function validateExportData(data: unknown): data is ExportData {
   if (!data || typeof data !== 'object') return false
-  
+
   const d = data as Record<string, unknown>
   if (typeof d.version !== 'string') return false
   if (typeof d.exportedAt !== 'number') return false
   if (!Array.isArray(d.favorites)) return false
   if (!Array.isArray(d.playlists)) return false
-  
+  // userQueue is optional for backward compatibility
+
   const [major] = d.version.split('.')
   const [currentMajor] = CURRENT_EXPORT_VERSION.split('.')
-  
+
   if (major !== currentMajor) {
     throw new Error(`Incompatible export version: ${d.version}`)
   }
-  
+
   return true
 }
 
@@ -103,7 +106,8 @@ export async function exportDataToFile(): Promise<{ success: boolean; error?: st
       exportedAt: Date.now(),
       appVersion: app.getVersion(),
       favorites: store.get('favorites'),
-      playlists: store.get('playlists')
+      playlists: store.get('playlists'),
+      userQueue: store.get('userQueue')
     }
     
     await writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8')
@@ -156,6 +160,9 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
     if (options.strategy === 'overwrite') {
       store.set('favorites', data.favorites)
       store.set('playlists', data.playlists)
+      if (data.userQueue) {
+        store.set('userQueue', data.userQueue)
+      }
       favoritesImported = data.favorites.length
       playlistsImported = data.playlists.length
       videosImported = data.playlists.reduce((sum, p) => sum + p.videos.length, 0)
@@ -163,17 +170,18 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
       const existingFavorites = store.get('favorites')
       const existingPlaylists = store.get('playlists')
       const existingVideosCount = existingPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
-      
+
       const mergedFavorites = mergeFavorites(existingFavorites, data.favorites)
       const mergedPlaylists = mergePlaylists(existingPlaylists, data.playlists)
       const mergedVideosCount = mergedPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
-      
+
       favoritesImported = mergedFavorites.length - existingFavorites.length
       playlistsImported = mergedPlaylists.length - existingPlaylists.length
       videosImported = mergedVideosCount - existingVideosCount
-      
+
       store.set('favorites', mergedFavorites)
       store.set('playlists', mergedPlaylists)
+      // For merge strategy, we don't merge userQueue, just keep existing
     }
     
     return { 

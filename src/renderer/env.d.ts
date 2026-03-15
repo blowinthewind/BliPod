@@ -92,6 +92,7 @@ interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  userQueue: ExtractedVideo[]
 }
 
 type ImportStrategy = 'merge' | 'overwrite'
@@ -157,6 +158,12 @@ interface StoreAPI {
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   clearPlayPosition: (bvid: string) => Promise<void>
+  getUserQueue: () => Promise<ExtractedVideo[]>
+  setUserQueue: (queue: ExtractedVideo[]) => Promise<void>
+  addToUserQueue: (video: ExtractedVideo) => Promise<boolean>
+  removeFromUserQueue: (bvid: string) => Promise<boolean>
+  clearUserQueue: () => Promise<void>
+  moveUserQueueItem: (fromIndex: number, toIndex: number) => Promise<boolean>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
   exportDataToFile: () => Promise<ExportResult>

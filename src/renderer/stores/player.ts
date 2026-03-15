@@ -503,7 +503,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ========== 用户维护的播放队列 ==========
 
-  function addToUserQueue(video: ExtractedVideo) {
+  async function addToUserQueue(video: ExtractedVideo) {
     if (userQueue.value.find(v => v.bvid === video.bvid)) {
       return false
     }
@@ -511,6 +511,14 @@ export const usePlayerStore = defineStore('player', () => {
       return false
     }
     userQueue.value.push(video)
+
+    // 持久化到存储 - 转换为普通对象避免 IPC 克隆错误
+    try {
+      const plainVideo = JSON.parse(JSON.stringify(video))
+      await window.electronAPI.store.addToUserQueue(plainVideo)
+    } catch (e) {
+      logger.warn('Failed to save user queue:', e)
+    }
 
     // 同步更新实际播放队列（如果当前不在历史导航模式）
     if (historyNavigationIndex.value < 0 && currentVideo.value) {
@@ -523,10 +531,17 @@ export const usePlayerStore = defineStore('player', () => {
     return true
   }
 
-  function removeFromUserQueue(bvid: string) {
+  async function removeFromUserQueue(bvid: string) {
     const index = userQueue.value.findIndex(v => v.bvid === bvid)
     if (index > -1) {
       userQueue.value.splice(index, 1)
+
+      // 持久化到存储
+      try {
+        await window.electronAPI.store.removeFromUserQueue(bvid)
+      } catch (e) {
+        logger.warn('Failed to save user queue:', e)
+      }
 
       // 同步更新实际播放队列
       const actualIndex = actualQueue.value.findIndex(v => v.bvid === bvid && v.isFromUserQueue)
@@ -540,8 +555,15 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function clearUserQueue() {
+  async function clearUserQueue() {
     userQueue.value = []
+
+    // 持久化到存储
+    try {
+      await window.electronAPI.store.clearUserQueue()
+    } catch (e) {
+      logger.warn('Failed to save user queue:', e)
+    }
 
     // 同步更新实际播放队列，移除所有来自用户队列的视频
     actualQueue.value = actualQueue.value.filter(v => !v.isFromUserQueue)
@@ -555,7 +577,7 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function moveUserQueueItem(fromIndex: number, toIndex: number) {
+  async function moveUserQueueItem(fromIndex: number, toIndex: number) {
     if (fromIndex < 0 || fromIndex >= userQueue.value.length) return
     if (toIndex < 0 || toIndex >= userQueue.value.length) return
     if (fromIndex === toIndex) return
@@ -563,6 +585,13 @@ export const usePlayerStore = defineStore('player', () => {
     const item = userQueue.value[fromIndex]
     userQueue.value.splice(fromIndex, 1)
     userQueue.value.splice(toIndex, 0, item)
+
+    // 持久化到存储
+    try {
+      await window.electronAPI.store.moveUserQueueItem(fromIndex, toIndex)
+    } catch (e) {
+      logger.warn('Failed to save user queue:', e)
+    }
 
     // 同步更新实际播放队列中的顺序
     const actualFromIndex = actualQueue.value.findIndex(
@@ -589,6 +618,19 @@ export const usePlayerStore = defineStore('player', () => {
           currentIndex.value++
         }
       }
+    }
+  }
+
+  // 加载用户队列
+  async function loadUserQueue() {
+    try {
+      logger.info('Loading user queue from store...')
+      const queue = await window.electronAPI.store.getUserQueue()
+      logger.info(`Loaded user queue: ${queue.length} items`)
+      userQueue.value = queue
+    } catch (e) {
+      logger.warn('Failed to load user queue:', e)
+      userQueue.value = []
     }
   }
 
@@ -622,12 +664,20 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   // 播放完成后的处理
-  function handleVideoComplete() {
+  async function handleVideoComplete() {
     // 如果当前视频来自用户队列，从用户队列中移除
     if (currentVideo.value?.isFromUserQueue) {
       const index = userQueue.value.findIndex(v => v.bvid === currentVideo.value?.bvid)
       if (index > -1) {
         userQueue.value.splice(index, 1)
+        // 持久化到存储
+        try {
+          if (currentVideo.value) {
+            await window.electronAPI.store.removeFromUserQueue(currentVideo.value.bvid)
+          }
+        } catch (e) {
+          logger.warn('Failed to save user queue:', e)
+        }
       }
     }
 
@@ -748,6 +798,7 @@ export const usePlayerStore = defineStore('player', () => {
     clearUserQueue,
     moveUserQueueItem,
     playFromUserQueue,
+    loadUserQueue,
 
     // 事件监听
     setReadyListener,
