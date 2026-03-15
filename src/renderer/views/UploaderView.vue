@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
+import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck, ListMusic } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
@@ -163,6 +163,11 @@ function closePlaylistDialog() {
   showPlaylistDialog.value = false
   selectedVideo.value = null
 }
+
+function addToQueue(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  playerStore.addToQueue(video)
+}
 </script>
 
 <template>
@@ -229,6 +234,13 @@ function closePlaylistDialog() {
           </div>
           <button class="favorite-btn" @click.stop="toggleFavorite(video, $event)" :title="isFavorite(video.bvid) ? 'Remove from favorites' : 'Add to favorites'">
             <Heart :size="16" :fill="isFavorite(video.bvid) ? 'currentColor' : 'none'" />
+          </button>
+          <button
+            class="queue-btn"
+            @click.stop="addToQueue(video, $event)"
+            title="添加到播放队列"
+          >
+            <ListMusic :size="16" />
           </button>
           <button
             class="playlist-btn"
@@ -534,6 +546,31 @@ function closePlaylistDialog() {
 .favorite-btn:has(svg[fill="currentColor"]) {
   color: var(--accent);
   opacity: 1;
+}
+
+.queue-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.video-item:hover .queue-btn {
+  opacity: 1;
+}
+
+.queue-btn:hover {
+  color: var(--accent);
+  background: var(--bg-primary);
 }
 
 .playlist-btn {

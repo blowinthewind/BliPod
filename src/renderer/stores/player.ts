@@ -3,6 +3,33 @@ import { ref, computed } from 'vue'
 import { useAppSettingsStore } from './appSettings'
 import { logger } from '../utils/logger'
 
+export interface HistoryVideo extends ExtractedVideo {
+  playedAt: number
+}
+
+const MAX_HISTORY_SIZE = 100
+const MAX_QUEUE_SIZE = 50
+
+function loadHistoryFromStorage(): HistoryVideo[] {
+  try {
+    const stored = localStorage.getItem('playHistory')
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch (e) {
+    logger.warn('Failed to load play history:', e)
+  }
+  return []
+}
+
+function saveHistoryToStorage(history: HistoryVideo[]) {
+  try {
+    localStorage.setItem('playHistory', JSON.stringify(history))
+  } catch (e) {
+    logger.warn('Failed to save play history:', e)
+  }
+}
+
 export const usePlayerStore = defineStore('player', () => {
   const appSettings = useAppSettingsStore()
   const currentVideo = ref<ExtractedVideo | null>(null)
@@ -17,6 +44,13 @@ export const usePlayerStore = defineStore('player', () => {
   const currentIndex = ref(-1)
   const isRepeat = ref(false)
   const isShuffle = ref(false)
+
+  // 播放历史记录
+  const playHistory = ref<HistoryVideo[]>(loadHistoryFromStorage())
+
+  // 播放队列
+  const playQueue = ref<ExtractedVideo[]>([])
+  const isPlayingFromQueue = ref(false)
 
   const hasVideo = computed(() => currentVideo.value !== null)
   const progress = computed(() => {
@@ -85,6 +119,9 @@ export const usePlayerStore = defineStore('player', () => {
         logger.warn('Failed to restore play position:', e)
       }
     }
+
+    // 添加到播放历史记录
+    addToHistory(video)
 
     window.electronAPI.search.playVideo(video.bvid)
   }
@@ -157,30 +194,52 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function next() {
+    // 如果正在播放队列，优先播放队列中的下一首
+    if (isPlayingFromQueue.value && currentIndex.value < playQueue.value.length - 1) {
+      currentIndex.value++
+      const video = playQueue.value[currentIndex.value]
+      playVideo(video, playQueue.value)
+      return
+    }
+
     if (!hasNext.value) return
+
+    // 退出队列播放模式
+    isPlayingFromQueue.value = false
 
     if (isShuffle.value) {
       const randomIndex = Math.floor(Math.random() * playlist.value.length)
       const video = playlist.value[randomIndex]
-      playVideo(video)
+      playVideo(video, playlist.value)
     } else {
       currentIndex.value++
       const video = playlist.value[currentIndex.value]
-      playVideo(video)
+      playVideo(video, playlist.value)
     }
   }
 
   function previous() {
+    // 如果正在播放队列，优先播放队列中的上一首
+    if (isPlayingFromQueue.value && currentIndex.value > 0) {
+      currentIndex.value--
+      const video = playQueue.value[currentIndex.value]
+      playVideo(video, playQueue.value)
+      return
+    }
+
     if (!hasPrevious.value) return
+
+    // 退出队列播放模式
+    isPlayingFromQueue.value = false
 
     if (isShuffle.value) {
       const randomIndex = Math.floor(Math.random() * playlist.value.length)
       const video = playlist.value[randomIndex]
-      playVideo(video)
+      playVideo(video, playlist.value)
     } else {
       currentIndex.value--
       const video = playlist.value[currentIndex.value]
-      playVideo(video)
+      playVideo(video, playlist.value)
     }
   }
 
@@ -190,6 +249,101 @@ export const usePlayerStore = defineStore('player', () => {
 
   function toggleShuffle() {
     isShuffle.value = !isShuffle.value
+  }
+
+  // ========== 播放历史记录 ==========
+  function addToHistory(video: ExtractedVideo) {
+    // 移除重复项
+    const existingIndex = playHistory.value.findIndex(v => v.bvid === video.bvid)
+    if (existingIndex > -1) {
+      playHistory.value.splice(existingIndex, 1)
+    }
+
+    // 添加到开头
+    playHistory.value.unshift({
+      ...video,
+      playedAt: Date.now()
+    })
+
+    // 限制大小
+    if (playHistory.value.length > MAX_HISTORY_SIZE) {
+      playHistory.value = playHistory.value.slice(0, MAX_HISTORY_SIZE)
+    }
+
+    // 持久化到本地存储
+    saveHistoryToStorage(playHistory.value)
+  }
+
+  function removeFromHistory(bvid: string) {
+    const index = playHistory.value.findIndex(v => v.bvid === bvid)
+    if (index > -1) {
+      playHistory.value.splice(index, 1)
+      saveHistoryToStorage(playHistory.value)
+    }
+  }
+
+  function clearHistory() {
+    playHistory.value = []
+    saveHistoryToStorage(playHistory.value)
+  }
+
+  // ========== 播放队列 ==========
+  function addToQueue(video: ExtractedVideo) {
+    if (playQueue.value.find(v => v.bvid === video.bvid)) {
+      return false
+    }
+    if (playQueue.value.length >= MAX_QUEUE_SIZE) {
+      return false
+    }
+    playQueue.value.push(video)
+    return true
+  }
+
+  function removeFromQueue(bvid: string) {
+    const index = playQueue.value.findIndex(v => v.bvid === bvid)
+    if (index > -1) {
+      playQueue.value.splice(index, 1)
+      // 如果正在播放队列且删除的是当前播放之前的视频，需要调整索引
+      if (isPlayingFromQueue.value && currentIndex.value > index) {
+        currentIndex.value--
+      }
+    }
+  }
+
+  function clearQueue() {
+    playQueue.value = []
+    if (isPlayingFromQueue.value) {
+      isPlayingFromQueue.value = false
+    }
+  }
+
+  function playFromQueue(index: number) {
+    if (index >= 0 && index < playQueue.value.length) {
+      isPlayingFromQueue.value = true
+      const video = playQueue.value[index]
+      playVideo(video, playQueue.value)
+    }
+  }
+
+  function moveQueueItem(fromIndex: number, toIndex: number) {
+    if (fromIndex < 0 || fromIndex >= playQueue.value.length) return
+    if (toIndex < 0 || toIndex >= playQueue.value.length) return
+    if (fromIndex === toIndex) return
+
+    const item = playQueue.value[fromIndex]
+    playQueue.value.splice(fromIndex, 1)
+    playQueue.value.splice(toIndex, 0, item)
+
+    // 调整 currentIndex
+    if (isPlayingFromQueue.value) {
+      if (currentIndex.value === fromIndex) {
+        currentIndex.value = toIndex
+      } else if (fromIndex < currentIndex.value && toIndex >= currentIndex.value) {
+        currentIndex.value--
+      } else if (fromIndex > currentIndex.value && toIndex <= currentIndex.value) {
+        currentIndex.value++
+      }
+    }
   }
 
   function addToPlaylist(video: ExtractedVideo) {
@@ -273,6 +427,19 @@ export const usePlayerStore = defineStore('player', () => {
     progress,
     hasNext,
     hasPrevious,
+    // 播放历史记录
+    playHistory,
+    addToHistory,
+    removeFromHistory,
+    clearHistory,
+    // 播放队列
+    playQueue,
+    isPlayingFromQueue,
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
+    playFromQueue,
+    moveQueueItem,
     saveCurrentPosition,
     playVideo,
     play,

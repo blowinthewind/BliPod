@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck, ListMusic } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlaylistsStore } from '../stores/playlists'
+import { usePlayerStore } from '../stores/player'
 import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 import type { ExtractedVideo } from '../../preload/preload'
 
@@ -27,6 +28,7 @@ let viewDestroyedUnsubscribe: (() => void) | null = null
 
 const favoritesStore = useFavoritesStore()
 const playlistsStore = usePlaylistsStore()
+const playerStore = usePlayerStore()
 
 const searchQuery = ref('')
 const showHistory = ref(false)
@@ -140,6 +142,18 @@ function closePlaylistDialog() {
   showPlaylistDialog.value = false
   selectedVideo.value = null
 }
+
+function addToQueue(video: ExtractedVideo, event: Event) {
+  event.stopPropagation()
+  const success = playerStore.addToQueue(video)
+  if (success) {
+    // 可以添加提示
+  }
+}
+
+function isInQueue(bvid: string): boolean {
+  return playerStore.playQueue.some(v => v.bvid === bvid)
+}
 </script>
 
 <template>
@@ -248,6 +262,13 @@ function closePlaylistDialog() {
           </div>
           <button class="favorite-btn" @click.stop="toggleFavorite(result, $event)" :title="isFavorite(result.bvid) ? 'Remove from favorites' : 'Add to favorites'">
             <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
+          </button>
+          <button
+            class="queue-btn"
+            @click.stop="addToQueue(result, $event)"
+            :title="isInQueue(result.bvid) ? '已在队列中' : '添加到播放队列'"
+          >
+            <ListMusic :size="16" />
           </button>
           <button
             class="playlist-btn"
@@ -703,6 +724,31 @@ function closePlaylistDialog() {
 .favorite-btn:has(svg[fill="currentColor"]) {
   color: var(--accent);
   opacity: 1;
+}
+
+.queue-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.result-item:hover .queue-btn {
+  opacity: 1;
+}
+
+.queue-btn:hover {
+  color: var(--accent);
+  background: var(--bg-primary);
 }
 
 .playlist-btn {

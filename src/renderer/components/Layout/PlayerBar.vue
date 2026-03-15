@@ -13,7 +13,10 @@ import {
   ListCheck,
   ListPlus,
   Maximize2,
-  Heart
+  Heart,
+  ListMusic,
+  X,
+  Trash2
 } from 'lucide-vue-next'
 import { computed, onMounted, ref, toRaw } from 'vue'
 import { usePlayerStore } from '../../stores/player'
@@ -32,8 +35,14 @@ const isCurrentFavorite = computed(() => {
   if (!playerStore.currentVideo) return false
   return favoritesStore.isFavoriteSync(playerStore.currentVideo.bvid)
 })
+const queueCount = computed(() => playerStore.playQueue.length)
+const isCurrentInQueue = computed(() => {
+  if (!playerStore.currentVideo || !playerStore.isPlayingFromQueue) return false
+  return playerStore.playQueue.some(v => v.bvid === playerStore.currentVideo?.bvid)
+})
 
 const showPlaylistDialog = ref(false)
+const showQueuePanel = ref(false)
 
 onMounted(() => {
   favoritesStore.loadFavorites()
@@ -74,6 +83,29 @@ async function toggleFavorite() {
   } else {
     const rawVideo = toRaw(playerStore.currentVideo)
     await favoritesStore.addFavorite(rawVideo)
+  }
+}
+
+function toggleQueuePanel() {
+  showQueuePanel.value = !showQueuePanel.value
+}
+
+function closeQueuePanel() {
+  showQueuePanel.value = false
+}
+
+function playFromQueue(index: number) {
+  playerStore.playFromQueue(index)
+}
+
+function removeFromQueue(bvid: string, event: Event) {
+  event.stopPropagation()
+  playerStore.removeFromQueue(bvid)
+}
+
+function clearQueue() {
+  if (confirm('确定要清空播放队列吗？')) {
+    playerStore.clearQueue()
   }
 }
 </script>
@@ -190,6 +222,15 @@ async function toggleFavorite() {
 
     <div class="extra-controls">
       <button
+        class="control-btn small queue-btn"
+        :class="{ active: showQueuePanel || isCurrentInQueue }"
+        @click="toggleQueuePanel"
+        :title="`播放队列 (${queueCount})`"
+      >
+        <ListMusic :size="18" />
+        <span v-if="queueCount > 0" class="queue-badge">{{ queueCount }}</span>
+      </button>
+      <button
         class="control-btn small playlist-btn"
         v-if="playerStore.hasVideo"
         @click="openPlaylistDialog"
@@ -220,6 +261,68 @@ async function toggleFavorite() {
       <button class="control-btn small" title="Fullscreen">
         <Maximize2 :size="18" />
       </button>
+    </div>
+
+    <!-- 播放队列面板 -->
+    <div class="queue-panel-overlay" v-if="showQueuePanel" @click.self="closeQueuePanel">
+      <div class="queue-panel">
+        <div class="queue-header">
+          <div class="queue-title">
+            <ListMusic :size="18" />
+            <span>播放队列</span>
+            <span class="queue-count">({{ queueCount }})</span>
+          </div>
+          <div class="queue-actions">
+            <button
+              v-if="queueCount > 0"
+              class="queue-action-btn"
+              @click="clearQueue"
+              title="清空队列"
+            >
+              <Trash2 :size="14" />
+            </button>
+            <button class="queue-action-btn" @click="closeQueuePanel" title="关闭">
+              <X :size="16" />
+            </button>
+          </div>
+        </div>
+
+        <div class="queue-list" v-if="queueCount > 0">
+          <div
+            v-for="(video, index) in playerStore.playQueue"
+            :key="video.bvid"
+            class="queue-item"
+            :class="{ active: playerStore.currentVideo?.bvid === video.bvid }"
+            @click="playFromQueue(index)"
+          >
+            <div class="queue-item-index">
+              <span v-if="playerStore.currentVideo?.bvid === video.bvid">▶</span>
+              <span v-else>{{ index + 1 }}</span>
+            </div>
+            <div class="queue-item-cover">
+              <img v-if="video.cover" :src="video.cover" :alt="video.title" />
+              <div v-else class="queue-item-placeholder">🎵</div>
+            </div>
+            <div class="queue-item-info">
+              <div class="queue-item-title" :title="video.title">{{ video.title }}</div>
+              <div class="queue-item-author">{{ video.author }}</div>
+            </div>
+            <button
+              class="queue-item-remove"
+              @click.stop="removeFromQueue(video.bvid, $event)"
+              title="移除"
+            >
+              <X :size="14" />
+            </button>
+          </div>
+        </div>
+
+        <div class="queue-empty" v-else>
+          <ListMusic :size="32" />
+          <p>播放队列为空</p>
+          <span>从视频列表中添加视频到队列</span>
+        </div>
+      </div>
     </div>
 
     <AddToPlaylistDialog
@@ -518,5 +621,250 @@ export default {
   color: inherit;
   bottom: 4px;
   pointer-events: none;
+}
+
+/* 队列按钮 */
+.queue-btn {
+  position: relative;
+}
+
+.queue-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 队列面板 */
+.queue-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px;
+  padding-bottom: 106px;
+}
+
+.queue-panel {
+  width: 360px;
+  max-height: 480px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.queue-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.queue-count {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.queue-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.queue-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.queue-action-btn:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.queue-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.queue-item:hover {
+  background: var(--bg-card);
+}
+
+.queue-item.active {
+  background: rgba(233, 69, 96, 0.1);
+}
+
+.queue-item-index {
+  width: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.queue-item.active .queue-item-index {
+  color: var(--accent);
+}
+
+.queue-item-cover {
+  width: 60px;
+  height: 36px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.queue-item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.queue-item-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.queue-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.queue-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-item-author {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-item-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.queue-item:hover .queue-item-remove {
+  opacity: 1;
+}
+
+.queue-item-remove:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.queue-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.queue-empty p {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.queue-empty span {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .queue-panel-overlay {
+    padding: 0;
+    padding-bottom: 90px;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .queue-panel {
+    width: calc(100% - 32px);
+    max-height: 60vh;
+    margin: 0 16px;
+  }
 }
 </style>

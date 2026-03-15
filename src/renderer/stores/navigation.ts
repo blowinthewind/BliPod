@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type NavItem = 'home' | 'search' | 'favorites' | 'playlists' | 'settings'
+export type NavItem = 'home' | 'search' | 'favorites' | 'playlists' | 'history' | 'settings'
 
 export const useNavigationStore = defineStore('navigation', () => {
   const activeItem = ref<NavItem>('home')

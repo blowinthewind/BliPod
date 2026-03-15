@@ -33,6 +33,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PlaylistDetailView.vue')
   },
   {
+    path: '/history',
+    name: 'history',
+    component: () => import('@/views/HistoryView.vue')
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue')

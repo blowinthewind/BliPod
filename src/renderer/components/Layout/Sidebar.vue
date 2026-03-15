@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Menu,
   LogIn,
-  LogOut
+  LogOut,
+  History
 } from 'lucide-vue-next'
 
 const navStore = useNavigationStore()
@@ -31,6 +32,7 @@ const menuItems: NavMenuItem[] = [
   { id: 'search', label: 'Search', icon: Search },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
+  { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings }
 ]
 

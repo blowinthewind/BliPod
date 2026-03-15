@@ -1,24 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { Heart, Play, Trash2, ListMusic } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { History, Play, Trash2, Clock } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
-import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
-import type { FavoriteVideo } from '../../preload/preload'
+import type { HistoryVideo } from '../stores/player'
 
-const favoritesStore = useFavoritesStore()
 const playerStore = usePlayerStore()
 
-const isLoading = computed(() => favoritesStore.isLoading)
-const favorites = computed(() => favoritesStore.favorites)
-
-onMounted(() => {
-  favoritesStore.loadFavorites()
-})
+const history = computed(() => playerStore.playHistory)
 
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  
+  // 小于1小时
+  if (diff < 60 * 60 * 1000) {
+    const minutes = Math.floor(diff / (60 * 1000))
+    return minutes <= 0 ? '刚刚' : `${minutes} 分钟前`
+  }
+  
+  // 小于24小时
+  if (diff < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diff / (60 * 60 * 1000))
+    return `${hours} 小时前`
+  }
+  
+  // 小于7天
+  if (diff < 7 * 24 * 60 * 60 * 1000) {
+    const days = Math.floor(diff / (24 * 60 * 60 * 1000))
+    return `${days} 天前`
+  }
+  
+  // 默认显示日期
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -26,43 +41,50 @@ function formatDate(timestamp: number): string {
   })
 }
 
-function playVideo(video: FavoriteVideo) {
-  playerStore.playVideo(video, favorites.value)
+function playVideo(video: HistoryVideo) {
+  playerStore.playVideo(video)
 }
 
-async function removeFavorite(bvid: string) {
-  await favoritesStore.removeFavorite(bvid)
-}
-
-function addToQueue(video: FavoriteVideo, event: Event) {
+function removeFromHistory(bvid: string, event: Event) {
   event.stopPropagation()
-  playerStore.addToQueue(video)
+  playerStore.removeFromHistory(bvid)
+}
+
+function clearAllHistory() {
+  if (confirm('确定要清空所有播放历史吗？')) {
+    playerStore.clearHistory()
+  }
 }
 </script>
 
 <template>
-  <div class="favorites-view">
+  <div class="history-view">
     <div class="page-header">
       <div class="header-icon">
-        <Heart :size="24" />
+        <History :size="24" />
       </div>
       <div class="header-text">
-        <h1 class="page-title">我的收藏</h1>
-        <p class="page-desc">{{ favorites.length }} 个收藏</p>
+        <h1 class="page-title">播放历史</h1>
+        <p class="page-desc">{{ history.length }} 个视频</p>
       </div>
+      <button 
+        v-if="history.length > 0"
+        class="clear-btn"
+        @click="clearAllHistory"
+      >
+        <Trash2 :size="16" />
+        清空历史
+      </button>
     </div>
 
-    <div v-if="isLoading" class="loading-state">
-      <span>加载中...</span>
-    </div>
-
-    <div class="favorites-list" v-else-if="favorites.length > 0">
+    <div class="history-list" v-if="history.length > 0">
       <div
-        v-for="item in favorites"
+        v-for="(item, index) in history"
         :key="item.bvid"
-        class="favorite-item"
+        class="history-item"
         @click="playVideo(item)"
       >
+        <span class="item-index">{{ index + 1 }}</span>
         <div class="item-cover">
           <LazyImage
             v-if="item.cover"
@@ -79,17 +101,17 @@ function addToQueue(video: FavoriteVideo, event: Event) {
           <h3 class="item-title">{{ item.title }}</h3>
           <div class="item-meta">
             <span class="meta-author">{{ item.author }}</span>
-            <span class="meta-date">收藏于 {{ formatDate(item.addedAt) }}</span>
+            <span class="meta-date">
+              <Clock :size="12" />
+              {{ formatDate(item.playedAt) }}
+            </span>
           </div>
         </div>
         <div class="item-actions">
           <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
             <Play :size="18" />
           </button>
-          <button class="action-btn queue" title="添加到播放队列" @click.stop="addToQueue(item, $event)">
-            <ListMusic :size="18" />
-          </button>
-          <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
+          <button class="action-btn remove" title="移除" @click.stop="removeFromHistory(item.bvid, $event)">
             <Trash2 :size="18" />
           </button>
         </div>
@@ -97,12 +119,13 @@ function addToQueue(video: FavoriteVideo, event: Event) {
     </div>
 
     <div class="empty-state" v-else>
-      <Heart :size="48" class="empty-icon" />
-      <h3>暂无收藏</h3>
-      <p>搜索并收藏你喜欢的视频</p>
+      <History :size="48" class="empty-icon" />
+      <h3>暂无播放历史</h3>
+      <p>开始观看视频，历史记录将显示在这里</p>
     </div>
 
     <ScrollToButtons
+      v-if="history.length > 5"
       scroll-container=".content-area"
       :threshold="5"
     />
@@ -110,7 +133,7 @@ function addToQueue(video: FavoriteVideo, event: Event) {
 </template>
 
 <style scoped>
-.favorites-view {
+.history-view {
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -129,8 +152,12 @@ function addToQueue(video: FavoriteVideo, event: Event) {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--accent), #ff8a80);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   color: white;
+}
+
+.header-text {
+  flex: 1;
 }
 
 .page-title {
@@ -144,21 +171,33 @@ function addToQueue(video: FavoriteVideo, event: Event) {
   color: var(--text-secondary);
 }
 
-.loading-state {
+.clear-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 64px 32px;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.favorites-list {
+.clear-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.history-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.favorite-item {
+.history-item {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -169,8 +208,16 @@ function addToQueue(video: FavoriteVideo, event: Event) {
   transition: all 0.2s;
 }
 
-.favorite-item:hover {
+.history-item:hover {
   background: var(--bg-card);
+}
+
+.item-index {
+  width: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .item-cover {
@@ -234,6 +281,12 @@ function addToQueue(video: FavoriteVideo, event: Event) {
   color: var(--text-secondary);
 }
 
+.meta-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .item-actions {
   display: flex;
   align-items: center;
@@ -260,10 +313,6 @@ function addToQueue(video: FavoriteVideo, event: Event) {
 }
 
 .action-btn.play:hover {
-  color: var(--accent);
-}
-
-.action-btn.queue:hover {
   color: var(--accent);
 }
 
