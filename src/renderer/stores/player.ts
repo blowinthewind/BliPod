@@ -152,7 +152,12 @@ export const usePlayerStore = defineStore('player', () => {
     if (!video || !appSettings.rememberPosition) return
     if (time > 0 && dur > 0) {
       try {
-        await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
+        // 如果当前时间超过视频时长的95%，视为已播放完成，清除位置记录
+        if (time >= dur * 0.95) {
+          await window.electronAPI.store.clearPlayPosition(video.bvid)
+        } else {
+          await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
+        }
       } catch (e) {
         logger.warn('Failed to save play position:', e)
       }
@@ -199,9 +204,13 @@ export const usePlayerStore = defineStore('player', () => {
       try {
         const position = await window.electronAPI.store.getPlayPosition(video.bvid)
         if (position && position.currentTime > 0 && position.duration > 0) {
-          const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
-          if (resumeTime > 10) {
-            pendingResumeTime = resumeTime
+          // 如果保存的位置超过视频时长的90%，视为已播放完成，从头开始播放
+          const progressPercent = position.currentTime / position.duration
+          if (progressPercent < 0.9) {
+            const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
+            if (resumeTime > 10) {
+              pendingResumeTime = resumeTime
+            }
           }
         }
       } catch (e) {
@@ -406,9 +415,13 @@ export const usePlayerStore = defineStore('player', () => {
       try {
         const position = await window.electronAPI.store.getPlayPosition(video.bvid)
         if (position && position.currentTime > 0 && position.duration > 0) {
-          const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
-          if (resumeTime > 10) {
-            pendingResumeTime = resumeTime
+          // 如果保存的位置超过视频时长的90%，视为已播放完成，从头开始播放
+          const progressPercent = position.currentTime / position.duration
+          if (progressPercent < 0.9) {
+            const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
+            if (resumeTime > 10) {
+              pendingResumeTime = resumeTime
+            }
           }
         }
       } catch (e) {
