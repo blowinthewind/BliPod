@@ -639,6 +639,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   function setProgressListener() {
     const unsubscribe = window.electronAPI.search.onPlayerProgress((progress: PlayerProgress) => {
+      // 如果没有当前视频，不更新进度（避免stop()后进度被重新设置）
+      if (!currentVideo.value) return
+
       currentTime.value = progress.currentTime
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
@@ -646,8 +649,7 @@ export const usePlayerStore = defineStore('player', () => {
       // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
       if (progress.duration > 0 &&
           progress.currentTime >= progress.duration * 0.99 &&
-          progress.paused &&
-          currentVideo.value) {
+          progress.paused) {
         // 如果开启了循环播放，则重新播放当前视频
         if (isRepeat.value) {
           seek(0)

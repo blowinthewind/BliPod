@@ -65,6 +65,7 @@ function formatTime(seconds: number): string {
 }
 
 function seekTo(event: MouseEvent) {
+  if (!playerStore.hasVideo) return
   const target = event.currentTarget as HTMLElement
   const rect = target.getBoundingClientRect()
   const percent = (event.clientX - rect.left) / rect.width
@@ -209,7 +210,7 @@ function clearQueue() {
 
       <div class="progress-container">
         <span class="time">{{ formattedCurrentTime }}</span>
-        <div class="progress-bar" @click="seekTo">
+        <div class="progress-bar" :class="{ disabled: !playerStore.hasVideo }" @click="seekTo">
           <div class="progress-track">
             <div class="progress-fill" :style="{ width: `${progress}%` }">
               <div class="progress-thumb"></div>
@@ -563,6 +564,11 @@ export default {
 
 .progress-bar:hover .progress-thumb {
   opacity: 1;
+}
+
+.progress-bar.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .extra-controls {
