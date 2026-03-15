@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck, ListMusic } from 'lucide-vue-next'
+import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck, ListMusic, Check } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
@@ -268,7 +268,8 @@ function isInQueue(bvid: string): boolean {
             @click.stop="addToQueue(result, $event)"
             :title="isInQueue(result.bvid) ? '已在队列中' : '添加到播放队列'"
           >
-            <ListMusic :size="16" />
+            <Check v-if="isInQueue(result.bvid)" :size="16" />
+            <ListMusic v-else :size="16" />
           </button>
           <button
             class="playlist-btn"
@@ -749,6 +750,11 @@ function isInQueue(bvid: string): boolean {
 .queue-btn:hover {
   color: var(--accent);
   background: var(--bg-primary);
+}
+
+.queue-btn:has(.lucide-check) {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .playlist-btn {

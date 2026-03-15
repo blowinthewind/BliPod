@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck, ListMusic } from 'lucide-vue-next'
+import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck, ListMusic, Check } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
@@ -168,6 +168,10 @@ function addToQueue(video: ExtractedVideo, event: Event) {
   event.stopPropagation()
   playerStore.addToUserQueue(video)
 }
+
+function isInQueue(bvid: string): boolean {
+  return playerStore.userQueue.some(v => v.bvid === bvid)
+}
 </script>
 
 <template>
@@ -238,9 +242,10 @@ function addToQueue(video: ExtractedVideo, event: Event) {
           <button
             class="queue-btn"
             @click.stop="addToQueue(video, $event)"
-            title="添加到播放队列"
+            :title="isInQueue(video.bvid) ? '已在队列中' : '添加到播放队列'"
           >
-            <ListMusic :size="16" />
+            <Check v-if="isInQueue(video.bvid)" :size="16" />
+            <ListMusic v-else :size="16" />
           </button>
           <button
             class="playlist-btn"
@@ -593,9 +598,14 @@ function addToQueue(video: ExtractedVideo, event: Event) {
   opacity: 1;
 }
 
-.playlist-btn:hover {
+.queue-btn:hover {
   color: var(--accent);
   background: var(--bg-primary);
+}
+
+.queue-btn:has(.lucide-check) {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .playlist-btn:has(.lucide-list-check) {
