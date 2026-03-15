@@ -35,10 +35,10 @@ const isCurrentFavorite = computed(() => {
   if (!playerStore.currentVideo) return false
   return favoritesStore.isFavoriteSync(playerStore.currentVideo.bvid)
 })
-const queueCount = computed(() => playerStore.playQueue.length)
+const queueCount = computed(() => playerStore.userQueue.length)
 const isCurrentInQueue = computed(() => {
-  if (!playerStore.currentVideo || !playerStore.isPlayingFromQueue) return false
-  return playerStore.playQueue.some(v => v.bvid === playerStore.currentVideo?.bvid)
+  if (!playerStore.currentVideo) return false
+  return playerStore.userQueue.some(v => v.bvid === playerStore.currentVideo?.bvid)
 })
 
 const showPlaylistDialog = ref(false)
@@ -95,17 +95,17 @@ function closeQueuePanel() {
 }
 
 function playFromQueue(index: number) {
-  playerStore.playFromQueue(index)
+  playerStore.playFromUserQueue(index)
 }
 
 function removeFromQueue(bvid: string, event: Event) {
   event.stopPropagation()
-  playerStore.removeFromQueue(bvid)
+  playerStore.removeFromUserQueue(bvid)
 }
 
 function clearQueue() {
   if (confirm('确定要清空播放队列吗？')) {
-    playerStore.clearQueue()
+    playerStore.clearUserQueue()
   }
 }
 </script>
@@ -289,7 +289,7 @@ function clearQueue() {
 
         <div class="queue-list" v-if="queueCount > 0">
           <div
-            v-for="(video, index) in playerStore.playQueue"
+            v-for="(video, index) in playerStore.userQueue"
             :key="video.bvid"
             class="queue-item"
             :class="{ active: playerStore.currentVideo?.bvid === video.bvid }"

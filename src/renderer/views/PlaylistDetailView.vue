@@ -38,19 +38,19 @@ function goBack() {
 }
 
 function playVideo(video: PlaylistVideo) {
-  playerStore.playVideo(video, videos.value)
+  playerStore.playVideo(video, videos.value, 'playlist')
 }
 
 function playAll() {
   if (videos.value.length > 0) {
-    playerStore.playVideo(videos.value[0], videos.value)
+    playerStore.playVideo(videos.value[0], videos.value, 'playlist')
   }
 }
 
 function shufflePlay() {
   if (videos.value.length > 0) {
     const shuffled = [...videos.value].sort(() => Math.random() - 0.5)
-    playerStore.playVideo(shuffled[0], shuffled)
+    playerStore.playVideo(shuffled[0], shuffled, 'playlist')
   }
 }
 

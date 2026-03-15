@@ -145,14 +145,14 @@ function closePlaylistDialog() {
 
 function addToQueue(video: ExtractedVideo, event: Event) {
   event.stopPropagation()
-  const success = playerStore.addToQueue(video)
+  const success = playerStore.addToUserQueue(video)
   if (success) {
     // 可以添加提示
   }
 }
 
 function isInQueue(bvid: string): boolean {
-  return playerStore.playQueue.some(v => v.bvid === bvid)
+  return playerStore.userQueue.some(v => v.bvid === bvid)
 }
 </script>
 

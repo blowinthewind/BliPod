@@ -27,7 +27,7 @@ function formatDate(timestamp: number): string {
 }
 
 function playVideo(video: FavoriteVideo) {
-  playerStore.playVideo(video, favorites.value)
+  playerStore.playVideo(video, favorites.value, 'favorite')
 }
 
 async function removeFavorite(bvid: string) {
@@ -36,7 +36,7 @@ async function removeFavorite(bvid: string) {
 
 function addToQueue(video: FavoriteVideo, event: Event) {
   event.stopPropagation()
-  playerStore.addToQueue(video)
+  playerStore.addToUserQueue(video)
 }
 </script>
 

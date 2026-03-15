@@ -131,7 +131,7 @@ async function handleLoadMore() {
 function handlePlay(bvid: string) {
   const video = videos.value.find(v => v.bvid === bvid)
   if (video) {
-    playerStore.playVideo(video, videos.value)
+    playerStore.playVideo(video, videos.value, 'uploader')
   }
 }
 
@@ -166,7 +166,7 @@ function closePlaylistDialog() {
 
 function addToQueue(video: ExtractedVideo, event: Event) {
   event.stopPropagation()
-  playerStore.addToQueue(video)
+  playerStore.addToUserQueue(video)
 }
 </script>
 

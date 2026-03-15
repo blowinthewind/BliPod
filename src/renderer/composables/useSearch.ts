@@ -67,7 +67,8 @@ export function useSearch(options: UseSearchOptions = {}) {
   function playVideo(bvid: string) {
     const video = searchStore.results.find((v: ExtractedVideo) => v.bvid === bvid)
     if (video) {
-      playerStore.playVideo(video, searchStore.results)
+      // 搜索场景：只播放当前视频 + 用户队列
+      playerStore.playVideo(video, undefined, 'search')
     }
   }
 

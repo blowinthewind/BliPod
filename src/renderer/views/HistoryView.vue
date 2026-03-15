@@ -42,7 +42,8 @@ function formatDate(timestamp: number): string {
 }
 
 function playVideo(video: HistoryVideo) {
-  playerStore.playVideo(video)
+  // 从历史播放时，不传 contextVideos，只播放单个视频 + 用户队列
+  playerStore.playVideo(video, undefined, 'history')
 }
 
 function removeFromHistory(bvid: string, event: Event) {
