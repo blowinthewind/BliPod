@@ -108,11 +108,11 @@ function cancelLogout() {
       </router-link>
     </nav>
 
-    <div class="sidebar-footer" v-if="!navStore.sidebarCollapsed">
+    <div class="sidebar-footer" v-if="!navStore.sidebarCollapsed && authStore.isLoggedIn">
       <div class="user-info" @click="handleUserClick">
         <div class="user-avatar">
           <img 
-            v-if="authStore.isLoggedIn && authStore.userInfo?.face" 
+            v-if="authStore.userInfo?.face" 
             :src="authStore.userInfo.face" 
             :alt="authStore.userInfo.name"
             class="avatar-img" 
@@ -124,17 +124,14 @@ function cancelLogout() {
         <div class="user-details">
           <div class="user-name-row">
             <span class="user-name">
-              {{ authStore.isLoggedIn && authStore.userInfo ? authStore.userInfo.name : 'Not logged in' }}
+              {{ authStore.userInfo?.name }}
             </span>
             <LogOut 
-              v-if="authStore.isLoggedIn" 
               :size="16" 
               class="logout-icon" 
             />
           </div>
-          <span class="user-status">
-            {{ authStore.isLoggedIn ? 'Click to logout' : 'Click to login' }}
-          </span>
+          <span class="user-status">Click to logout</span>
         </div>
       </div>
     </div>
