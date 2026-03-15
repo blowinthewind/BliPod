@@ -721,16 +721,13 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 播放完成后的处理
   async function handleVideoComplete() {
-    // 如果当前视频来自用户队列，从用户队列中移除
-    if (currentVideo.value?.isFromUserQueue) {
-      const index = userQueue.value.findIndex(v => v.bvid === currentVideo.value?.bvid)
+    const video = currentVideo.value
+    if (video) {
+      const index = userQueue.value.findIndex(v => v.bvid === video.bvid)
       if (index > -1) {
         userQueue.value.splice(index, 1)
-        // 持久化到存储
         try {
-          if (currentVideo.value) {
-            await window.electronAPI.store.removeFromUserQueue(currentVideo.value.bvid)
-          }
+          await window.electronAPI.store.removeFromUserQueue(video.bvid)
         } catch (e) {
           logger.warn('Failed to save user queue:', e)
         }
