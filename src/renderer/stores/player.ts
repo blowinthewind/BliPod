@@ -241,10 +241,15 @@ export const usePlayerStore = defineStore('player', () => {
       if (progress.duration > 0 &&
           progress.currentTime >= progress.duration * 0.99 &&
           progress.paused &&
-          currentVideo.value &&
-          appSettings.rememberPosition) {
-        // 清除该视频的播放位置记录，下次播放将从开头开始
-        window.electronAPI.store.clearPlayPosition(currentVideo.value.bvid)
+          currentVideo.value) {
+        // 如果开启了循环播放，则重新播放当前视频
+        if (isRepeat.value) {
+          seek(0)
+          play()
+        } else if (appSettings.rememberPosition) {
+          // 清除该视频的播放位置记录，下次播放将从开头开始
+          window.electronAPI.store.clearPlayPosition(currentVideo.value.bvid)
+        }
       }
     })
 
