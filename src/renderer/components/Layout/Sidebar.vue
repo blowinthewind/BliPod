@@ -49,14 +49,6 @@ onUnmounted(() => {
   }
 })
 
-function handleUserClick() {
-  if (authStore.isLoggedIn) {
-    showLogoutConfirm.value = true
-  } else {
-    router.push({ name: 'settings' })
-  }
-}
-
 function confirmLogout() {
   authStore.logout()
   showLogoutConfirm.value = false
@@ -109,13 +101,13 @@ function cancelLogout() {
     </nav>
 
     <div class="sidebar-footer" v-if="!navStore.sidebarCollapsed && authStore.isLoggedIn">
-      <div class="user-info" @click="handleUserClick">
+      <div class="user-info">
         <div class="user-avatar">
-          <img 
-            v-if="authStore.userInfo?.face" 
-            :src="authStore.userInfo.face" 
+          <img
+            v-if="authStore.userInfo?.face"
+            :src="authStore.userInfo.face"
             :alt="authStore.userInfo.name"
-            class="avatar-img" 
+            class="avatar-img"
           />
           <div v-else class="avatar-placeholder">
             <LogIn :size="18" />
@@ -129,6 +121,7 @@ function cancelLogout() {
             <LogOut
               :size="16"
               class="logout-icon"
+              @click.stop="showLogoutConfirm = true"
             />
           </div>
         </div>
