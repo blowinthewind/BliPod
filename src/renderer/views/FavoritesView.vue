@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Heart, Play, Trash2, ListMusic, Check } from 'lucide-vue-next'
+import { Heart, Play, Trash2 } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { useFavoritesStore } from '../stores/favorites'
@@ -32,15 +32,6 @@ function playVideo(video: FavoriteVideo) {
 
 async function removeFavorite(bvid: string) {
   await favoritesStore.removeFavorite(bvid)
-}
-
-function addToQueue(video: FavoriteVideo, event: Event) {
-  event.stopPropagation()
-  playerStore.addToUserQueue(video)
-}
-
-function isInQueue(bvid: string): boolean {
-  return playerStore.userQueue.some(v => v.bvid === bvid)
 }
 </script>
 
@@ -89,14 +80,6 @@ function isInQueue(bvid: string): boolean {
         <div class="item-actions">
           <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
             <Play :size="18" />
-          </button>
-          <button
-            class="action-btn queue"
-            :title="isInQueue(item.bvid) ? '已在队列中' : '添加到播放队列'"
-            @click.stop="addToQueue(item, $event)"
-          >
-            <Check v-if="isInQueue(item.bvid)" :size="18" />
-            <ListMusic v-else :size="18" />
           </button>
           <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
             <Trash2 :size="18" />
@@ -269,14 +252,6 @@ function isInQueue(bvid: string): boolean {
 }
 
 .action-btn.play:hover {
-  color: var(--accent);
-}
-
-.action-btn.queue:hover {
-  color: var(--accent);
-}
-
-.action-btn.queue:has(.lucide-check) {
   color: var(--accent);
 }
 

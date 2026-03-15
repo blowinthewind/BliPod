@@ -266,7 +266,7 @@ function isInQueue(bvid: string): boolean {
           <button
             class="queue-btn"
             @click.stop="addToQueue(result, $event)"
-            :title="isInQueue(result.bvid) ? '已在队列中' : '添加到播放队列'"
+            :title="isInQueue(result.bvid) ? '已在播放队列中' : '添加到播放队列'"
           >
             <Check v-if="isInQueue(result.bvid)" :size="16" />
             <ListMusic v-else :size="16" />
