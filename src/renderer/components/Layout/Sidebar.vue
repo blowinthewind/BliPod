@@ -126,12 +126,11 @@ function cancelLogout() {
             <span class="user-name">
               {{ authStore.userInfo?.name }}
             </span>
-            <LogOut 
-              :size="16" 
-              class="logout-icon" 
+            <LogOut
+              :size="16"
+              class="logout-icon"
             />
           </div>
-          <span class="user-status">Click to logout</span>
         </div>
       </div>
     </div>
@@ -333,14 +332,15 @@ function cancelLogout() {
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   overflow: hidden;
   flex: 1;
+  justify-content: center;
 }
 
 .user-name-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
