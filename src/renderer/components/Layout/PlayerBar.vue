@@ -18,7 +18,7 @@ import {
   X,
   Trash2
 } from 'lucide-vue-next'
-import { computed, onMounted, ref, toRaw } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, toRaw } from 'vue'
 import { usePlayerStore } from '../../stores/player'
 import { useFavoritesStore } from '../../stores/favorites'
 import { usePlaylistsStore } from '../../stores/playlists'
@@ -47,6 +47,10 @@ const showQueuePanel = ref(false)
 onMounted(() => {
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
+})
+
+onBeforeUnmount(async () => {
+  await playerStore.saveCurrentPosition()
 })
 
 function openPlaylistDialog() {

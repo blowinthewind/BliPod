@@ -10,6 +10,22 @@ export interface HistoryVideo extends ExtractedVideo {
 const MAX_HISTORY_SIZE = 100
 const MAX_QUEUE_SIZE = 50
 
+// 播放配置常量
+const PLAYBACK_CONFIG = {
+  // 视为播放完成的进度阈值（清除位置记录）
+  COMPLETION_THRESHOLD: 0.95,
+  // 最大可恢复进度阈值
+  MAX_RESUME_PROGRESS: 0.9,
+  // 限制恢复时间不超过时长的比例
+  RESUME_TIME_CAP: 0.99,
+  // 最小恢复时间（秒）
+  MIN_RESUME_TIME: 10,
+  // 最大保存的位置记录数
+  MAX_POSITION_RECORDS: 100,
+  // 定期保存间隔（毫秒）
+  AUTO_SAVE_INTERVAL: 30000,
+} as const
+
 function loadHistoryFromStorage(): HistoryVideo[] {
   try {
     const stored = localStorage.getItem('playHistory')
@@ -94,6 +110,7 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   let pendingResumeTime: number | null = null
+  let autoSaveInterval: number | null = null
 
   // ========== 辅助函数 ==========
 
@@ -153,7 +170,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (time > 0 && dur > 0) {
       try {
         // 如果当前时间超过视频时长的95%，视为已播放完成，清除位置记录
-        if (time >= dur * 0.95) {
+        if (time >= dur * PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
           await window.electronAPI.store.clearPlayPosition(video.bvid)
         } else {
           await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
@@ -161,6 +178,54 @@ export const usePlayerStore = defineStore('player', () => {
       } catch (e) {
         logger.warn('Failed to save play position:', e)
       }
+    }
+  }
+
+  /**
+   * 恢复视频播放位置
+   * @param video 要恢复位置的视频
+   */
+  async function restorePlayPosition(video: ExtractedVideo): Promise<void> {
+    if (!appSettings.rememberPosition) return
+
+    try {
+      const position = await window.electronAPI.store.getPlayPosition(video.bvid)
+      if (!position || position.currentTime <= 0 || position.duration <= 0) return
+
+      const progressPercent = position.currentTime / position.duration
+
+      // 如果进度超过90%，视为已播放完成，不恢复
+      if (progressPercent >= PLAYBACK_CONFIG.MAX_RESUME_PROGRESS) return
+
+      // 限制恢复时间不超过99%，且至少10秒才恢复
+      const resumeTime = Math.min(position.currentTime, position.duration * PLAYBACK_CONFIG.RESUME_TIME_CAP)
+      if (resumeTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
+        pendingResumeTime = resumeTime
+      }
+    } catch (e) {
+      logger.warn('Failed to restore play position:', e)
+    }
+  }
+
+  /**
+   * 启动定期自动保存
+   */
+  function startAutoSave() {
+    if (autoSaveInterval) return
+    autoSaveInterval = window.setInterval(() => {
+      if (isPlaying.value && currentVideo.value) {
+        saveCurrentPosition()
+      }
+    }, PLAYBACK_CONFIG.AUTO_SAVE_INTERVAL)
+  }
+
+  /**
+   * 停止定期自动保存
+   */
+  function stopAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+      autoSaveInterval = null
     }
   }
 
@@ -200,23 +265,7 @@ export const usePlayerStore = defineStore('player', () => {
     pendingResumeTime = null
 
     // 恢复播放位置
-    if (appSettings.rememberPosition) {
-      try {
-        const position = await window.electronAPI.store.getPlayPosition(video.bvid)
-        if (position && position.currentTime > 0 && position.duration > 0) {
-          // 如果保存的位置超过视频时长的90%，视为已播放完成，从头开始播放
-          const progressPercent = position.currentTime / position.duration
-          if (progressPercent < 0.9) {
-            const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
-            if (resumeTime > 10) {
-              pendingResumeTime = resumeTime
-            }
-          }
-        }
-      } catch (e) {
-        logger.warn('Failed to restore play position:', e)
-      }
-    }
+    await restorePlayPosition(video)
 
     // 添加到播放历史记录
     addToHistory(video)
@@ -228,6 +277,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (!isPlaying.value) {
       window.electronAPI.search.resumeVideo()
       isPlaying.value = true
+      startAutoSave()
     }
   }
 
@@ -248,6 +298,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function stop() {
+    stopAutoSave()
     await saveCurrentPosition()
     window.electronAPI.search.pauseVideo()
     currentVideo.value = null
@@ -365,19 +416,7 @@ export const usePlayerStore = defineStore('player', () => {
     pendingResumeTime = null
 
     // 恢复播放位置
-    if (appSettings.rememberPosition) {
-      try {
-        const position = await window.electronAPI.store.getPlayPosition(video.bvid)
-        if (position && position.currentTime > 0 && position.duration > 0) {
-          const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
-          if (resumeTime > 10) {
-            pendingResumeTime = resumeTime
-          }
-        }
-      } catch (e) {
-        logger.warn('Failed to restore play position:', e)
-      }
-    }
+    await restorePlayPosition(video)
 
     // 添加到播放历史
     addToHistory(video)
@@ -411,23 +450,7 @@ export const usePlayerStore = defineStore('player', () => {
     pendingResumeTime = null
 
     // 恢复播放位置
-    if (appSettings.rememberPosition) {
-      try {
-        const position = await window.electronAPI.store.getPlayPosition(video.bvid)
-        if (position && position.currentTime > 0 && position.duration > 0) {
-          // 如果保存的位置超过视频时长的90%，视为已播放完成，从头开始播放
-          const progressPercent = position.currentTime / position.duration
-          if (progressPercent < 0.9) {
-            const resumeTime = Math.min(position.currentTime, position.duration * 0.99)
-            if (resumeTime > 10) {
-              pendingResumeTime = resumeTime
-            }
-          }
-        }
-      } catch (e) {
-        logger.warn('Failed to restore play position:', e)
-      }
-    }
+    await restorePlayPosition(video)
 
     // 注意：从历史播放时，不添加到历史，避免重复
     window.electronAPI.search.playVideo(video.bvid)
@@ -625,12 +648,16 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = true
       window.electronAPI.search.setVolume(volume.value)
 
+      // 恢复播放位置
       if (pendingResumeTime !== null) {
         const targetTime = pendingResumeTime
         pendingResumeTime = null
-        setTimeout(() => {
+
+        // 使用 requestAnimationFrame 确保 DOM 已更新
+        requestAnimationFrame(() => {
           window.electronAPI.search.seekVideo(targetTime)
-        }, 100)
+          logger.info(`Resumed playback at ${targetTime}s`)
+        })
       }
     })
 
