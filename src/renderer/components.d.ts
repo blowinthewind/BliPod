@@ -23,6 +23,7 @@ declare module 'vue' {
     PlayerBar: typeof import('./components/Layout/PlayerBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ScrollToButtons: typeof import('./components/ui/ScrollToButtons.vue')['default']
     Sidebar: typeof import('./components/Layout/Sidebar.vue')['default']
     Toast: typeof import('./components/ui/Toast.vue')['default']
     ToastContainer: typeof import('./components/ui/ToastContainer.vue')['default']

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Loader2, Play, ArrowLeft, User, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
+import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
@@ -272,6 +273,12 @@ function closePlaylistDialog() {
       :visible="showPlaylistDialog"
       :video="selectedVideo"
       @close="closePlaylistDialog"
+    />
+
+    <ScrollToButtons
+      v-if="hasResults && videos.length > 5"
+      scroll-container=".content-area"
+      :threshold="5"
     />
   </div>
 </template>
