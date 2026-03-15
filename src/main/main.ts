@@ -771,12 +771,12 @@ function setupIPC() {
     }
   })
 
-  ipcMain.on('player:play', async (_event, bvid: string) => {
-    logger.info('Playing video:', bvid)
+  ipcMain.on('player:play', async (_event, bvid: string, autoplay: boolean = true) => {
+    logger.info('Playing video:', `${bvid} autoplay: ${autoplay}`)
 
     try {
       const view = await createPlayerView()
-      const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=1&muted=0`
+      const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=${autoplay ? 1 : 0}&muted=0`
 
       await view.webContents.loadURL(playUrl)
 

@@ -44,9 +44,14 @@ const isCurrentInQueue = computed(() => {
 const showPlaylistDialog = ref(false)
 const showQueuePanel = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
+
+  // 如果没有当前视频，尝试恢复上次播放的视频
+  if (!playerStore.hasVideo) {
+    await playerStore.restoreLastPlayedVideo()
+  }
 })
 
 onBeforeUnmount(async () => {

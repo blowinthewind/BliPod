@@ -175,7 +175,7 @@ interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
   clickNextPage: () => void
-  playVideo: (bvid: string) => void
+  playVideo: (bvid: string, autoplay?: boolean) => void
   pauseVideo: () => void
   resumeVideo: () => void
   seekVideo: (time: number) => void

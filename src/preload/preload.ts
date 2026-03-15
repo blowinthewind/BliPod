@@ -169,7 +169,7 @@ export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string) => Promise<SearchResult>
   clickNextPage: () => void
-  playVideo: (bvid: string) => void
+  playVideo: (bvid: string, autoplay?: boolean) => void
   pauseVideo: () => void
   resumeVideo: () => void
   seekVideo: (time: number) => void
@@ -200,9 +200,9 @@ const searchAPI: SearchAPI = {
   clickNextPage: () => {
     ipcRenderer.send('search:clickNextPage')
   },
-  playVideo: (bvid: string) => {
-    ipcRenderer.send('player:play', bvid)
-  },
+  playVideo: (bvid: string, autoplay: boolean = true) => {
+      ipcRenderer.send('player:play', bvid, autoplay)
+    },
   pauseVideo: () => {
     ipcRenderer.send('player:pause')
   },
