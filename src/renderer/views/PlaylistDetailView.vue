@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
+import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { usePlaylistsStore } from '../stores/playlists'
 import { usePlayerStore } from '../stores/player'
 import type { PlaylistVideo } from '../../preload/preload'
@@ -187,6 +188,12 @@ function formatDuration(duration: string): string {
         <h3>播放列表为空</h3>
         <p>从搜索结果或收藏中添加视频</p>
       </div>
+
+      <ScrollToButtons
+        v-if="videos.length > 5"
+        scroll-container=".content-area"
+        :threshold="5"
+      />
     </template>
 
     <div class="not-found" v-else>

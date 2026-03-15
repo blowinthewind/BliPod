@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Heart, ListPlus, ListCheck } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
+import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
@@ -292,6 +293,12 @@ function closePlaylistDialog() {
       :visible="showPlaylistDialog"
       :video="selectedVideo"
       @close="closePlaylistDialog"
+    />
+
+    <ScrollToButtons
+      v-if="searchStore.hasResults && searchStore.results.length > 5"
+      scroll-container=".content-area"
+      :threshold="5"
     />
   </div>
 </template>

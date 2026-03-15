@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { Heart, Play, Trash2 } from 'lucide-vue-next'
 import LazyImage from '../components/ui/LazyImage.vue'
+import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlayerStore } from '../stores/player'
 import type { FavoriteVideo } from '../../preload/preload'
@@ -93,6 +94,10 @@ async function removeFavorite(bvid: string) {
       <p>搜索并收藏你喜欢的视频</p>
     </div>
 
+    <ScrollToButtons
+      scroll-container=".content-area"
+      :threshold="5"
+    />
   </div>
 </template>
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useNavigationStore, type NavItem } from '@/stores/navigation'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -16,7 +15,6 @@ import {
   LogOut
 } from 'lucide-vue-next'
 
-const router = useRouter()
 const navStore = useNavigationStore()
 const authStore = useAuthStore()
 
