@@ -918,6 +918,11 @@ export const usePlayerStore = defineStore('player', () => {
     return unsubscribe
   }
 
+  async function getCurrentPlayStats() {
+    if (!currentVideo.value) return null
+    return window.electronAPI.store.getPlayStats(currentVideo.value.bvid)
+  }
+
   return {
     // 基础状态
     currentVideo,
@@ -969,6 +974,9 @@ export const usePlayerStore = defineStore('player', () => {
     removeFromHistory,
     clearHistory,
     loadHistory,
+
+    // 播放统计
+    getCurrentPlayStats,
 
     // 用户队列
     addToUserQueue,
