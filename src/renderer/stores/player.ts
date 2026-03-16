@@ -859,15 +859,18 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = !progress.paused
 
       const now = Date.now()
+      let deltaSeconds = 0
+      let activePlayback = false
       if (sessionLastProgressAt === null) {
         sessionLastProgressAt = now
       } else {
-        const deltaSeconds = Math.min(
+        deltaSeconds = Math.min(
           (now - sessionLastProgressAt) / 1000,
           PLAY_STATS_CONFIG.MAX_DELTA_SECONDS
         )
         sessionLastProgressAt = now
         if (!progress.paused && deltaSeconds > 0) {
+          activePlayback = true
           sessionWatchSeconds += deltaSeconds
           void window.electronAPI.store.updateWatchTime(
             currentVideo.value.bvid,
@@ -878,7 +881,7 @@ export const usePlayerStore = defineStore('player', () => {
         }
       }
 
-      if (!sessionQualified && progress.duration > 0) {
+      if (!sessionQualified && progress.duration > 0 && activePlayback) {
         const progressRatio = progress.currentTime / progress.duration
         if (
           sessionWatchSeconds >= PLAY_STATS_CONFIG.MIN_WATCH_SECONDS ||
