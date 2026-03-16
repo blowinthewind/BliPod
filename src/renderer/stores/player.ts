@@ -252,7 +252,7 @@ export const usePlayerStore = defineStore('player', () => {
         }
       }
 
-      actualQueue.value = [markVideoSource(lastPlayed, 'history', false)]
+      actualQueue.value = buildActualQueue(lastPlayed, [], 'history')
       currentIndex.value = 0
       historyNavigationIndex.value = -1
 
