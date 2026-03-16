@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
 import { usePlaylistsStore } from '@/stores/playlists'
 import { usePlayerStore } from '@/stores/player'
+import { useAppSettingsStore } from '@/stores/appSettings'
 import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check, MemoryStick } from 'lucide-vue-next'
 import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
@@ -13,6 +14,7 @@ const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
 const playlistsStore = usePlaylistsStore()
 const playerStore = usePlayerStore()
+const appSettingsStore = useAppSettingsStore()
 
 const volume = ref(80)
 const autoPlay = ref(true)
@@ -168,6 +170,8 @@ async function handleImport() {
       await loadCategoryStats()
       await favoritesStore.loadFavorites()
       await playlistsStore.loadPlaylists()
+      await playerStore.loadUserQueue()
+      await appSettingsStore.loadSettings()
       playerStore.loadHistory()
     } else if (result.error !== 'Import cancelled') {
       importMessage.value = { type: 'error', text: result.error || 'Import failed' }
