@@ -8,7 +8,7 @@ export interface DataCategory<T> {
   description: string
   get: () => T
   set: (data: T) => void
-  merge: (existing: T, imported: T) => T
+  merge?: (existing: T, imported: T) => T
   validate: (data: unknown) => data is T
   getStats: (data: T) => number
 }
@@ -129,10 +129,6 @@ function mergeUserQueue(existing: ExtractedVideo[], imported: ExtractedVideo[]):
   return Array.from(map.values())
 }
 
-function mergeSettings(existing: AppSettings, imported: AppSettings): AppSettings {
-  return { ...existing, ...imported }
-}
-
 function safeClone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data))
 }
@@ -185,7 +181,6 @@ registerDataCategory<AppSettings>({
   description: '应用配置选项',
   get: () => safeClone(store.get('settings')),
   set: (data) => store.set('settings', data),
-  merge: mergeSettings,
   validate: isValidAppSettings,
   getStats: () => 1
 })

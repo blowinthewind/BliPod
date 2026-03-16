@@ -208,7 +208,7 @@ export async function importDataFromFile(options: ImportOptionsV2): Promise<Impo
       const existingData = category.get()
       const beforeCount = category.getStats(existingData)
 
-      if (options.strategy === 'overwrite') {
+      if (options.strategy === 'overwrite' || !category.merge) {
         category.set(importedData)
         stats[categoryKey] = {
           imported: category.getStats(importedData),
