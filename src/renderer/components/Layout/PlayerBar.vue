@@ -22,11 +22,13 @@ import { computed, onMounted, onBeforeUnmount, ref, toRaw } from 'vue'
 import { usePlayerStore } from '../../stores/player'
 import { useFavoritesStore } from '../../stores/favorites'
 import { usePlaylistsStore } from '../../stores/playlists'
+import { useAppSettingsStore } from '../../stores/appSettings'
 import AddToPlaylistDialog from '../Playlist/AddToPlaylistDialog.vue'
 
 const playerStore = usePlayerStore()
 const favoritesStore = useFavoritesStore()
 const playlistsStore = usePlaylistsStore()
+const appSettingsStore = useAppSettingsStore()
 
 const progress = computed(() => playerStore.progress)
 const formattedCurrentTime = computed(() => formatTime(playerStore.currentTime))
@@ -47,6 +49,7 @@ const showQueuePanel = ref(false)
 onMounted(async () => {
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
+  await appSettingsStore.loadSettings()
   playerStore.initVolume()
 
   if (!playerStore.hasVideo) {
