@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
 import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
@@ -115,7 +115,7 @@ async function handleExport() {
   
   try {
     const result = await window.electronAPI.store.exportDataToFile({
-      categories: selectedExportCategories.value
+      categories: toRaw(selectedExportCategories.value)
     })
     
     if (result.success) {
@@ -149,8 +149,8 @@ async function handleImport() {
   
   try {
     const result = await window.electronAPI.store.importDataFromFile({
-      categories: selectedImportCategories.value,
-      strategy: importStrategy.value
+      categories: toRaw(selectedImportCategories.value),
+      strategy: toRaw(importStrategy.value)
     })
     
     if (result.success) {

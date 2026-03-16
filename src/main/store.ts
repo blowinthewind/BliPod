@@ -61,7 +61,7 @@ export const store = new Store<AppStore>({
 })
 
 export function getFavorites(): FavoriteVideo[] {
-  return store.get('favorites')
+  return safeClone(store.get('favorites'))
 }
 
 export function addFavorite(video: ExtractedVideo): boolean {
@@ -93,7 +93,7 @@ export function isFavorite(bvid: string): boolean {
 }
 
 export function getPlaylists(): Playlist[] {
-  return store.get('playlists')
+  return safeClone(store.get('playlists'))
 }
 
 export function createPlaylist(name: string, description?: string): Playlist {
@@ -167,7 +167,7 @@ export function removeVideoFromPlaylist(playlistId: string, bvid: string): boole
 }
 
 export function getSettings(): AppSettings {
-  return store.get('settings')
+  return safeClone(store.get('settings'))
 }
 
 export function updateSettings(updates: Partial<AppSettings>): AppSettings {
@@ -219,7 +219,7 @@ export function clearPlayPosition(bvid: string): void {
 const MAX_USER_QUEUE_SIZE = 50
 
 export function getUserQueue(): ExtractedVideo[] {
-  return store.get('userQueue')
+  return safeClone(store.get('userQueue'))
 }
 
 export function setUserQueue(queue: ExtractedVideo[]): void {
@@ -263,13 +263,17 @@ export function moveUserQueueItem(fromIndex: number, toIndex: number): boolean {
   return true
 }
 
+function safeClone<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data))
+}
+
 export function exportData(): AppStore {
   return {
-    favorites: store.get('favorites'),
-    playlists: store.get('playlists'),
-    settings: store.get('settings'),
-    playPositions: store.get('playPositions'),
-    userQueue: store.get('userQueue')
+    favorites: safeClone(store.get('favorites')),
+    playlists: safeClone(store.get('playlists')),
+    settings: safeClone(store.get('settings')),
+    playPositions: safeClone(store.get('playPositions')),
+    userQueue: safeClone(store.get('userQueue'))
   }
 }
 

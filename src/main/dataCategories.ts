@@ -133,11 +133,15 @@ function mergeSettings(existing: AppSettings, imported: AppSettings): AppSetting
   return { ...existing, ...imported }
 }
 
+function safeClone<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data))
+}
+
 registerDataCategory<FavoriteVideo[]>({
   key: 'favorites',
   name: '收藏列表',
   description: '您收藏的视频列表',
-  get: () => store.get('favorites'),
+  get: () => safeClone(store.get('favorites')),
   set: (data) => store.set('favorites', data),
   merge: mergeFavorites,
   validate: (data): data is FavoriteVideo[] => {
@@ -151,7 +155,7 @@ registerDataCategory<Playlist[]>({
   key: 'playlists',
   name: '播放列表',
   description: '您创建的播放列表',
-  get: () => store.get('playlists'),
+  get: () => safeClone(store.get('playlists')),
   set: (data) => store.set('playlists', data),
   merge: mergePlaylists,
   validate: (data): data is Playlist[] => {
@@ -165,7 +169,7 @@ registerDataCategory<ExtractedVideo[]>({
   key: 'userQueue',
   name: '播放队列',
   description: '当前播放队列中的视频',
-  get: () => store.get('userQueue'),
+  get: () => safeClone(store.get('userQueue')),
   set: (data) => store.set('userQueue', data),
   merge: mergeUserQueue,
   validate: (data): data is ExtractedVideo[] => {
@@ -179,7 +183,7 @@ registerDataCategory<AppSettings>({
   key: 'settings',
   name: '应用设置',
   description: '应用配置选项',
-  get: () => store.get('settings'),
+  get: () => safeClone(store.get('settings')),
   set: (data) => store.set('settings', data),
   merge: mergeSettings,
   validate: isValidAppSettings,
