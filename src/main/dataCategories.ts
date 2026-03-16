@@ -1,4 +1,4 @@
-import type { FavoriteVideo, Playlist, AppSettings, PlayPosition } from './store'
+import type { FavoriteVideo, Playlist, AppSettings } from './store'
 import type { ExtractedVideo } from '../preload/preload'
 import { store } from './store'
 
@@ -80,17 +80,6 @@ function isValidAppSettings(data: unknown): data is AppSettings {
   )
 }
 
-function isValidPlayPosition(data: unknown): data is PlayPosition {
-  if (!data || typeof data !== 'object') return false
-  const p = data as Record<string, unknown>
-  return (
-    typeof p.bvid === 'string' &&
-    typeof p.currentTime === 'number' &&
-    typeof p.duration === 'number' &&
-    typeof p.updatedAt === 'number'
-  )
-}
-
 function mergeFavorites(existing: FavoriteVideo[], imported: FavoriteVideo[]): FavoriteVideo[] {
   const map = new Map<string, FavoriteVideo>()
   existing.forEach(f => map.set(f.bvid, f))
@@ -142,18 +131,6 @@ function mergeUserQueue(existing: ExtractedVideo[], imported: ExtractedVideo[]):
 
 function mergeSettings(existing: AppSettings, imported: AppSettings): AppSettings {
   return { ...existing, ...imported }
-}
-
-function mergePlayPositions(existing: PlayPosition[], imported: PlayPosition[]): PlayPosition[] {
-  const map = new Map<string, PlayPosition>()
-  existing.forEach(p => map.set(p.bvid, p))
-  imported.forEach(p => {
-    const existingItem = map.get(p.bvid)
-    if (!existingItem || p.updatedAt > existingItem.updatedAt) {
-      map.set(p.bvid, p)
-    }
-  })
-  return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 registerDataCategory<FavoriteVideo[]>({
@@ -209,19 +186,7 @@ registerDataCategory<AppSettings>({
   getStats: () => 1
 })
 
-registerDataCategory<PlayPosition[]>({
-  key: 'playPositions',
-  name: '播放位置',
-  description: '视频播放进度记录',
-  get: () => store.get('playPositions'),
-  set: (data) => store.set('playPositions', data),
-  merge: mergePlayPositions,
-  validate: (data): data is PlayPosition[] => {
-    if (!Array.isArray(data)) return false
-    return data.every(isValidPlayPosition)
-  },
-  getStats: (data) => data.length
-})
+
 
 export interface CategoryStats {
   key: string
