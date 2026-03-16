@@ -24,18 +24,18 @@ export const useSearchStore = defineStore('search', () => {
   function addToHistory(searchQuery: string) {
     const trimmed = searchQuery.trim()
     if (!trimmed) return
-    
+
     const index = searchHistory.value.indexOf(trimmed)
     if (index > -1) {
       searchHistory.value.splice(index, 1)
     }
-    
+
     searchHistory.value.unshift(trimmed)
-    
+
     if (searchHistory.value.length > maxHistorySize) {
       searchHistory.value = searchHistory.value.slice(0, maxHistorySize)
     }
-    
+
     saveHistory()
   }
 
@@ -86,33 +86,27 @@ export const useSearchStore = defineStore('search', () => {
     try {
       const result = await window.electronAPI.search.search(query.value)
 
-      if (result.success) {
-        results.value = result.videos
-        hasMore.value = result.videos.length >= 20
-        lastSearchTime.value = result.extractedAt
-        currentPage.value = result.currentPage
-        nextOffset.value = result.nextOffset
-      } else {
+      if (!result.success) {
         const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
         error.value = friendlyError
         toast.error(friendlyError)
         logger.error('Search failed:', result.error)
+        isSearching.value = false
       }
     } catch (e) {
       const friendlyError = getUserFriendlyErrorMessage(e, '搜索失败')
       error.value = friendlyError
       toast.error(friendlyError)
       logger.error('Search error:', e)
-    } finally {
       isSearching.value = false
     }
   }
 
   async function loadMore(): Promise<void> {
     if (isLoadingMore.value || !hasMore.value) return
-    
+
     isLoadingMore.value = true
-    
+
     window.electronAPI.search.clickNextPage()
   }
 
@@ -131,7 +125,7 @@ export const useSearchStore = defineStore('search', () => {
       if (result.success) {
         if (isLoadingMore.value) {
           const newVideos = result.videos.filter(
-            (v: ExtractedVideo) => !results.value.find(r => r.bvid === v.bvid)
+            (v: ExtractedVideo) => !results.value.find((r) => r.bvid === v.bvid)
           )
           results.value = [...results.value, ...newVideos]
         } else {
@@ -155,7 +149,9 @@ export const useSearchStore = defineStore('search', () => {
     return unsubscribe
   }
 
-  function setViewDestroyedListener(onDestroyed?: (data: { message: string; lastQuery: string }) => void) {
+  function setViewDestroyedListener(
+    onDestroyed?: (data: { message: string; lastQuery: string }) => void
+  ) {
     const unsubscribe = window.electronAPI.search.onViewDestroyed((data) => {
       // searchView 被销毁，显示提示并保存上次搜索词
       error.value = data.message
@@ -163,6 +159,7 @@ export const useSearchStore = defineStore('search', () => {
       if (data.lastQuery) {
         query.value = data.lastQuery
       }
+      isSearching.value = false
       isLoadingMore.value = false
       // 调用外部回调（用于更新UI）
       if (onDestroyed) {
@@ -195,6 +192,6 @@ export const useSearchStore = defineStore('search', () => {
     removeFromHistory,
     clearHistory,
     setResultListener,
-    setViewDestroyedListener,
+    setViewDestroyedListener
   }
 })
