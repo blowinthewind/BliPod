@@ -47,8 +47,8 @@ const showQueuePanel = ref(false)
 onMounted(async () => {
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
+  playerStore.initVolume()
 
-  // 如果没有当前视频，尝试恢复上次播放的视频
   if (!playerStore.hasVideo) {
     await playerStore.restoreLastPlayedVideo()
   }

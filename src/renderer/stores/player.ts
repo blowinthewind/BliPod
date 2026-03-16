@@ -231,42 +231,37 @@ export const usePlayerStore = defineStore('player', () => {
 
   /**
    * 恢复最后播放的视频（从 playHistory 中获取）
-   * 加载视频但暂停播放，等待用户手动点击播放
+   * 根据 autoPlay 设置决定是否自动播放
+   * 根据 rememberPosition 设置决定是否恢复播放位置
    * @returns 是否成功恢复
    */
   async function restoreLastPlayedVideo(): Promise<boolean> {
-    if (!appSettings.rememberPosition) return false
-
     try {
-      // 从 playHistory 获取最后播放的视频（第一条）
       const lastPlayed = playHistory.value[0]
       if (!lastPlayed) return false
 
-      // 从 playPositions 获取保存的播放位置
-      const position = await window.electronAPI.store.getPlayPosition(lastPlayed.bvid)
-
-      // 检查视频是否已播放完成（进度超过95%）
-      if (position && position.currentTime > 0 && position.duration > 0) {
-        const progressPercent = position.currentTime / position.duration
-        if (progressPercent >= PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
-          logger.info('Last played video was completed, not restoring')
-          return false
+      let position = null
+      if (appSettings.rememberPosition) {
+        position = await window.electronAPI.store.getPlayPosition(lastPlayed.bvid)
+        if (position && position.currentTime > 0 && position.duration > 0) {
+          const progressPercent = position.currentTime / position.duration
+          if (progressPercent >= PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
+            logger.info('Last played video was completed, not restoring')
+            return false
+          }
         }
       }
 
-      // 恢复播放队列（只包含当前视频）
       actualQueue.value = [markVideoSource(lastPlayed, 'history', false)]
       currentIndex.value = 0
       historyNavigationIndex.value = -1
 
-      // 设置当前视频
       currentVideo.value = actualQueue.value[0]
       isLoading.value = true
       isPlaying.value = false
       currentTime.value = 0
       duration.value = 0
 
-      // 设置待恢复的时间
       if (position && position.currentTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
         pendingResumeTime = Math.min(
           position.currentTime,
@@ -274,10 +269,13 @@ export const usePlayerStore = defineStore('player', () => {
         )
       }
 
-      // 加载视频（不自动播放）
-      window.electronAPI.search.playVideo(lastPlayed.bvid, false)
+      const shouldAutoPlay = appSettings.autoPlay
+      window.electronAPI.search.playVideo(lastPlayed.bvid, shouldAutoPlay)
+      if (shouldAutoPlay) {
+        isPlaying.value = true
+      }
 
-      logger.info('Restored last played video (paused):', lastPlayed.title)
+      logger.info(`Restored last played video (${shouldAutoPlay ? 'auto-play' : 'paused'}):`, lastPlayed.title)
       return true
     } catch (e) {
       logger.warn('Failed to restore last played video:', e)
@@ -390,6 +388,12 @@ export const usePlayerStore = defineStore('player', () => {
     if (volume.value > 0) {
       isMuted.value = false
     }
+    appSettings.setLastVolume(volume.value)
+  }
+
+  function initVolume() {
+    volume.value = appSettings.lastVolume
+    window.electronAPI.search.setVolume(volume.value)
   }
 
   function toggleMute() {
@@ -864,5 +868,8 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 最后播放视频恢复
     restoreLastPlayedVideo,
+
+    // 初始化
+    initVolume,
   }
 })

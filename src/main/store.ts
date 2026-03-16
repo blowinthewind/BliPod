@@ -20,7 +20,6 @@ export interface Playlist {
 }
 
 export interface AppSettings {
-  volume: number
   autoPlay: boolean
   rememberPosition: boolean
   currentThemeId: string
@@ -39,19 +38,20 @@ export interface AppStore {
   settings: AppSettings
   playPositions: PlayPosition[]
   userQueue: ExtractedVideo[]
+  lastVolume: number
 }
 
 const defaults: AppStore = {
   favorites: [],
   playlists: [],
   settings: {
-    volume: 80,
     autoPlay: true,
     rememberPosition: true,
     currentThemeId: 'dark'
   },
   playPositions: [],
-  userQueue: []
+  userQueue: [],
+  lastVolume: 80
 }
 
 export const store = new Store<AppStore>({
@@ -273,7 +273,8 @@ export function exportData(): AppStore {
     playlists: safeClone(store.get('playlists')),
     settings: safeClone(store.get('settings')),
     playPositions: safeClone(store.get('playPositions')),
-    userQueue: safeClone(store.get('userQueue'))
+    userQueue: safeClone(store.get('userQueue')),
+    lastVolume: store.get('lastVolume')
   }
 }
 
@@ -293,4 +294,15 @@ export function importData(data: Partial<AppStore>): void {
   if (data.userQueue) {
     store.set('userQueue', data.userQueue)
   }
+  if (typeof data.lastVolume === 'number') {
+    store.set('lastVolume', data.lastVolume)
+  }
+}
+
+export function getLastVolume(): number {
+  return store.get('lastVolume')
+}
+
+export function setLastVolume(volume: number): void {
+  store.set('lastVolume', Math.max(0, Math.min(100, volume)))
 }

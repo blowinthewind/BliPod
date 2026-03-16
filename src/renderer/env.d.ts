@@ -74,7 +74,6 @@ interface Playlist {
 }
 
 interface AppSettings {
-  volume: number
   autoPlay: boolean
   rememberPosition: boolean
   currentThemeId: string
@@ -93,6 +92,7 @@ interface AppStore {
   settings: AppSettings
   playPositions: PlayPosition[]
   userQueue: ExtractedVideo[]
+  lastVolume: number
 }
 
 type ImportStrategy = 'merge' | 'overwrite'
@@ -177,6 +177,8 @@ interface StoreAPI {
   importDataFromFile: (options: ImportOptionsV2) => Promise<ImportResult>
   getDataStats: () => Promise<DataStats>
   getCategoryStats: () => Promise<CategoryStats[]>
+  getLastVolume: () => Promise<number>
+  setLastVolume: (volume: number) => Promise<void>
 }
 
 interface SearchAPI {

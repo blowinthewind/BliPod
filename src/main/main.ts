@@ -26,7 +26,9 @@ import {
   clearUserQueue,
   moveUserQueueItem,
   exportData,
-  importData
+  importData,
+  getLastVolume,
+  setLastVolume
 } from './store'
 import {
   exportDataToFile,
@@ -1012,6 +1014,14 @@ function setupIPC() {
 
   ipcMain.handle('store:getCategoryStats', async () => {
     return getCategoryStats()
+  })
+
+  ipcMain.handle('store:getLastVolume', async () => {
+    return getLastVolume()
+  })
+
+  ipcMain.handle('store:setLastVolume', async (_event, volume: number) => {
+    setLastVolume(volume)
   })
 
   ipcMain.handle('memory:getStats', async () => {

@@ -6,7 +6,7 @@ import { useFavoritesStore } from '@/stores/favorites'
 import { usePlaylistsStore } from '@/stores/playlists'
 import { usePlayerStore } from '@/stores/player'
 import { useAppSettingsStore } from '@/stores/appSettings'
-import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check, MemoryStick } from 'lucide-vue-next'
+import { Settings, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check, MemoryStick } from 'lucide-vue-next'
 import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
 const themeStore = useThemeStore()
@@ -16,9 +16,14 @@ const playlistsStore = usePlaylistsStore()
 const playerStore = usePlayerStore()
 const appSettingsStore = useAppSettingsStore()
 
-const volume = ref(80)
-const autoPlay = ref(true)
-const rememberPosition = ref(true)
+const autoPlay = computed({
+  get: () => appSettingsStore.autoPlay,
+  set: (value) => appSettingsStore.setAutoPlay(value)
+})
+const rememberPosition = computed({
+  get: () => appSettingsStore.rememberPosition,
+  set: (value) => appSettingsStore.setRememberPosition(value)
+})
 const showCreateTheme = ref(false)
 const showEditTheme = ref(false)
 const showLoginDialog = ref(false)
@@ -474,20 +479,8 @@ async function showMemoryStats() {
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Default Volume</span>
-              <span class="setting-desc">Set the default player volume</span>
-            </div>
-            <div class="volume-control">
-              <Volume2 :size="18" />
-              <input type="range" min="0" max="100" v-model="volume" />
-              <span class="volume-value">{{ volume }}%</span>
-            </div>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <span class="setting-label">Auto Play</span>
-              <span class="setting-desc">Start playback automatically when selecting a video</span>
+              <span class="setting-label">Auto Play on Startup</span>
+              <span class="setting-desc">Automatically play the last unfinished video when app starts</span>
             </div>
             <label class="toggle">
               <input type="checkbox" v-model="autoPlay" />
@@ -498,7 +491,7 @@ async function showMemoryStats() {
           <div class="setting-item">
             <div class="setting-info">
               <span class="setting-label">Remember Position</span>
-              <span class="setting-desc">Resume from where you left off next time</span>
+              <span class="setting-desc">Resume videos from where you left off</span>
             </div>
             <label class="toggle">
               <input type="checkbox" v-model="rememberPosition" />

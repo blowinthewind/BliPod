@@ -4,15 +4,14 @@ import type { AppSettings, AppStore } from '../../preload/preload'
 
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
-    volume: 80,
     autoPlay: true,
     rememberPosition: true,
     currentThemeId: 'dark'
   })
+  const lastVolume = ref(80)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  const volume = computed(() => settings.value.volume)
   const autoPlay = computed(() => settings.value.autoPlay)
   const rememberPosition = computed(() => settings.value.rememberPosition)
   const currentThemeId = computed(() => settings.value.currentThemeId)
@@ -22,6 +21,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     error.value = null
     try {
       settings.value = await window.electronAPI.store.getSettings()
+      lastVolume.value = await window.electronAPI.store.getLastVolume()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to load settings'
     } finally {
@@ -39,10 +39,6 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     }
   }
 
-  async function setVolume(value: number) {
-    await updateSettings({ volume: Math.max(0, Math.min(100, value)) })
-  }
-
   async function setAutoPlay(value: boolean) {
     await updateSettings({ autoPlay: value })
   }
@@ -53,6 +49,12 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
 
   async function setCurrentThemeId(themeId: string) {
     await updateSettings({ currentThemeId: themeId })
+  }
+
+  async function setLastVolume(value: number) {
+    const clampedValue = Math.max(0, Math.min(100, value))
+    lastVolume.value = clampedValue
+    await window.electronAPI.store.setLastVolume(clampedValue)
   }
 
   async function exportData(): Promise<AppStore | null> {
@@ -77,18 +79,18 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
 
   return {
     settings,
+    lastVolume,
     isLoading,
     error,
-    volume,
     autoPlay,
     rememberPosition,
     currentThemeId,
     loadSettings,
     updateSettings,
-    setVolume,
     setAutoPlay,
     setRememberPosition,
     setCurrentThemeId,
+    setLastVolume,
     exportData,
     importData
   }

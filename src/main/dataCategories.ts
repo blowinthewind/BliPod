@@ -73,7 +73,6 @@ function isValidAppSettings(data: unknown): data is AppSettings {
   if (!data || typeof data !== 'object') return false
   const s = data as Record<string, unknown>
   return (
-    typeof s.volume === 'number' &&
     typeof s.autoPlay === 'boolean' &&
     typeof s.rememberPosition === 'boolean' &&
     typeof s.currentThemeId === 'string'
