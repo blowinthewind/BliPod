@@ -32,6 +32,16 @@ export interface PlayPosition {
   updatedAt: number
 }
 
+export interface PlayStatsEntry {
+  bvid: string
+  playCount: number
+  totalWatchSeconds: number
+  lastPlayedAt: number
+  lastCountedAt: number | null
+  lastDuration: number | null
+  lastPosition: number | null
+}
+
 export interface AppStore {
   favorites: FavoriteVideo[]
   playlists: Playlist[]
@@ -39,6 +49,7 @@ export interface AppStore {
   playPositions: PlayPosition[]
   userQueue: ExtractedVideo[]
   lastVolume: number
+  playStats?: Record<string, PlayStatsEntry>
 }
 
 const defaults: AppStore = {
@@ -51,7 +62,8 @@ const defaults: AppStore = {
   },
   playPositions: [],
   userQueue: [],
-  lastVolume: 80
+  lastVolume: 80,
+  playStats: {}
 }
 
 export const store = new Store<AppStore>({
@@ -66,9 +78,9 @@ export function getFavorites(): FavoriteVideo[] {
 
 export function addFavorite(video: ExtractedVideo): boolean {
   const favorites = store.get('favorites')
-  const exists = favorites.some(f => f.bvid === video.bvid)
+  const exists = favorites.some((f) => f.bvid === video.bvid)
   if (exists) return false
-  
+
   const favoriteVideo: FavoriteVideo = {
     ...video,
     addedAt: Date.now()
@@ -79,9 +91,9 @@ export function addFavorite(video: ExtractedVideo): boolean {
 
 export function removeFavorite(bvid: string): boolean {
   const favorites = store.get('favorites')
-  const index = favorites.findIndex(f => f.bvid === bvid)
+  const index = favorites.findIndex((f) => f.bvid === bvid)
   if (index === -1) return false
-  
+
   favorites.splice(index, 1)
   store.set('favorites', favorites)
   return true
@@ -89,7 +101,7 @@ export function removeFavorite(bvid: string): boolean {
 
 export function isFavorite(bvid: string): boolean {
   const favorites = store.get('favorites')
-  return favorites.some(f => f.bvid === bvid)
+  return favorites.some((f) => f.bvid === bvid)
 }
 
 export function getPlaylists(): Playlist[] {
@@ -110,11 +122,14 @@ export function createPlaylist(name: string, description?: string): Playlist {
   return playlist
 }
 
-export function updatePlaylist(id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>): Playlist | null {
+export function updatePlaylist(
+  id: string,
+  updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>
+): Playlist | null {
   const playlists = store.get('playlists')
-  const index = playlists.findIndex(p => p.id === id)
+  const index = playlists.findIndex((p) => p.id === id)
   if (index === -1) return null
-  
+
   playlists[index] = {
     ...playlists[index],
     ...updates,
@@ -126,9 +141,9 @@ export function updatePlaylist(id: string, updates: Partial<Pick<Playlist, 'name
 
 export function deletePlaylist(id: string): boolean {
   const playlists = store.get('playlists')
-  const index = playlists.findIndex(p => p.id === id)
+  const index = playlists.findIndex((p) => p.id === id)
   if (index === -1) return false
-  
+
   playlists.splice(index, 1)
   store.set('playlists', playlists)
   return true
@@ -136,12 +151,12 @@ export function deletePlaylist(id: string): boolean {
 
 export function addVideoToPlaylist(playlistId: string, video: ExtractedVideo): boolean {
   const playlists = store.get('playlists')
-  const playlistIndex = playlists.findIndex(p => p.id === playlistId)
+  const playlistIndex = playlists.findIndex((p) => p.id === playlistId)
   if (playlistIndex === -1) return false
-  
-  const exists = playlists[playlistIndex].videos.some(v => v.bvid === video.bvid)
+
+  const exists = playlists[playlistIndex].videos.some((v) => v.bvid === video.bvid)
   if (exists) return false
-  
+
   const playlistVideo: PlaylistVideo = {
     ...video,
     addedAt: Date.now()
@@ -154,12 +169,12 @@ export function addVideoToPlaylist(playlistId: string, video: ExtractedVideo): b
 
 export function removeVideoFromPlaylist(playlistId: string, bvid: string): boolean {
   const playlists = store.get('playlists')
-  const playlistIndex = playlists.findIndex(p => p.id === playlistId)
+  const playlistIndex = playlists.findIndex((p) => p.id === playlistId)
   if (playlistIndex === -1) return false
-  
-  const videoIndex = playlists[playlistIndex].videos.findIndex(v => v.bvid === bvid)
+
+  const videoIndex = playlists[playlistIndex].videos.findIndex((v) => v.bvid === bvid)
   if (videoIndex === -1) return false
-  
+
   playlists[playlistIndex].videos.splice(videoIndex, 1)
   playlists[playlistIndex].updatedAt = Date.now()
   store.set('playlists', playlists)
@@ -179,41 +194,103 @@ export function updateSettings(updates: Partial<AppSettings>): AppSettings {
 
 export function getPlayPosition(bvid: string): PlayPosition | null {
   const positions = store.get('playPositions')
-  return positions.find(p => p.bvid === bvid) || null
+  return positions.find((p) => p.bvid === bvid) || null
 }
 
 export function savePlayPosition(bvid: string, currentTime: number, duration: number): void {
   const positions = store.get('playPositions')
-  const index = positions.findIndex(p => p.bvid === bvid)
-  
+  const index = positions.findIndex((p) => p.bvid === bvid)
+
   const position: PlayPosition = {
     bvid,
     currentTime,
     duration,
     updatedAt: Date.now()
   }
-  
+
   if (index === -1) {
     positions.push(position)
   } else {
     positions[index] = position
   }
-  
+
   if (positions.length > 100) {
     positions.sort((a, b) => b.updatedAt - a.updatedAt)
     positions.splice(100)
   }
-  
+
   store.set('playPositions', positions)
 }
 
 export function clearPlayPosition(bvid: string): void {
   const positions = store.get('playPositions')
-  const index = positions.findIndex(p => p.bvid === bvid)
+  const index = positions.findIndex((p) => p.bvid === bvid)
   if (index !== -1) {
     positions.splice(index, 1)
     store.set('playPositions', positions)
   }
+}
+
+export function getPlayStats(
+  bvid?: string
+): PlayStatsEntry | Record<string, PlayStatsEntry> | null {
+  const stats = store.get('playStats') || {}
+  if (!bvid) {
+    return safeClone(stats)
+  }
+  return stats[bvid] ? safeClone(stats[bvid]) : null
+}
+
+export function updateWatchTime(
+  bvid: string,
+  deltaSeconds: number,
+  duration: number,
+  position: number
+): PlayStatsEntry {
+  const stats = store.get('playStats') || {}
+  const existing = stats[bvid]
+
+  const updated: PlayStatsEntry = {
+    bvid,
+    playCount: existing?.playCount ?? 0,
+    totalWatchSeconds: Math.max(0, (existing?.totalWatchSeconds ?? 0) + Math.max(0, deltaSeconds)),
+    lastPlayedAt: Date.now(),
+    lastCountedAt: existing?.lastCountedAt ?? null,
+    lastDuration:
+      Number.isFinite(duration) && duration > 0 ? duration : (existing?.lastDuration ?? null),
+    lastPosition:
+      Number.isFinite(position) && position >= 0 ? position : (existing?.lastPosition ?? null)
+  }
+
+  stats[bvid] = updated
+  store.set('playStats', stats)
+  return updated
+}
+
+export function incrementPlayCount(
+  bvid: string,
+  duration: number,
+  position: number
+): PlayStatsEntry {
+  const stats = store.get('playStats') || {}
+  const existing = stats[bvid]
+  const now = Date.now()
+
+  const updated: PlayStatsEntry = {
+    bvid,
+    playCount: (existing?.playCount ?? 0) + 1,
+    totalWatchSeconds: existing?.totalWatchSeconds ?? 0,
+    lastPlayedAt: now,
+    lastCountedAt: now,
+    lastDuration:
+      Number.isFinite(duration) && duration > 0 ? duration : (existing?.lastDuration ?? null),
+    lastPosition:
+      Number.isFinite(position) && position >= 0 ? position : (existing?.lastPosition ?? null)
+  }
+
+  stats[bvid] = updated
+  store.set('playStats', stats)
+  return updated
 }
 
 const MAX_USER_QUEUE_SIZE = 50
@@ -228,7 +305,7 @@ export function setUserQueue(queue: ExtractedVideo[]): void {
 
 export function addToUserQueue(video: ExtractedVideo): boolean {
   const queue = store.get('userQueue')
-  if (queue.find(v => v.bvid === video.bvid)) {
+  if (queue.find((v) => v.bvid === video.bvid)) {
     return false
   }
   if (queue.length >= MAX_USER_QUEUE_SIZE) {
@@ -240,7 +317,7 @@ export function addToUserQueue(video: ExtractedVideo): boolean {
 
 export function removeFromUserQueue(bvid: string): boolean {
   const queue = store.get('userQueue')
-  const index = queue.findIndex(v => v.bvid === bvid)
+  const index = queue.findIndex((v) => v.bvid === bvid)
   if (index === -1) return false
   queue.splice(index, 1)
   store.set('userQueue', queue)

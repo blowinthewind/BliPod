@@ -80,6 +80,16 @@ export interface PlayPosition {
   updatedAt: number
 }
 
+export interface PlayStatsEntry {
+  bvid: string
+  playCount: number
+  totalWatchSeconds: number
+  lastPlayedAt: number
+  lastCountedAt: number | null
+  lastDuration: number | null
+  lastPosition: number | null
+}
+
 export interface AppStore {
   favorites: FavoriteVideo[]
   playlists: Playlist[]
@@ -87,6 +97,7 @@ export interface AppStore {
   playPositions: PlayPosition[]
   userQueue: ExtractedVideo[]
   lastVolume: number
+  playStats?: Record<string, PlayStatsEntry>
 }
 
 export type ImportStrategy = 'merge' | 'overwrite'
@@ -150,7 +161,10 @@ export interface StoreAPI {
   isFavorite: (bvid: string) => Promise<boolean>
   getPlaylists: () => Promise<Playlist[]>
   createPlaylist: (name: string, description?: string) => Promise<Playlist>
-  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => Promise<Playlist | null>
+  updatePlaylist: (
+    id: string,
+    updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>
+  ) => Promise<Playlist | null>
   deletePlaylist: (id: string) => Promise<boolean>
   addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
   removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
@@ -159,6 +173,14 @@ export interface StoreAPI {
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   clearPlayPosition: (bvid: string) => Promise<void>
+  getPlayStats: (bvid?: string) => Promise<PlayStatsEntry | Record<string, PlayStatsEntry> | null>
+  updateWatchTime: (
+    bvid: string,
+    deltaSeconds: number,
+    duration: number,
+    position: number
+  ) => Promise<PlayStatsEntry>
+  incrementPlayCount: (bvid: string, duration: number, position: number) => Promise<PlayStatsEntry>
   getUserQueue: () => Promise<ExtractedVideo[]>
   setUserQueue: (queue: ExtractedVideo[]) => Promise<void>
   addToUserQueue: (video: ExtractedVideo) => Promise<boolean>
@@ -211,8 +233,8 @@ const searchAPI: SearchAPI = {
     ipcRenderer.send('search:clickNextPage')
   },
   playVideo: (bvid: string, autoplay: boolean = true) => {
-      ipcRenderer.send('player:play', bvid, autoplay)
-    },
+    ipcRenderer.send('player:play', bvid, autoplay)
+  },
   pauseVideo: () => {
     ipcRenderer.send('player:pause')
   },
@@ -241,7 +263,8 @@ const searchAPI: SearchAPI = {
     return () => ipcRenderer.removeListener('player:progress', handler)
   },
   onViewDestroyed: (callback) => {
-    const handler = (_event: unknown, data: { message: string; lastQuery: string }) => callback(data)
+    const handler = (_event: unknown, data: { message: string; lastQuery: string }) =>
+      callback(data)
     ipcRenderer.on('search:viewDestroyed', handler)
     return () => ipcRenderer.removeListener('search:viewDestroyed', handler)
   }
@@ -296,7 +319,10 @@ const storeAPI: StoreAPI = {
   createPlaylist: (name: string, description?: string) => {
     return ipcRenderer.invoke('store:createPlaylist', name, description)
   },
-  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => {
+  updatePlaylist: (
+    id: string,
+    updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>
+  ) => {
     return ipcRenderer.invoke('store:updatePlaylist', id, updates)
   },
   deletePlaylist: (id: string) => {
@@ -322,6 +348,15 @@ const storeAPI: StoreAPI = {
   },
   clearPlayPosition: (bvid: string) => {
     return ipcRenderer.invoke('store:clearPlayPosition', bvid)
+  },
+  getPlayStats: (bvid?: string) => {
+    return ipcRenderer.invoke('store:getPlayStats', bvid)
+  },
+  updateWatchTime: (bvid: string, deltaSeconds: number, duration: number, position: number) => {
+    return ipcRenderer.invoke('store:updateWatchTime', bvid, deltaSeconds, duration, position)
+  },
+  incrementPlayCount: (bvid: string, duration: number, position: number) => {
+    return ipcRenderer.invoke('store:incrementPlayCount', bvid, duration, position)
   },
   getUserQueue: () => {
     return ipcRenderer.invoke('store:getUserQueue')

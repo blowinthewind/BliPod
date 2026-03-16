@@ -2,7 +2,13 @@ import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
-import type { UserInfo, BiliAuthStatus, ExtractedVideo, AppSettings, AppStore } from '../preload/preload'
+import type {
+  UserInfo,
+  BiliAuthStatus,
+  ExtractedVideo,
+  AppSettings,
+  AppStore
+} from '../preload/preload'
 import {
   getFavorites,
   addFavorite,
@@ -19,6 +25,9 @@ import {
   getPlayPosition,
   savePlayPosition,
   clearPlayPosition,
+  getPlayStats,
+  updateWatchTime,
+  incrementPlayCount,
   getUserQueue,
   setUserQueue,
   addToUserQueue,
@@ -74,10 +83,10 @@ function startProgressTracking() {
   if (progressInterval) {
     clearInterval(progressInterval)
   }
-  
+
   progressInterval = setInterval(async () => {
     if (!playerView || !mainWindow) return
-    
+
     try {
       const state = await playerView.webContents.executeJavaScript(`
         (function() {
@@ -90,7 +99,7 @@ function startProgressTracking() {
           };
         })()
       `)
-      
+
       if (state && mainWindow) {
         mainWindow.webContents.send('player:progress', state)
       }
@@ -178,7 +187,7 @@ async function performMemoryCleanup() {
   }
 
   // 只清理 searchView，保留 playerView（确保用户可以随时恢复播放）
-  if (searchView && (now - searchViewLastUsed) > viewIdleTimeout) {
+  if (searchView && now - searchViewLastUsed > viewIdleTimeout) {
     logger.info('Search view idle timeout reached, destroying...')
     destroySearchView()
   }
@@ -209,14 +218,13 @@ function startMemoryManagement() {
   }
 
   memoryCleanupInterval = setInterval(() => {
-    performMemoryCleanup().catch(err => {
+    performMemoryCleanup().catch((err) => {
       logger.error('Memory cleanup error:', err)
     })
   }, MEMORY_CLEANUP_INTERVAL)
 
   process.on('warning', (warning) => {
-    if (warning.name === 'MaxListenersExceededWarning' ||
-        warning.message.includes('memory')) {
+    if (warning.name === 'MaxListenersExceededWarning' || warning.message.includes('memory')) {
       logger.warn('Memory warning received:', warning.message)
       performMemoryCleanup().catch(() => {})
     }
@@ -283,13 +291,13 @@ function setupCSP() {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self'; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
-          "style-src 'self' 'unsafe-inline' https:; " +
-          "img-src 'self' https: data: blob:; " +
-          "connect-src 'self' https: ws:; " +
-          "font-src 'self' data: https:; " +
-          "media-src 'self' https: blob:; " +
-          "frame-src 'self' https://www.bilibili.com https://player.bilibili.com https://search.bilibili.com https://passport.bilibili.com"
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+            "style-src 'self' 'unsafe-inline' https:; " +
+            "img-src 'self' https: data: blob:; " +
+            "connect-src 'self' https: ws:; " +
+            "font-src 'self' data: https:; " +
+            "media-src 'self' https: blob:; " +
+            "frame-src 'self' https://www.bilibili.com https://player.bilibili.com https://search.bilibili.com https://passport.bilibili.com"
         ]
       }
     })
@@ -298,28 +306,28 @@ function setupCSP() {
 
 function setupBilibiliImageReferer() {
   const bilibiliSession = getBilibiliSession()
-  
+
   bilibiliSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const url = details.url
     if (url.includes('hdslb.com') || url.includes('bilivideo.com') || url.includes('biliapi.net')) {
       callback({
         requestHeaders: {
           ...details.requestHeaders,
-          'Referer': 'https://www.bilibili.com/'
+          Referer: 'https://www.bilibili.com/'
         }
       })
     } else {
       callback({ requestHeaders: details.requestHeaders })
     }
   })
-  
+
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     const url = details.url
     if (url.includes('hdslb.com') || url.includes('bilivideo.com')) {
       callback({
         requestHeaders: {
           ...details.requestHeaders,
-          'Referer': 'https://www.bilibili.com/'
+          Referer: 'https://www.bilibili.com/'
         }
       })
     } else {
@@ -343,7 +351,7 @@ async function createSearchView(): Promise<BrowserView> {
       webSecurity: false
     }
   })
-  
+
   searchViewLastUsed = Date.now()
 
   if (mainWindow) {
@@ -355,7 +363,7 @@ async function createSearchView(): Promise<BrowserView> {
     searchViewLastUsed = Date.now()
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
 
       const script = getExtractorScript()
       if (!script) {
@@ -365,9 +373,9 @@ async function createSearchView(): Promise<BrowserView> {
       await searchView!.webContents.executeJavaScript(script)
       logger.info('Extractor script injected')
 
-      const result = await searchView!.webContents.executeJavaScript(
+      const result = (await searchView!.webContents.executeJavaScript(
         'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
-      ) as SearchResult | null
+      )) as SearchResult | null
 
       logger.info('Extract result:', JSON.stringify(result, null, 2))
 
@@ -385,7 +393,7 @@ async function createSearchView(): Promise<BrowserView> {
           extractedAt: Date.now(),
           pageUrl: '',
           currentPage: 1,
-          nextOffset: null,
+          nextOffset: null
         } as SearchResult)
       }
     }
@@ -409,14 +417,16 @@ async function createPlayerView(): Promise<BrowserView> {
       webSecurity: false
     }
   })
-  
+
   playerViewLastUsed = Date.now()
 
   playerView.webContents.on('did-finish-load', () => {
     logger.info('Player page finished loading')
     playerViewLastUsed = Date.now()
 
-    playerView!.webContents.executeJavaScript(`
+    playerView!.webContents
+      .executeJavaScript(
+        `
       (function() {
         const style = document.createElement('style');
         style.textContent = \`
@@ -426,7 +436,9 @@ async function createPlayerView(): Promise<BrowserView> {
         \`;
         document.head.appendChild(style);
       })();
-    `).catch(err => logger.error('Failed to inject player styles:', err))
+    `
+      )
+      .catch((err) => logger.error('Failed to inject player styles:', err))
 
     if (mainWindow) {
       mainWindow.webContents.send('player:ready')
@@ -442,24 +454,23 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
   try {
     const bilibiliSession = getBilibiliSession()
     const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
-    
-    const sessdata = cookies.find(c => c.name === 'SESSDATA')
+
+    const sessdata = cookies.find((c) => c.name === 'SESSDATA')
     if (!sessdata) {
       return null
     }
-    
-    const cookieString = cookies
-      .map(c => `${c.name}=${c.value}`)
-      .join('; ')
-    
+
+    const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join('; ')
+
     const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
-        'Referer': 'https://www.bilibili.com/',
-        'Cookie': cookieString,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        Referer: 'https://www.bilibili.com/',
+        Cookie: cookieString,
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     })
-    
+
     const data = await response.json()
 
     logger.info('fetchUserInfo response:', `${data.code} ${data.message || 'ok'}`)
@@ -487,16 +498,16 @@ async function checkLoginStatus(): Promise<BiliAuthStatus> {
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
 
   logger.debug('checkLoginStatus: found', `${cookies.length} cookies`)
-  logger.debug('checkLoginStatus: cookie names:', cookies.map(c => c.name).join(', '))
+  logger.debug('checkLoginStatus: cookie names:', cookies.map((c) => c.name).join(', '))
 
-  const sessdata = cookies.find(c => c.name === 'SESSDATA')
+  const sessdata = cookies.find((c) => c.name === 'SESSDATA')
 
   if (!sessdata) {
     logger.debug('checkLoginStatus: no SESSDATA cookie found')
 
     const allCookies = await bilibiliSession.cookies.get({})
     logger.debug('checkLoginStatus: all cookies in session:', `${allCookies.length}`)
-    logger.debug('checkLoginStatus: all cookie names:', allCookies.map(c => c.name).join(', '))
+    logger.debug('checkLoginStatus: all cookie names:', allCookies.map((c) => c.name).join(', '))
 
     return { isLoggedIn: false, userInfo: null }
   }
@@ -534,45 +545,50 @@ interface QrCodeStatus {
 
 async function startQrLogin() {
   stopQrPoll()
-  
+
   try {
-    const response = await fetch('https://passport.bilibili.com/x/passport-login/web/qrcode/generate', {
-      headers: {
-        'Referer': 'https://passport.bilibili.com/',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    const response = await fetch(
+      'https://passport.bilibili.com/x/passport-login/web/qrcode/generate',
+      {
+        headers: {
+          Referer: 'https://passport.bilibili.com/',
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
       }
-    })
-    
+    )
+
     const result: QrCodeResult = await response.json()
-    
+
     if (result.code !== 0 || !result.data?.url) {
       throw new Error('Failed to generate QR code')
     }
-    
+
     const qrUrl = result.data.url
     const qrcodeKey = result.data.qrcode_key
-    
+
     if (mainWindow) {
       mainWindow.webContents.send('auth:qrcode', qrUrl)
     }
-    
+
     qrPollInterval = setInterval(async () => {
       if (!mainWindow) {
         stopQrPoll()
         return
       }
-      
+
       try {
         const statusResponse = await fetch(
           `https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcodeKey}`,
           {
             headers: {
-              'Referer': 'https://passport.bilibili.com/',
-              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+              Referer: 'https://passport.bilibili.com/',
+              'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
           }
         )
-        
+
         const statusResult: QrCodeStatus = await statusResponse.json()
 
         logger.debug('QR poll status:', `${statusResult.data?.code} ${statusResult.data?.message}`)
@@ -608,7 +624,10 @@ async function startQrLogin() {
               expirationDate
             }
 
-            logger.debug('Setting cookies with expiration:', new Date(expirationDate * 1000).toISOString())
+            logger.debug(
+              'Setting cookies with expiration:',
+              new Date(expirationDate * 1000).toISOString()
+            )
 
             if (dedeuserid) {
               await bilibiliSession.cookies.set({
@@ -646,8 +665,10 @@ async function startQrLogin() {
               logger.debug('Set bili_jct cookie')
             }
 
-            const savedCookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
-            logger.debug('Cookies after saving:', savedCookies.map(c => c.name).join(', '))
+            const savedCookies = await bilibiliSession.cookies.get({
+              url: 'https://www.bilibili.com'
+            })
+            logger.debug('Cookies after saving:', savedCookies.map((c) => c.name).join(', '))
 
             const userInfo = await fetchUserInfo()
 
@@ -673,20 +694,22 @@ async function startQrLogin() {
         logger.error('QR poll error:', error)
       }
     }, 2000)
-
   } catch (error) {
     logger.error('Failed to start QR login:', error)
     if (mainWindow) {
-      mainWindow.webContents.send('auth:error', error instanceof Error ? error.message : 'Failed to start login')
+      mainWindow.webContents.send(
+        'auth:error',
+        error instanceof Error ? error.message : 'Failed to start login'
+      )
     }
   }
 }
 
 async function logout() {
   stopQrPoll()
-  
+
   const bilibiliSession = getBilibiliSession()
-  
+
   const cookies = await bilibiliSession.cookies.get({})
   for (const cookie of cookies) {
     const url = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`
@@ -695,50 +718,53 @@ async function logout() {
 }
 
 function setupIPC() {
-  ipcMain.handle('search:query', async (_event, query: string, offset?: number): Promise<SearchResult> => {
-    logger.info('Search query received:', `${query} offset: ${offset}`)
+  ipcMain.handle(
+    'search:query',
+    async (_event, query: string, offset?: number): Promise<SearchResult> => {
+      logger.info('Search query received:', `${query} offset: ${offset}`)
 
-    // 保存搜索词，用于超时后提示用户
-    lastSearchQuery = query
+      // 保存搜索词，用于超时后提示用户
+      lastSearchQuery = query
 
-    try {
-      const view = await createSearchView()
-      const encodedQuery = encodeURIComponent(query)
-      let searchUrl: string
+      try {
+        const view = await createSearchView()
+        const encodedQuery = encodeURIComponent(query)
+        let searchUrl: string
 
-      if (offset && offset > 0) {
-        const page = Math.floor(offset / 20) + 1
-        searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
-      } else {
-        searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1`
-      }
+        if (offset && offset > 0) {
+          const page = Math.floor(offset / 20) + 1
+          searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
+        } else {
+          searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1`
+        }
 
-      logger.info('Loading search URL:', searchUrl)
-      await view.webContents.loadURL(searchUrl)
+        logger.info('Loading search URL:', searchUrl)
+        await view.webContents.loadURL(searchUrl)
 
-      return {
-        success: true,
-        videos: [],
-        hasMore: false,
-        extractedAt: Date.now(),
-        pageUrl: searchUrl,
-        currentPage: 1,
-        nextOffset: null,
-      }
-    } catch (error) {
-      logger.error('Search error:', error)
-      return {
-        success: false,
-        videos: [],
-        hasMore: false,
-        error: error instanceof Error ? error.message : 'Search request failed',
-        extractedAt: Date.now(),
-        pageUrl: '',
-        currentPage: 1,
-        nextOffset: null,
+        return {
+          success: true,
+          videos: [],
+          hasMore: false,
+          extractedAt: Date.now(),
+          pageUrl: searchUrl,
+          currentPage: 1,
+          nextOffset: null
+        }
+      } catch (error) {
+        logger.error('Search error:', error)
+        return {
+          success: false,
+          videos: [],
+          hasMore: false,
+          error: error instanceof Error ? error.message : 'Search request failed',
+          extractedAt: Date.now(),
+          pageUrl: '',
+          currentPage: 1,
+          nextOffset: null
+        }
       }
     }
-  })
+  )
 
   ipcMain.handle('search:uploader', async (_event, mid: string): Promise<SearchResult> => {
     logger.info('Uploader videos request received:', mid)
@@ -757,7 +783,7 @@ function setupIPC() {
         extractedAt: Date.now(),
         pageUrl: uploaderUrl,
         currentPage: 1,
-        nextOffset: null,
+        nextOffset: null
       }
     } catch (error) {
       logger.error('Uploader videos error:', error)
@@ -769,7 +795,7 @@ function setupIPC() {
         extractedAt: Date.now(),
         pageUrl: '',
         currentPage: 1,
-        nextOffset: null,
+        nextOffset: null
       }
     }
   })
@@ -795,11 +821,15 @@ function setupIPC() {
 
   ipcMain.on('player:pause', async () => {
     if (playerView) {
-      await playerView.webContents.executeJavaScript(`
+      await playerView.webContents
+        .executeJavaScript(
+          `
         if (document.querySelector('video')) {
           document.querySelector('video').pause();
         }
-      `).catch(() => {})
+      `
+        )
+        .catch(() => {})
     }
   })
 
@@ -855,7 +885,7 @@ function setupIPC() {
           extractedAt: Date.now(),
           pageUrl: '',
           currentPage: 1,
-          nextOffset: null,
+          nextOffset: null
         } as SearchResult)
       }
     }
@@ -863,31 +893,43 @@ function setupIPC() {
 
   ipcMain.on('player:resume', async () => {
     if (playerView) {
-      await playerView.webContents.executeJavaScript(`
+      await playerView.webContents
+        .executeJavaScript(
+          `
         if (document.querySelector('video')) {
           document.querySelector('video').play();
         }
-      `).catch(() => {})
+      `
+        )
+        .catch(() => {})
     }
   })
 
   ipcMain.on('player:seek', async (_event, time: number) => {
     if (playerView) {
-      await playerView.webContents.executeJavaScript(`
+      await playerView.webContents
+        .executeJavaScript(
+          `
         if (document.querySelector('video')) {
           document.querySelector('video').currentTime = ${time};
         }
-      `).catch(() => {})
+      `
+        )
+        .catch(() => {})
     }
   })
 
   ipcMain.on('player:volume', async (_event, volume: number) => {
     if (playerView) {
-      await playerView.webContents.executeJavaScript(`
+      await playerView.webContents
+        .executeJavaScript(
+          `
         if (document.querySelector('video')) {
           document.querySelector('video').volume = ${volume / 100};
         }
-      `).catch(() => {})
+      `
+        )
+        .catch(() => {})
     }
   })
 
@@ -932,21 +974,30 @@ function setupIPC() {
     return createPlaylist(name, description)
   })
 
-  ipcMain.handle('store:updatePlaylist', async (_event, id: string, updates: Parameters<typeof updatePlaylist>[1]) => {
-    return updatePlaylist(id, updates)
-  })
+  ipcMain.handle(
+    'store:updatePlaylist',
+    async (_event, id: string, updates: Parameters<typeof updatePlaylist>[1]) => {
+      return updatePlaylist(id, updates)
+    }
+  )
 
   ipcMain.handle('store:deletePlaylist', async (_event, id: string) => {
     return deletePlaylist(id)
   })
 
-  ipcMain.handle('store:addVideoToPlaylist', async (_event, playlistId: string, video: ExtractedVideo) => {
-    return addVideoToPlaylist(playlistId, video)
-  })
+  ipcMain.handle(
+    'store:addVideoToPlaylist',
+    async (_event, playlistId: string, video: ExtractedVideo) => {
+      return addVideoToPlaylist(playlistId, video)
+    }
+  )
 
-  ipcMain.handle('store:removeVideoFromPlaylist', async (_event, playlistId: string, bvid: string) => {
-    return removeVideoFromPlaylist(playlistId, bvid)
-  })
+  ipcMain.handle(
+    'store:removeVideoFromPlaylist',
+    async (_event, playlistId: string, bvid: string) => {
+      return removeVideoFromPlaylist(playlistId, bvid)
+    }
+  )
 
   ipcMain.handle('store:getSettings', async () => {
     return getSettings()
@@ -960,13 +1011,34 @@ function setupIPC() {
     return getPlayPosition(bvid)
   })
 
-  ipcMain.handle('store:savePlayPosition', async (_event, bvid: string, currentTime: number, duration: number) => {
-    return savePlayPosition(bvid, currentTime, duration)
-  })
+  ipcMain.handle(
+    'store:savePlayPosition',
+    async (_event, bvid: string, currentTime: number, duration: number) => {
+      return savePlayPosition(bvid, currentTime, duration)
+    }
+  )
 
   ipcMain.handle('store:clearPlayPosition', async (_event, bvid: string) => {
     return clearPlayPosition(bvid)
   })
+
+  ipcMain.handle('store:getPlayStats', async (_event, bvid?: string) => {
+    return getPlayStats(bvid)
+  })
+
+  ipcMain.handle(
+    'store:updateWatchTime',
+    async (_event, bvid: string, deltaSeconds: number, duration: number, position: number) => {
+      return updateWatchTime(bvid, deltaSeconds, duration, position)
+    }
+  )
+
+  ipcMain.handle(
+    'store:incrementPlayCount',
+    async (_event, bvid: string, duration: number, position: number) => {
+      return incrementPlayCount(bvid, duration, position)
+    }
+  )
 
   ipcMain.handle('store:exportData', async () => {
     return exportData()

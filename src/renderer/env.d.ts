@@ -86,6 +86,16 @@ interface PlayPosition {
   updatedAt: number
 }
 
+interface PlayStatsEntry {
+  bvid: string
+  playCount: number
+  totalWatchSeconds: number
+  lastPlayedAt: number
+  lastCountedAt: number | null
+  lastDuration: number | null
+  lastPosition: number | null
+}
+
 interface AppStore {
   favorites: FavoriteVideo[]
   playlists: Playlist[]
@@ -93,6 +103,7 @@ interface AppStore {
   playPositions: PlayPosition[]
   userQueue: ExtractedVideo[]
   lastVolume: number
+  playStats?: Record<string, PlayStatsEntry>
 }
 
 type ImportStrategy = 'merge' | 'overwrite'
@@ -156,7 +167,10 @@ interface StoreAPI {
   isFavorite: (bvid: string) => Promise<boolean>
   getPlaylists: () => Promise<Playlist[]>
   createPlaylist: (name: string, description?: string) => Promise<Playlist>
-  updatePlaylist: (id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>) => Promise<Playlist | null>
+  updatePlaylist: (
+    id: string,
+    updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>
+  ) => Promise<Playlist | null>
   deletePlaylist: (id: string) => Promise<boolean>
   addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
   removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
@@ -165,6 +179,14 @@ interface StoreAPI {
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
   savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
   clearPlayPosition: (bvid: string) => Promise<void>
+  getPlayStats: (bvid?: string) => Promise<PlayStatsEntry | Record<string, PlayStatsEntry> | null>
+  updateWatchTime: (
+    bvid: string,
+    deltaSeconds: number,
+    duration: number,
+    position: number
+  ) => Promise<PlayStatsEntry>
+  incrementPlayCount: (bvid: string, duration: number, position: number) => Promise<PlayStatsEntry>
   getUserQueue: () => Promise<ExtractedVideo[]>
   setUserQueue: (queue: ExtractedVideo[]) => Promise<void>
   addToUserQueue: (video: ExtractedVideo) => Promise<boolean>

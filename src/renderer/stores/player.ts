@@ -26,6 +26,13 @@ const PLAYBACK_CONFIG = {
   AUTO_SAVE_INTERVAL: 30000
 } as const
 
+const PLAY_STATS_CONFIG = {
+  MIN_WATCH_SECONDS: 30,
+  MIN_PROGRESS_RATIO: 0.1,
+  DEDUP_WINDOW_MS: 10 * 60 * 1000,
+  MAX_DELTA_SECONDS: 5
+} as const
+
 function loadHistoryFromStorage(): HistoryVideo[] {
   try {
     const stored = localStorage.getItem('playHistory')
@@ -111,6 +118,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   let pendingResumeTime: number | null = null
   let autoSaveInterval: number | null = null
+  let sessionWatchSeconds = 0
+  let sessionQualified = false
+  let sessionLastProgressAt: number | null = null
+  let sessionLastCountedAt: number | null = null
 
   // ========== 辅助函数 ==========
 
@@ -233,6 +244,27 @@ export const usePlayerStore = defineStore('player', () => {
     }, PLAYBACK_CONFIG.AUTO_SAVE_INTERVAL)
   }
 
+  function resetPlaySession() {
+    sessionWatchSeconds = 0
+    sessionQualified = false
+    sessionLastProgressAt = null
+    sessionLastCountedAt = null
+  }
+
+  async function loadPlaySessionStats(bvid: string) {
+    try {
+      const stats = await window.electronAPI.store.getPlayStats(bvid)
+      if (stats && typeof stats === 'object' && 'lastCountedAt' in stats) {
+        sessionLastCountedAt = (stats as { lastCountedAt: number | null }).lastCountedAt
+      } else {
+        sessionLastCountedAt = null
+      }
+    } catch (e) {
+      sessionLastCountedAt = null
+      logger.warn('Failed to load play stats:', e)
+    }
+  }
+
   /**
    * 停止定期自动保存
    */
@@ -275,6 +307,8 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = false
       currentTime.value = 0
       duration.value = 0
+      resetPlaySession()
+      await loadPlaySessionStats(lastPlayed.bvid)
 
       if (position && position.currentTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
         pendingResumeTime = Math.min(
@@ -334,6 +368,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = 0
     duration.value = 0
     pendingResumeTime = null
+    resetPlaySession()
+    await loadPlaySessionStats(video.bvid)
 
     // 恢复播放位置
     await restorePlayPosition(video)
@@ -380,6 +416,7 @@ export const usePlayerStore = defineStore('player', () => {
     actualQueue.value = []
     currentIndex.value = -1
     historyNavigationIndex.value = -1
+    resetPlaySession()
   }
 
   function seek(time: number) {
@@ -497,6 +534,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = 0
     duration.value = 0
     pendingResumeTime = null
+    resetPlaySession()
+    await loadPlaySessionStats(video.bvid)
 
     // 恢复播放位置
     await restorePlayPosition(video)
@@ -531,6 +570,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = 0
     duration.value = 0
     pendingResumeTime = null
+    resetPlaySession()
+    await loadPlaySessionStats(video.bvid)
 
     // 恢复播放位置
     await restorePlayPosition(video)
@@ -816,6 +857,46 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value = progress.currentTime
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
+
+      const now = Date.now()
+      if (sessionLastProgressAt === null) {
+        sessionLastProgressAt = now
+      } else {
+        const deltaSeconds = Math.min(
+          (now - sessionLastProgressAt) / 1000,
+          PLAY_STATS_CONFIG.MAX_DELTA_SECONDS
+        )
+        sessionLastProgressAt = now
+        if (!progress.paused && deltaSeconds > 0) {
+          sessionWatchSeconds += deltaSeconds
+          void window.electronAPI.store.updateWatchTime(
+            currentVideo.value.bvid,
+            deltaSeconds,
+            progress.duration || 0,
+            progress.currentTime
+          )
+        }
+      }
+
+      if (!sessionQualified && progress.duration > 0) {
+        const progressRatio = progress.currentTime / progress.duration
+        if (
+          sessionWatchSeconds >= PLAY_STATS_CONFIG.MIN_WATCH_SECONDS ||
+          progressRatio >= PLAY_STATS_CONFIG.MIN_PROGRESS_RATIO
+        ) {
+          sessionQualified = true
+          const shouldCount =
+            !sessionLastCountedAt || now - sessionLastCountedAt > PLAY_STATS_CONFIG.DEDUP_WINDOW_MS
+          if (shouldCount) {
+            sessionLastCountedAt = now
+            void window.electronAPI.store.incrementPlayCount(
+              currentVideo.value.bvid,
+              progress.duration || 0,
+              progress.currentTime
+            )
+          }
+        }
+      }
 
       // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
       if (
