@@ -557,6 +557,10 @@ export const usePlayerStore = defineStore('player', () => {
     saveHistoryToStorage(playHistory.value)
   }
 
+  function loadHistory() {
+    playHistory.value = loadHistoryFromStorage()
+  }
+
   // ========== 用户维护的播放队列 ==========
 
   async function addToUserQueue(video: ExtractedVideo) {
@@ -844,6 +848,7 @@ export const usePlayerStore = defineStore('player', () => {
     addToHistory,
     removeFromHistory,
     clearHistory,
+    loadHistory,
 
     // 用户队列
     addToUserQueue,

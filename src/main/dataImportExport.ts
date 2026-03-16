@@ -1,92 +1,119 @@
 import { dialog } from 'electron'
 import { writeFile, readFile } from 'fs/promises'
 import { app } from 'electron'
-import type { FavoriteVideo, Playlist, PlaylistVideo } from './store'
-import type { ExtractedVideo } from '../preload/preload'
-import { store } from './store'
+import {
+  getRegisteredCategories,
+  getDataCategory,
+  getCategoryStats,
+  type CategoryStats
+} from './dataCategories'
 
-const CURRENT_EXPORT_VERSION = '1.0.0'
+const CURRENT_EXPORT_VERSION = '2.0.0'
 
-export interface ExportData {
+export interface ExportDataV2 {
   version: string
   exportedAt: number
   appVersion: string
-  favorites: FavoriteVideo[]
-  playlists: Playlist[]
-  userQueue: ExtractedVideo[]
+  categories: string[]
+  data: Record<string, unknown>
+}
+
+interface ExportDataV1 {
+  version: string
+  exportedAt: number
+  appVersion: string
+  favorites: unknown[]
+  playlists: unknown[]
+  userQueue?: unknown[]
 }
 
 export type ImportStrategy = 'merge' | 'overwrite'
 
-export interface ImportOptions {
+export interface ExportOptions {
+  categories?: string[]
+}
+
+export interface ImportOptionsV2 {
+  categories?: string[]
   strategy: ImportStrategy
 }
 
-function mergeFavorites(existing: FavoriteVideo[], imported: FavoriteVideo[]): FavoriteVideo[] {
-  const map = new Map<string, FavoriteVideo>()
-  
-  existing.forEach(f => map.set(f.bvid, f))
-  
-  imported.forEach(f => {
-    const existingItem = map.get(f.bvid)
-    if (!existingItem || f.addedAt > existingItem.addedAt) {
-      map.set(f.bvid, f)
-    }
-  })
-  
-  return Array.from(map.values()).sort((a, b) => b.addedAt - a.addedAt)
+export interface ExportResult {
+  success: boolean
+  error?: string
+  filePath?: string
 }
 
-function mergePlaylists(existing: Playlist[], imported: Playlist[]): Playlist[] {
-  const map = new Map<string, Playlist>()
-  
-  existing.forEach(p => map.set(p.id, p))
-  
-  imported.forEach(p => {
-    const existingItem = map.get(p.id)
-    if (!existingItem) {
-      map.set(p.id, p)
-    } else {
-      const videoMap = new Map<string, PlaylistVideo>()
-      existingItem.videos.forEach(v => videoMap.set(v.bvid, v))
-      p.videos.forEach(v => {
-        const existingVideo = videoMap.get(v.bvid)
-        if (!existingVideo || v.addedAt > existingVideo.addedAt) {
-          videoMap.set(v.bvid, v)
-        }
-      })
-      map.set(p.id, {
-        ...existingItem,
-        videos: Array.from(videoMap.values()),
-        updatedAt: Math.max(existingItem.updatedAt, p.updatedAt)
-      })
-    }
-  })
-  
-  return Array.from(map.values()).sort((a, b) => b.updatedAt - a.updatedAt)
+export interface ImportResult {
+  success: boolean
+  error?: string
+  stats?: Record<string, { imported: number; total: number }>
 }
 
-function validateExportData(data: unknown): data is ExportData {
+function isV1Format(data: unknown): data is ExportDataV1 {
   if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return (
+    typeof d.version === 'string' &&
+    d.version.startsWith('1.') &&
+    typeof d.exportedAt === 'number' &&
+    Array.isArray(d.favorites) &&
+    Array.isArray(d.playlists)
+  )
+}
+
+function migrateV1ToV2(data: ExportDataV1): ExportDataV2 {
+  return {
+    version: CURRENT_EXPORT_VERSION,
+    exportedAt: data.exportedAt,
+    appVersion: data.appVersion,
+    categories: ['favorites', 'playlists', 'userQueue'],
+    data: {
+      favorites: data.favorites,
+      playlists: data.playlists,
+      userQueue: data.userQueue || []
+    }
+  }
+}
+
+function validateExportData(data: unknown): ExportDataV2 | { error: string } {
+  if (!data || typeof data !== 'object') {
+    return { error: 'Invalid export file: not an object' }
+  }
 
   const d = data as Record<string, unknown>
-  if (typeof d.version !== 'string') return false
-  if (typeof d.exportedAt !== 'number') return false
-  if (!Array.isArray(d.favorites)) return false
-  if (!Array.isArray(d.playlists)) return false
-  // userQueue is optional for backward compatibility
 
-  const [major] = d.version.split('.')
+  if (isV1Format(data)) {
+    return migrateV1ToV2(data)
+  }
+
+  if (typeof d.version !== 'string') {
+    return { error: 'Invalid export file: missing version' }
+  }
+
+  if (typeof d.exportedAt !== 'number') {
+    return { error: 'Invalid export file: missing exportedAt' }
+  }
+
+  if (!Array.isArray(d.categories)) {
+    return { error: 'Invalid export file: missing categories array' }
+  }
+
+  if (!d.data || typeof d.data !== 'object') {
+    return { error: 'Invalid export file: missing data object' }
+  }
+
+  const [major] = (d.version as string).split('.')
   const [currentMajor] = CURRENT_EXPORT_VERSION.split('.')
 
   if (major !== currentMajor) {
-    throw new Error(`Incompatible export version: ${d.version}`)
+    return { error: `Incompatible export version: ${d.version}` }
   }
 
-  return true
+  return data as ExportDataV2
 }
 
-export async function exportDataToFile(): Promise<{ success: boolean; error?: string; filePath?: string }> {
+export async function exportDataToFile(options?: ExportOptions): Promise<ExportResult> {
   try {
     const result = await dialog.showSaveDialog({
       title: 'Export BliPod Data',
@@ -96,41 +123,41 @@ export async function exportDataToFile(): Promise<{ success: boolean; error?: st
         { name: 'All Files', extensions: ['*'] }
       ]
     })
-    
+
     if (result.canceled || !result.filePath) {
       return { success: false, error: 'Export cancelled' }
     }
-    
-    const exportData: ExportData = {
+
+    const categories = getRegisteredCategories()
+    const selectedCategories = options?.categories
+      ? categories.filter(c => options.categories!.includes(c.key))
+      : categories
+
+    const exportData: ExportDataV2 = {
       version: CURRENT_EXPORT_VERSION,
       exportedAt: Date.now(),
       appVersion: app.getVersion(),
-      favorites: store.get('favorites'),
-      playlists: store.get('playlists'),
-      userQueue: store.get('userQueue')
+      categories: selectedCategories.map(c => c.key),
+      data: {}
     }
-    
+
+    for (const category of selectedCategories) {
+      exportData.data[category.key] = category.get()
+    }
+
     await writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8')
-    
+
     return { success: true, filePath: result.filePath }
   } catch (error) {
     console.error('[BliPod] Export error:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Export failed' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Export failed'
     }
   }
 }
 
-export async function importDataFromFile(options: ImportOptions): Promise<{ 
-  success: boolean
-  error?: string
-  stats?: {
-    favoritesImported: number
-    playlistsImported: number
-    videosImported: number
-  }
-}> {
+export async function importDataFromFile(options: ImportOptionsV2): Promise<ImportResult> {
   try {
     const result = await dialog.showOpenDialog({
       title: 'Import BliPod Data',
@@ -140,59 +167,70 @@ export async function importDataFromFile(options: ImportOptions): Promise<{
       ],
       properties: ['openFile']
     })
-    
+
     if (result.canceled || result.filePaths.length === 0) {
       return { success: false, error: 'Import cancelled' }
     }
-    
+
     const filePath = result.filePaths[0]
     const content = await readFile(filePath, 'utf-8')
-    const data = JSON.parse(content)
-    
-    if (!validateExportData(data)) {
-      return { success: false, error: 'Invalid export file format' }
+    const rawData = JSON.parse(content)
+
+    const validatedData = validateExportData(rawData)
+    if ('error' in validatedData) {
+      return { success: false, error: validatedData.error }
     }
-    
-    let favoritesImported = 0
-    let playlistsImported = 0
-    let videosImported = 0
-    
-    if (options.strategy === 'overwrite') {
-      store.set('favorites', data.favorites)
-      store.set('playlists', data.playlists)
-      if (data.userQueue) {
-        store.set('userQueue', data.userQueue)
+
+    const data = validatedData
+    const stats: Record<string, { imported: number; total: number }> = {}
+
+    const categoriesToImport = options.categories
+      ? data.categories.filter(key => options.categories!.includes(key))
+      : data.categories
+
+    for (const categoryKey of categoriesToImport) {
+      const category = getDataCategory(categoryKey)
+      if (!category) {
+        console.warn(`[BliPod] Unknown category: ${categoryKey}`)
+        continue
       }
-      favoritesImported = data.favorites.length
-      playlistsImported = data.playlists.length
-      videosImported = data.playlists.reduce((sum, p) => sum + p.videos.length, 0)
-    } else {
-      const existingFavorites = store.get('favorites')
-      const existingPlaylists = store.get('playlists')
-      const existingVideosCount = existingPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
 
-      const mergedFavorites = mergeFavorites(existingFavorites, data.favorites)
-      const mergedPlaylists = mergePlaylists(existingPlaylists, data.playlists)
-      const mergedVideosCount = mergedPlaylists.reduce((sum, p) => sum + p.videos.length, 0)
+      const importedData = data.data[categoryKey]
+      if (importedData === undefined) {
+        continue
+      }
 
-      favoritesImported = mergedFavorites.length - existingFavorites.length
-      playlistsImported = mergedPlaylists.length - existingPlaylists.length
-      videosImported = mergedVideosCount - existingVideosCount
+      if (!category.validate(importedData)) {
+        console.warn(`[BliPod] Invalid data for category: ${categoryKey}`)
+        continue
+      }
 
-      store.set('favorites', mergedFavorites)
-      store.set('playlists', mergedPlaylists)
-      // For merge strategy, we don't merge userQueue, just keep existing
+      const existingData = category.get()
+      const beforeCount = category.getStats(existingData)
+
+      if (options.strategy === 'overwrite') {
+        category.set(importedData)
+        stats[categoryKey] = {
+          imported: category.getStats(importedData),
+          total: category.getStats(importedData)
+        }
+      } else {
+        const mergedData = category.merge(existingData, importedData)
+        category.set(mergedData)
+        const afterCount = category.getStats(mergedData)
+        stats[categoryKey] = {
+          imported: afterCount - beforeCount,
+          total: afterCount
+        }
+      }
     }
-    
-    return { 
-      success: true, 
-      stats: { favoritesImported, playlistsImported, videosImported }
-    }
+
+    return { success: true, stats }
   } catch (error) {
     console.error('[BliPod] Import error:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Import failed' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Import failed'
     }
   }
 }
@@ -202,12 +240,23 @@ export function getDataStats(): {
   playlistsCount: number
   totalVideosInPlaylists: number
 } {
-  const favorites = store.get('favorites')
-  const playlists = store.get('playlists')
-  
+  const stats = getCategoryStats()
+  const favoritesStat = stats.find(s => s.key === 'favorites')
+  const playlistsStat = stats.find(s => s.key === 'playlists')
+
+  const playlistsCategory = getDataCategory('playlists')
+  let totalVideosInPlaylists = 0
+  if (playlistsCategory) {
+    const playlists = playlistsCategory.get() as Array<{ videos: unknown[] }>
+    totalVideosInPlaylists = playlists.reduce((sum, p) => sum + p.videos.length, 0)
+  }
+
   return {
-    favoritesCount: favorites.length,
-    playlistsCount: playlists.length,
-    totalVideosInPlaylists: playlists.reduce((sum, p) => sum + p.videos.length, 0)
+    favoritesCount: favoritesStat?.count || 0,
+    playlistsCount: playlistsStat?.count || 0,
+    totalVideosInPlaylists
   }
 }
+
+export { getCategoryStats }
+export type { CategoryStats }

@@ -91,7 +91,12 @@ export interface AppStore {
 
 export type ImportStrategy = 'merge' | 'overwrite'
 
-export interface ImportOptions {
+export interface ExportOptions {
+  categories?: string[]
+}
+
+export interface ImportOptionsV2 {
+  categories?: string[]
   strategy: ImportStrategy
 }
 
@@ -104,11 +109,13 @@ export interface ExportResult {
 export interface ImportResult {
   success: boolean
   error?: string
-  stats?: {
-    favoritesImported: number
-    playlistsImported: number
-    videosImported: number
-  }
+  stats?: Record<string, { imported: number; total: number }>
+}
+
+export interface CategoryStats {
+  key: string
+  name: string
+  count: number
 }
 
 export interface DataStats {
@@ -160,9 +167,10 @@ export interface StoreAPI {
   moveUserQueueItem: (fromIndex: number, toIndex: number) => Promise<boolean>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
-  exportDataToFile: () => Promise<ExportResult>
-  importDataFromFile: (options: ImportOptions) => Promise<ImportResult>
+  exportDataToFile: (options?: ExportOptions) => Promise<ExportResult>
+  importDataFromFile: (options: ImportOptionsV2) => Promise<ImportResult>
   getDataStats: () => Promise<DataStats>
+  getCategoryStats: () => Promise<CategoryStats[]>
 }
 
 export interface SearchAPI {
@@ -337,14 +345,17 @@ const storeAPI: StoreAPI = {
   importData: (data: Partial<AppStore>) => {
     return ipcRenderer.invoke('store:importData', data)
   },
-  exportDataToFile: () => {
-    return ipcRenderer.invoke('store:exportDataToFile')
+  exportDataToFile: (options?: ExportOptions) => {
+    return ipcRenderer.invoke('store:exportDataToFile', options)
   },
-  importDataFromFile: (options: ImportOptions) => {
+  importDataFromFile: (options: ImportOptionsV2) => {
     return ipcRenderer.invoke('store:importDataFromFile', options)
   },
   getDataStats: () => {
     return ipcRenderer.invoke('store:getDataStats')
+  },
+  getCategoryStats: () => {
+    return ipcRenderer.invoke('store:getCategoryStats')
   }
 }
 

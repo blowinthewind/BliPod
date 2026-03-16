@@ -97,7 +97,12 @@ interface AppStore {
 
 type ImportStrategy = 'merge' | 'overwrite'
 
-interface ImportOptions {
+interface ExportOptions {
+  categories?: string[]
+}
+
+interface ImportOptionsV2 {
+  categories?: string[]
   strategy: ImportStrategy
 }
 
@@ -110,11 +115,13 @@ interface ExportResult {
 interface ImportResult {
   success: boolean
   error?: string
-  stats?: {
-    favoritesImported: number
-    playlistsImported: number
-    videosImported: number
-  }
+  stats?: Record<string, { imported: number; total: number }>
+}
+
+interface CategoryStats {
+  key: string
+  name: string
+  count: number
 }
 
 interface DataStats {
@@ -166,9 +173,10 @@ interface StoreAPI {
   moveUserQueueItem: (fromIndex: number, toIndex: number) => Promise<boolean>
   exportData: () => Promise<AppStore>
   importData: (data: Partial<AppStore>) => Promise<void>
-  exportDataToFile: () => Promise<ExportResult>
-  importDataFromFile: (options: ImportOptions) => Promise<ImportResult>
+  exportDataToFile: (options?: ExportOptions) => Promise<ExportResult>
+  importDataFromFile: (options: ImportOptionsV2) => Promise<ImportResult>
   getDataStats: () => Promise<DataStats>
+  getCategoryStats: () => Promise<CategoryStats[]>
 }
 
 interface SearchAPI {

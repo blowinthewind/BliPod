@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
 import { usePlaylistsStore } from '@/stores/playlists'
+import { usePlayerStore } from '@/stores/player'
 import { Settings, Volume2, Download, LogIn, Plus, Trash2, Copy, Palette, Sparkles, LogOut, Upload, AlertCircle, Check, MemoryStick } from 'lucide-vue-next'
 import LoginDialog from '@/components/Layout/LoginDialog.vue'
 
@@ -11,6 +12,7 @@ const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
 const playlistsStore = usePlaylistsStore()
+const playerStore = usePlayerStore()
 
 const volume = ref(80)
 const autoPlay = ref(true)
@@ -20,20 +22,23 @@ const showEditTheme = ref(false)
 const showLoginDialog = ref(false)
 const editingThemeId = ref<string | null>(null)
 
-const dataStats = ref<DataStats>({
-  favoritesCount: 0,
-  playlistsCount: 0,
-  totalVideosInPlaylists: 0
-})
-const importStrategy = ref<ImportStrategy>('merge')
+interface CategoryStats {
+  key: string
+  name: string
+  count: number
+}
+
+const categoryStats = ref<CategoryStats[]>([])
+const selectedExportCategories = ref<string[]>([])
+const selectedImportCategories = ref<string[]>([])
+const importStrategy = ref<'merge' | 'overwrite'>('merge')
 const isExporting = ref(false)
 const isImporting = ref(false)
 const exportMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const importMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
-// 内存管理设置
 const memorySettings = ref({
-  searchViewTimeout: 10 * 60 * 1000, // 默认10分钟
+  searchViewTimeout: 10 * 60 * 1000,
   cleanupMessage: '' as string | null
 })
 
@@ -42,8 +47,7 @@ let unsubscribe: (() => void) | null = null
 onMounted(async () => {
   unsubscribe = authStore.setLoginListener()
   authStore.checkLoginStatus()
-  await loadDataStats()
-  // 加载内存管理设置
+  await loadCategoryStats()
   loadMemorySettings()
 })
 
@@ -53,21 +57,66 @@ onUnmounted(() => {
   }
 })
 
-async function loadDataStats() {
+async function loadCategoryStats() {
   try {
-    const stats = await window.electronAPI.store.getDataStats()
-    dataStats.value = stats
+    const stats = await window.electronAPI.store.getCategoryStats()
+    categoryStats.value = stats
+    selectedExportCategories.value = stats.map(s => s.key)
   } catch (error) {
-    console.error('Failed to load data stats:', error)
+    console.error('Failed to load category stats:', error)
   }
 }
 
+const dataStats = computed(() => {
+  const favoritesStat = categoryStats.value.find(s => s.key === 'favorites')
+  const playlistsStat = categoryStats.value.find(s => s.key === 'playlists')
+  return {
+    favoritesCount: favoritesStat?.count || 0,
+    playlistsCount: playlistsStat?.count || 0,
+    totalVideosInPlaylists: 0
+  }
+})
+
+function toggleExportCategory(key: string) {
+  const index = selectedExportCategories.value.indexOf(key)
+  if (index === -1) {
+    selectedExportCategories.value.push(key)
+  } else {
+    selectedExportCategories.value.splice(index, 1)
+  }
+}
+
+function toggleImportCategory(key: string) {
+  const index = selectedImportCategories.value.indexOf(key)
+  if (index === -1) {
+    selectedImportCategories.value.push(key)
+  } else {
+    selectedImportCategories.value.splice(index, 1)
+  }
+}
+
+function selectAllExportCategories() {
+  selectedExportCategories.value = categoryStats.value.map(s => s.key)
+}
+
+function deselectAllExportCategories() {
+  selectedExportCategories.value = []
+}
+
 async function handleExport() {
+  if (selectedExportCategories.value.length === 0) {
+    exportMessage.value = { type: 'error', text: 'Please select at least one category' }
+    setTimeout(() => { exportMessage.value = null }, 3000)
+    return
+  }
+
   isExporting.value = true
   exportMessage.value = null
   
   try {
-    const result = await window.electronAPI.store.exportDataToFile()
+    const result = await window.electronAPI.store.exportDataToFile({
+      categories: selectedExportCategories.value
+    })
     
     if (result.success) {
       exportMessage.value = { 
@@ -89,22 +138,37 @@ async function handleExport() {
 }
 
 async function handleImport() {
+  if (selectedImportCategories.value.length === 0) {
+    importMessage.value = { type: 'error', text: 'Please select at least one category' }
+    setTimeout(() => { importMessage.value = null }, 3000)
+    return
+  }
+
   isImporting.value = true
   importMessage.value = null
   
   try {
     const result = await window.electronAPI.store.importDataFromFile({
+      categories: selectedImportCategories.value,
       strategy: importStrategy.value
     })
     
     if (result.success) {
+      const statsText = Object.entries(result.stats || {})
+        .map(([key, val]) => {
+          const category = categoryStats.value.find(c => c.key === key)
+          return `${category?.name || key}: ${val.imported}`
+        })
+        .join(', ')
+      
       importMessage.value = { 
         type: 'success', 
-        text: `Imported ${result.stats?.favoritesImported || 0} favorites, ${result.stats?.playlistsImported || 0} playlists, ${result.stats?.videosImported || 0} videos` 
+        text: statsText || 'Import completed'
       }
-      await loadDataStats()
+      await loadCategoryStats()
       await favoritesStore.loadFavorites()
       await playlistsStore.loadPlaylists()
+      playerStore.loadHistory()
     } else if (result.error !== 'Import cancelled') {
       importMessage.value = { type: 'error', text: result.error || 'Import failed' }
     }
@@ -488,47 +552,86 @@ async function showMemoryStats() {
             <div class="setting-info">
               <span class="setting-label">Data Summary</span>
               <span class="setting-desc">
-                {{ dataStats.favoritesCount }} favorites · {{ dataStats.playlistsCount }} playlists · {{ dataStats.totalVideosInPlaylists }} videos in playlists
+                {{ dataStats.favoritesCount }} favorites · {{ dataStats.playlistsCount }} playlists
               </span>
             </div>
           </div>
 
-          <div class="setting-item">
+          <div class="setting-item category-selection">
             <div class="setting-info">
-              <span class="setting-label">Export Data</span>
-              <span class="setting-desc">Export favorites and playlists to local file</span>
+              <div class="category-header">
+                <span class="setting-label">Export Data</span>
+                <div class="category-actions">
+                  <button class="small-btn" @click="selectAllExportCategories">Select All</button>
+                  <button class="small-btn" @click="deselectAllExportCategories">Deselect All</button>
+                </div>
+              </div>
+              <span class="setting-desc">Select categories to export</span>
               <div v-if="exportMessage" class="message-toast" :class="exportMessage.type">
                 <Check v-if="exportMessage.type === 'success'" :size="14" />
                 <AlertCircle v-else :size="14" />
                 {{ exportMessage.text }}
               </div>
             </div>
+            <div class="category-list">
+              <label 
+                v-for="category in categoryStats" 
+                :key="category.key" 
+                class="category-checkbox"
+              >
+                <input 
+                  type="checkbox" 
+                  :checked="selectedExportCategories.includes(category.key)"
+                  @change="toggleExportCategory(category.key)"
+                />
+                <span class="checkbox-label">
+                  {{ category.name }}
+                  <span class="category-count">({{ category.count }})</span>
+                </span>
+              </label>
+            </div>
             <button class="action-btn" :disabled="isExporting" @click="handleExport">
               <Download :size="18" :class="{ 'animate-spin': isExporting }" />
-              {{ isExporting ? 'Exporting...' : 'Export' }}
+              {{ isExporting ? 'Exporting...' : 'Export Selected' }}
             </button>
           </div>
 
-          <div class="setting-item">
+          <div class="setting-item category-selection">
             <div class="setting-info">
               <span class="setting-label">Import Data</span>
-              <span class="setting-desc">Import favorites and playlists from local file</span>
+              <span class="setting-desc">Select categories to import after choosing file</span>
               <div v-if="importMessage" class="message-toast" :class="importMessage.type">
                 <Check v-if="importMessage.type === 'success'" :size="14" />
                 <AlertCircle v-else :size="14" />
                 {{ importMessage.text }}
               </div>
             </div>
-            <div class="import-controls">
+            <div class="import-strategy">
               <select v-model="importStrategy" class="strategy-select">
                 <option value="merge">Merge (keep existing)</option>
                 <option value="overwrite">Overwrite (replace all)</option>
               </select>
-              <button class="action-btn" :disabled="isImporting" @click="handleImport">
-                <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
-                {{ isImporting ? 'Importing...' : 'Import' }}
-              </button>
             </div>
+            <div class="category-list">
+              <label 
+                v-for="category in categoryStats" 
+                :key="category.key" 
+                class="category-checkbox"
+              >
+                <input 
+                  type="checkbox" 
+                  :checked="selectedImportCategories.includes(category.key)"
+                  @change="toggleImportCategory(category.key)"
+                />
+                <span class="checkbox-label">
+                  {{ category.name }}
+                </span>
+              </label>
+            </div>
+            <button class="action-btn" :disabled="isImporting" @click="handleImport">
+              <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
+              {{ isImporting ? 'Importing...' : 'Import Selected' }}
+            </button>
           </div>
         </div>
       </section>
@@ -1191,6 +1294,84 @@ async function showMemoryStats() {
   background: var(--bg-card);
   border-radius: 8px;
   margin: 4px 16px;
+}
+
+.category-selection {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn {
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.small-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.category-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-checkbox:hover {
+  border-color: var(--accent);
+}
+
+.category-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.category-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.import-strategy {
+  width: 100%;
 }
 
 .import-controls {

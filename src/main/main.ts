@@ -31,9 +31,10 @@ import {
 import {
   exportDataToFile,
   importDataFromFile,
-  getDataStats
+  getDataStats,
+  getCategoryStats
 } from './dataImportExport'
-import type { ImportOptions } from './dataImportExport'
+import type { ExportOptions, ImportOptionsV2 } from './dataImportExport'
 import { logger } from './utils/logger'
 
 let mainWindow: BrowserWindow | null = null
@@ -997,16 +998,20 @@ function setupIPC() {
     return moveUserQueueItem(fromIndex, toIndex)
   })
 
-  ipcMain.handle('store:exportDataToFile', async () => {
-    return exportDataToFile()
+  ipcMain.handle('store:exportDataToFile', async (_event, options?: ExportOptions) => {
+    return exportDataToFile(options)
   })
 
-  ipcMain.handle('store:importDataFromFile', async (_event, options: ImportOptions) => {
+  ipcMain.handle('store:importDataFromFile', async (_event, options: ImportOptionsV2) => {
     return importDataFromFile(options)
   })
 
   ipcMain.handle('store:getDataStats', async () => {
     return getDataStats()
+  })
+
+  ipcMain.handle('store:getCategoryStats', async () => {
+    return getCategoryStats()
   })
 
   ipcMain.handle('memory:getStats', async () => {
