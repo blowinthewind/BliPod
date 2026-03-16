@@ -23,7 +23,7 @@ const PLAYBACK_CONFIG = {
   // 最大保存的位置记录数
   MAX_POSITION_RECORDS: 100,
   // 定期保存间隔（毫秒）
-  AUTO_SAVE_INTERVAL: 30000,
+  AUTO_SAVE_INTERVAL: 30000
 } as const
 
 function loadHistoryFromStorage(): HistoryVideo[] {
@@ -103,16 +103,27 @@ export const usePlayerStore = defineStore('player', () => {
   const hasPrevious = computed(() => {
     // 如果在历史导航中，检查是否还有更早的历史
     if (historyNavigationIndex.value >= 0) {
-      return historyNavigationIndex.value < playHistory.value.length - 1
+      return findPreviousHistoryIndex(historyNavigationIndex.value + 1) !== -1
     }
     // 否则检查是否有播放历史
-    return playHistory.value.length > 0
+    return findPreviousHistoryIndex(0) !== -1
   })
 
   let pendingResumeTime: number | null = null
   let autoSaveInterval: number | null = null
 
   // ========== 辅助函数 ==========
+
+  function findPreviousHistoryIndex(startIndex: number): number {
+    let index = startIndex
+    while (index < playHistory.value.length) {
+      if (!currentVideo.value || playHistory.value[index]?.bvid !== currentVideo.value.bvid) {
+        return index
+      }
+      index++
+    }
+    return -1
+  }
 
   // 将普通视频转换为带标记的队列视频
   function markVideoSource(
@@ -198,7 +209,10 @@ export const usePlayerStore = defineStore('player', () => {
       if (progressPercent >= PLAYBACK_CONFIG.MAX_RESUME_PROGRESS) return
 
       // 限制恢复时间不超过99%，且至少10秒才恢复
-      const resumeTime = Math.min(position.currentTime, position.duration * PLAYBACK_CONFIG.RESUME_TIME_CAP)
+      const resumeTime = Math.min(
+        position.currentTime,
+        position.duration * PLAYBACK_CONFIG.RESUME_TIME_CAP
+      )
       if (resumeTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
         pendingResumeTime = resumeTime
       }
@@ -275,7 +289,10 @@ export const usePlayerStore = defineStore('player', () => {
         isPlaying.value = true
       }
 
-      logger.info(`Restored last played video (${shouldAutoPlay ? 'auto-play' : 'paused'}):`, lastPlayed.title)
+      logger.info(
+        `Restored last played video (${shouldAutoPlay ? 'auto-play' : 'paused'}):`,
+        lastPlayed.title
+      )
       return true
     } catch (e) {
       logger.warn('Failed to restore last played video:', e)
@@ -425,7 +442,7 @@ export const usePlayerStore = defineStore('player', () => {
       // 随机播放：从实际队列中随机选择一个（排除当前）
       const availableIndices = actualQueue.value
         .map((_, i) => i)
-        .filter(i => i !== currentIndex.value)
+        .filter((i) => i !== currentIndex.value)
       const randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)]
       currentIndex.value = randomIndex
       nextVideo = actualQueue.value[randomIndex]
@@ -448,6 +465,12 @@ export const usePlayerStore = defineStore('player', () => {
     } else {
       // 继续向前浏览历史
       historyNavigationIndex.value++
+    }
+
+    historyNavigationIndex.value = findPreviousHistoryIndex(historyNavigationIndex.value)
+    if (historyNavigationIndex.value === -1) {
+      logger.info('No earlier history to play')
+      return
     }
 
     const historyVideo = playHistory.value[historyNavigationIndex.value]
@@ -499,7 +522,7 @@ export const usePlayerStore = defineStore('player', () => {
     const queueVideo: QueueVideo = {
       ...video,
       source: 'history',
-      isFromUserQueue: userQueue.value.some(v => v.bvid === video.bvid)
+      isFromUserQueue: userQueue.value.some((v) => v.bvid === video.bvid)
     }
 
     currentVideo.value = queueVideo
@@ -528,7 +551,16 @@ export const usePlayerStore = defineStore('player', () => {
 
   function addToHistory(video: ExtractedVideo) {
     // 移除重复项
-    const existingIndex = playHistory.value.findIndex(v => v.bvid === video.bvid)
+    const existingIndex = playHistory.value.findIndex((v) => v.bvid === video.bvid)
+    if (existingIndex === 0) {
+      playHistory.value[0] = {
+        ...playHistory.value[0],
+        ...video,
+        playedAt: Date.now()
+      }
+      saveHistoryToStorage(playHistory.value)
+      return
+    }
     if (existingIndex > -1) {
       playHistory.value.splice(existingIndex, 1)
     }
@@ -549,7 +581,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function removeFromHistory(bvid: string) {
-    const index = playHistory.value.findIndex(v => v.bvid === bvid)
+    const index = playHistory.value.findIndex((v) => v.bvid === bvid)
     if (index > -1) {
       playHistory.value.splice(index, 1)
       saveHistoryToStorage(playHistory.value)
@@ -568,7 +600,7 @@ export const usePlayerStore = defineStore('player', () => {
   // ========== 用户维护的播放队列 ==========
 
   async function addToUserQueue(video: ExtractedVideo) {
-    if (userQueue.value.find(v => v.bvid === video.bvid)) {
+    if (userQueue.value.find((v) => v.bvid === video.bvid)) {
       return false
     }
     if (userQueue.value.length >= MAX_QUEUE_SIZE) {
@@ -586,7 +618,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 同步更新实际播放队列（如果当前不在历史导航模式）
     if (historyNavigationIndex.value < 0 && currentVideo.value) {
-      const exists = actualQueue.value.some(v => v.bvid === video.bvid)
+      const exists = actualQueue.value.some((v) => v.bvid === video.bvid)
       if (!exists) {
         actualQueue.value.push(markVideoSource(video, 'user-queue', true))
       }
@@ -596,7 +628,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function removeFromUserQueue(bvid: string) {
-    const index = userQueue.value.findIndex(v => v.bvid === bvid)
+    const index = userQueue.value.findIndex((v) => v.bvid === bvid)
     if (index > -1) {
       userQueue.value.splice(index, 1)
 
@@ -608,7 +640,7 @@ export const usePlayerStore = defineStore('player', () => {
       }
 
       // 同步更新实际播放队列
-      const actualIndex = actualQueue.value.findIndex(v => v.bvid === bvid && v.isFromUserQueue)
+      const actualIndex = actualQueue.value.findIndex((v) => v.bvid === bvid && v.isFromUserQueue)
       if (actualIndex > -1) {
         actualQueue.value.splice(actualIndex, 1)
         // 如果删除的是当前播放之前的视频，调整索引
@@ -630,11 +662,11 @@ export const usePlayerStore = defineStore('player', () => {
     }
 
     // 同步更新实际播放队列，移除所有来自用户队列的视频
-    actualQueue.value = actualQueue.value.filter(v => !v.isFromUserQueue)
+    actualQueue.value = actualQueue.value.filter((v) => !v.isFromUserQueue)
 
     // 重新计算当前索引
     if (currentVideo.value) {
-      const newIndex = actualQueue.value.findIndex(v => v.bvid === currentVideo.value?.bvid)
+      const newIndex = actualQueue.value.findIndex((v) => v.bvid === currentVideo.value?.bvid)
       currentIndex.value = newIndex
     } else {
       currentIndex.value = -1
@@ -659,11 +691,12 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 同步更新实际播放队列中的顺序
     const actualFromIndex = actualQueue.value.findIndex(
-      v => v.bvid === item.bvid && v.isFromUserQueue
+      (v) => v.bvid === item.bvid && v.isFromUserQueue
     )
     if (actualFromIndex > -1) {
       const actualToIndex = actualQueue.value.findIndex(
-        (v, i) => v.isFromUserQueue &&
+        (v, i) =>
+          v.isFromUserQueue &&
           i > (fromIndex < toIndex ? actualFromIndex : -1) &&
           userQueue.value[toIndex - (fromIndex < toIndex ? 1 : 0)]?.bvid === v.bvid
       )
@@ -731,7 +764,7 @@ export const usePlayerStore = defineStore('player', () => {
   async function handleVideoComplete() {
     const video = currentVideo.value
     if (video) {
-      const index = userQueue.value.findIndex(v => v.bvid === video.bvid)
+      const index = userQueue.value.findIndex((v) => v.bvid === video.bvid)
       if (index > -1) {
         userQueue.value.splice(index, 1)
         try {
@@ -785,9 +818,11 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = !progress.paused
 
       // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
-      if (progress.duration > 0 &&
-          progress.currentTime >= progress.duration * 0.99 &&
-          progress.paused) {
+      if (
+        progress.duration > 0 &&
+        progress.currentTime >= progress.duration * 0.99 &&
+        progress.paused
+      ) {
         // 如果开启了循环播放，则重新播放当前视频
         if (isRepeat.value) {
           seek(0)
@@ -870,6 +905,6 @@ export const usePlayerStore = defineStore('player', () => {
     restoreLastPlayedVideo,
 
     // 初始化
-    initVolume,
+    initVolume
   }
 })
