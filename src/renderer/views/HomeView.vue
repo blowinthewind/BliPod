@@ -7,6 +7,15 @@ import { usePlayerStore } from '../stores/player'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlaylistsStore } from '../stores/playlists'
 import { useNavigationStore, type NavItem } from '../stores/navigation'
+import LazyImage from '../components/ui/LazyImage.vue'
+import type { HistoryVideo } from '../stores/player'
+
+const CONTINUE_CONFIG = {
+  MIN_PROGRESS: 0.02,
+  MAX_PROGRESS: 0.95,
+  MAX_VIDEOS: 4,
+  FETCH_EXTRA: 2
+} as const
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -15,11 +24,13 @@ const favoritesStore = useFavoritesStore()
 const playlistsStore = usePlaylistsStore()
 const navStore = useNavigationStore()
 
-const recentPlays = ref([
-  { id: 1, title: 'Sample Video 1', author: 'UP Owner 1', duration: '10:30' },
-  { id: 2, title: 'Sample Video 2', author: 'UP Owner 2', duration: '15:45' },
-  { id: 3, title: 'Sample Video 3', author: 'UP Owner 3', duration: '8:20' }
-])
+interface ContinueVideo extends HistoryVideo {
+  progressPercent: number
+  currentTimeFormatted: string
+}
+
+const continueVideos = ref<ContinueVideo[]>([])
+const isLoadingContinue = ref(false)
 
 const recommendations = ref([
   { id: 1, title: 'Recommended Video 1', author: 'UP Owner A', views: '100K' },
@@ -33,10 +44,51 @@ const favorites = computed(() => favoritesStore.favorites.slice(0, 4))
 const history = computed(() => playerStore.playHistory)
 const playlistsCount = computed(() => playlistsStore.playlistsCount)
 
-onMounted(() => {
+onMounted(async () => {
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
+  await loadContinueVideos()
 })
+
+async function loadContinueVideos() {
+  const fetchCount = CONTINUE_CONFIG.MAX_VIDEOS + CONTINUE_CONFIG.FETCH_EXTRA
+  const historyVideos = playerStore.playHistory.slice(0, fetchCount)
+  if (historyVideos.length === 0) return
+
+  isLoadingContinue.value = true
+  const videos: ContinueVideo[] = []
+  const currentVideo = playerStore.currentVideo
+
+  for (const video of historyVideos) {
+    if (videos.length >= CONTINUE_CONFIG.MAX_VIDEOS) break
+    if (currentVideo && video.bvid === currentVideo.bvid) continue
+
+    try {
+      const position = await window.electronAPI.store.getPlayPosition(video.bvid)
+      if (position && position.currentTime > 0 && position.duration > 0) {
+        const progressPercent = position.currentTime / position.duration
+        if (progressPercent < CONTINUE_CONFIG.MAX_PROGRESS && progressPercent > CONTINUE_CONFIG.MIN_PROGRESS) {
+          videos.push({
+            ...video,
+            progressPercent,
+            currentTimeFormatted: formatTime(position.currentTime)
+          })
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to get play position:', e)
+    }
+  }
+
+  continueVideos.value = videos
+  isLoadingContinue.value = false
+}
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -65,6 +117,10 @@ function goToHistory() {
 function goToPlaylists() {
   navStore.setActiveItem('playlists')
   router.push('/playlists')
+}
+
+function playContinueVideo(video: HistoryVideo) {
+  playerStore.playVideo(video, undefined, 'history')
 }
 </script>
 
@@ -113,38 +169,49 @@ function goToPlaylists() {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section" v-if="continueVideos.length > 0">
       <div class="section-header">
         <h2 class="section-title">
-          <Clock :size="20" />
-          Recently Played
+          <Play :size="20" />
+          继续收听
         </h2>
       </div>
-      <div class="video-grid" v-if="recentPlays.length > 0">
+      <div class="continue-grid">
         <div
-          v-for="video in recentPlays"
-          :key="video.id"
-          class="video-card"
+          v-for="video in continueVideos"
+          :key="video.bvid"
+          class="continue-card"
+          @click="playContinueVideo(video)"
         >
-          <div class="video-cover">
-            <div class="cover-placeholder">
-              <Play :size="32" />
+          <div class="continue-cover">
+            <LazyImage
+              v-if="video.cover"
+              :src="video.cover"
+              :alt="video.title"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
+            />
+            <div v-else class="cover-placeholder">
+              <Play :size="24" />
             </div>
-            <div class="video-cover-overlay">
-              <button class="play-btn-overlay">
-                <Play :size="24" />
+            <div class="continue-overlay">
+              <button class="continue-play-btn">
+                <Play :size="20" />
               </button>
             </div>
-            <span class="video-duration">{{ video.duration }}</span>
+            <div class="continue-progress">
+              <div class="continue-progress-bar" :style="{ width: `${video.progressPercent * 100}%` }"></div>
+            </div>
           </div>
-          <div class="video-info">
-            <h3 class="video-title">{{ video.title }}</h3>
-            <span class="video-author">{{ video.author }}</span>
+          <div class="continue-info">
+            <h3 class="continue-title">{{ video.title }}</h3>
+            <div class="continue-meta">
+              <span class="continue-author">{{ video.author }}</span>
+              <span class="continue-time">{{ video.currentTimeFormatted }} / {{ video.duration }}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="empty-state" v-else>
-        <p>No recent plays</p>
       </div>
     </section>
 
@@ -325,6 +392,136 @@ function goToPlaylists() {
   color: var(--text-primary);
 }
 
+.continue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.continue-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.continue-card:hover {
+  background: var(--bg-card);
+  transform: translateY(-2px);
+}
+
+.continue-cover {
+  position: relative;
+  width: 120px;
+  height: 68px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.continue-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.continue-card:hover .continue-cover img {
+  transform: scale(1.05);
+}
+
+.cover-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.continue-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.continue-card:hover .continue-overlay {
+  opacity: 1;
+}
+
+.continue-play-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.continue-play-btn:hover {
+  transform: scale(1.1);
+}
+
+.continue-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.continue-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.continue-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.continue-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.continue-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.continue-time {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .video-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -358,7 +555,7 @@ function goToPlaylists() {
 }
 
 .video-cover img,
-.cover-placeholder {
+.video-cover .cover-placeholder {
   position: absolute;
   top: 0;
   left: 0;
@@ -368,7 +565,7 @@ function goToPlaylists() {
   transition: transform 0.4s ease;
 }
 
-.cover-placeholder {
+.video-cover .cover-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -417,17 +614,6 @@ function goToPlaylists() {
   transform: scale(1.1);
 }
 
-.video-duration {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 4px;
-  font-size: 12px;
-  color: white;
-}
-
 .video-info {
   display: flex;
   flex-direction: column;
@@ -454,17 +640,12 @@ function goToPlaylists() {
   color: var(--text-secondary);
 }
 
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 120px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
 @media (max-width: 768px) {
   .shortcuts-section {
+    grid-template-columns: 1fr;
+  }
+
+  .continue-grid {
     grid-template-columns: 1fr;
   }
 
