@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Play, Clock, Search, Heart, History, ListMusic } from 'lucide-vue-next'
+import { Play, Search, Heart, History, ListMusic } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { usePlayerStore } from '../stores/player'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlaylistsStore } from '../stores/playlists'
-import { useNavigationStore, type NavItem } from '../stores/navigation'
+import { useNavigationStore } from '../stores/navigation'
 import LazyImage from '../components/ui/LazyImage.vue'
 import type { HistoryVideo } from '../stores/player'
+import { formatDuration } from '../utils/format'
 
 const CONTINUE_CONFIG = {
   MIN_PROGRESS: 0.02,
@@ -66,12 +67,12 @@ async function loadContinueVideos() {
       if (position && position.currentTime > 0 && position.duration > 0) {
         const progressPercent = position.currentTime / position.duration
         if (progressPercent < CONTINUE_CONFIG.MAX_PROGRESS && progressPercent > CONTINUE_CONFIG.MIN_PROGRESS) {
-          const durationFormatted = video.duration || formatTime(position.duration)
+          const durationFormatted = video.duration || formatDuration(position.duration)
           videos.push({
             ...video,
             duration: durationFormatted,
             progressPercent,
-            currentTimeFormatted: formatTime(position.currentTime)
+            currentTimeFormatted: formatDuration(position.currentTime)
           })
         }
       }
@@ -82,12 +83,6 @@ async function loadContinueVideos() {
 
   continueVideos.value = videos
   isLoadingContinue.value = false
-}
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 function getGreeting(): string {

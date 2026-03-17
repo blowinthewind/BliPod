@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAppSettingsStore } from './appSettings'
 import { logger } from '../utils/logger'
+import { formatDuration } from '../utils/format'
 
 export interface HistoryVideo extends ExtractedVideo {
   playedAt: number
@@ -639,9 +640,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function updateHistoryDuration(bvid: string, durationSeconds: number) {
-    const mins = Math.floor(durationSeconds / 60)
-    const secs = Math.floor(durationSeconds % 60)
-    const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`
+    const formattedDuration = formatDuration(durationSeconds)
 
     const historyIndex = playHistory.value.findIndex((v) => v.bvid === bvid)
     if (historyIndex !== -1 && playHistory.value[historyIndex].duration !== formattedDuration) {
