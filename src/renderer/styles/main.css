@@ -247,6 +247,28 @@ a:focus-visible {
   }
 }
 
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 0.3s ease;
+}
+
 .scale-in {
   animation: scale-in var(--duration-normal) var(--ease-out-expo);
 }
