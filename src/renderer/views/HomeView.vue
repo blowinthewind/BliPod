@@ -122,6 +122,10 @@ function goToPlaylists() {
 function playContinueVideo(video: HistoryVideo) {
   playerStore.playVideo(video, undefined, 'history')
 }
+
+function playFavoriteVideo(video: typeof favorites.value[0]) {
+  playerStore.playVideo(video, favoritesStore.favorites, 'favorite')
+}
 </script>
 
 <template>
@@ -210,6 +214,48 @@ function playContinueVideo(video: HistoryVideo) {
               <span class="continue-author">{{ video.author }}</span>
               <span class="continue-time">{{ video.currentTimeFormatted }} / {{ video.duration }}</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" v-if="favorites.length > 0">
+      <div class="section-header">
+        <h2 class="section-title">
+          <Heart :size="20" />
+          你的收藏
+        </h2>
+        <button class="see-more-btn" @click="goToFavorites">查看全部</button>
+      </div>
+      <div class="video-grid">
+        <div
+          v-for="video in favorites"
+          :key="video.bvid"
+          class="video-card"
+          @click="playFavoriteVideo(video)"
+        >
+          <div class="video-cover">
+            <LazyImage
+              v-if="video.cover"
+              :src="video.cover"
+              :alt="video.title"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
+            />
+            <div v-else class="cover-placeholder">
+              <Play :size="32" />
+            </div>
+            <div class="video-cover-overlay">
+              <button class="play-btn-overlay">
+                <Play :size="24" />
+              </button>
+            </div>
+            <span v-if="video.duration" class="video-duration">{{ video.duration }}</span>
+          </div>
+          <div class="video-info">
+            <h3 class="video-title">{{ video.title }}</h3>
+            <span class="video-author">{{ video.author }}</span>
           </div>
         </div>
       </div>
@@ -381,6 +427,23 @@ function playContinueVideo(video: HistoryVideo) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.see-more-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.see-more-btn:hover {
+  background: var(--bg-card);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .section-title {
