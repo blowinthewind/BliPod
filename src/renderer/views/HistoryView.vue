@@ -144,7 +144,7 @@
   .page-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
   }
 
   .header-icon {
@@ -166,11 +166,13 @@
     font-size: var(--text-3xl);
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
   }
 
   .page-desc {
     font-size: var(--text-sm);
     color: var(--text-secondary);
+    line-height: 1.45;
   }
 
   .clear-btn {
@@ -196,22 +198,24 @@
   .history-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .history-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px;
+    gap: 14px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .history-item:hover {
     background: var(--bg-card);
+    border-color: var(--border);
   }
 
   .item-index {
@@ -300,7 +304,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     overflow: hidden;
   }
 
@@ -308,6 +312,7 @@
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
+    line-height: 1.35;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -319,6 +324,7 @@
     gap: 12px;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .meta-date {

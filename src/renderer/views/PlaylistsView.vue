@@ -240,7 +240,7 @@
   .page-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
   }
 
   .header-icon {
@@ -262,11 +262,13 @@
     font-size: var(--text-3xl);
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
   }
 
   .page-desc {
     font-size: var(--text-sm);
     color: var(--text-secondary);
+    line-height: 1.45;
   }
 
   .create-btn {
@@ -299,16 +301,17 @@
   .playlists-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 24px;
+    gap: 20px;
   }
 
   .playlist-card {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 12px 12px 14px;
     border-radius: 8px;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -317,6 +320,7 @@
   .playlist-card:hover {
     background: var(--bg-card);
     transform: translateY(-2px);
+    border-color: var(--border);
   }
 
   .playlist-cover {
@@ -364,18 +368,20 @@
   .playlist-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
   }
 
   .playlist-name {
     font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text-primary);
+    line-height: 1.35;
   }
 
   .playlist-meta {
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .card-actions {
