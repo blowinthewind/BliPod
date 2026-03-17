@@ -68,6 +68,11 @@ async function removeFavorite(bvid: string) {
             placeholder-icon="play"
           />
           <div v-else class="cover-placeholder">🎵</div>
+          <div class="cover-overlay">
+            <button class="play-btn-overlay" @click.stop="playVideo(item)">
+              <Play :size="18" />
+            </button>
+          </div>
           <span class="item-duration">{{ item.duration }}</span>
         </div>
         <div class="item-info">
@@ -169,7 +174,7 @@ async function removeFavorite(bvid: string) {
   position: relative;
   width: 100px;
   height: 60px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
   flex-shrink: 0;
@@ -179,6 +184,44 @@ async function removeFavorite(bvid: string) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.favorite-item:hover .item-cover img {
+  transform: scale(1.05);
+}
+
+.cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.favorite-item:hover .cover-overlay {
+  opacity: 1;
+}
+
+.play-btn-overlay {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.play-btn-overlay:hover {
+  transform: scale(1.1);
 }
 
 .cover-placeholder {

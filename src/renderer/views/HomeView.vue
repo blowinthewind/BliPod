@@ -35,6 +35,11 @@ const recommendations = ref([
             <div class="cover-placeholder">
               <Play :size="32" />
             </div>
+            <div class="video-cover-overlay">
+              <button class="play-btn-overlay">
+                <Play :size="24" />
+              </button>
+            </div>
             <span class="video-duration">{{ video.duration }}</span>
           </div>
           <div class="video-info">
@@ -64,6 +69,11 @@ const recommendations = ref([
           <div class="video-cover">
             <div class="cover-placeholder">
               <Play :size="32" />
+            </div>
+            <div class="video-cover-overlay">
+              <button class="play-btn-overlay">
+                <Play :size="24" />
+              </button>
             </div>
           </div>
           <div class="video-info">
@@ -116,32 +126,39 @@ const recommendations = ref([
   flex-direction: column;
   gap: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: var(--bg-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .video-card:hover {
   background: var(--bg-card);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 .video-cover {
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
 }
 
+.video-cover img,
 .cover-placeholder {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.cover-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,6 +167,44 @@ const recommendations = ref([
 
 .video-card:hover .cover-placeholder {
   color: var(--accent);
+}
+
+.video-card:hover .video-cover img,
+.video-card:hover .cover-placeholder {
+  transform: scale(1.05);
+}
+
+.video-cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-card:hover .video-cover-overlay {
+  opacity: 1;
+}
+
+.play-btn-overlay {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.play-btn-overlay:hover {
+  transform: scale(1.1);
 }
 
 .video-duration {

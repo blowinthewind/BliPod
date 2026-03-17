@@ -244,6 +244,11 @@ function isInQueue(bvid: string): boolean {
             <div v-else class="cover-placeholder">
               <Play :size="24" />
             </div>
+            <div class="result-cover-overlay">
+              <button class="play-btn-overlay" @click.stop="handlePlay(result.bvid)">
+                <Play :size="18" />
+              </button>
+            </div>
             <span v-if="result.duration" class="duration-badge">{{ result.duration }}</span>
           </div>
           <div class="result-info">
@@ -623,7 +628,7 @@ function isInQueue(bvid: string): boolean {
   position: relative;
   width: 120px;
   height: 68px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
   flex-shrink: 0;
@@ -633,6 +638,44 @@ function isInQueue(bvid: string): boolean {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.result-item:hover .result-cover img {
+  transform: scale(1.05);
+}
+
+.result-cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.result-item:hover .result-cover-overlay {
+  opacity: 1;
+}
+
+.play-btn-overlay {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.play-btn-overlay:hover {
+  transform: scale(1.1);
 }
 
 .cover-placeholder {
