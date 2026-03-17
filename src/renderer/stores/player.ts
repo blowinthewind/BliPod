@@ -639,7 +639,7 @@ export const usePlayerStore = defineStore('player', () => {
     playHistory.value = loadHistoryFromStorage()
   }
 
-  function updateHistoryDuration(bvid: string, durationSeconds: number) {
+  function updateVideoDuration(bvid: string, durationSeconds: number) {
     const formattedDuration = formatDuration(durationSeconds)
 
     const historyIndex = playHistory.value.findIndex((v) => v.bvid === bvid)
@@ -873,7 +873,7 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = !progress.paused
 
       if (progress.duration > 0) {
-        updateHistoryDuration(currentVideo.value.bvid, progress.duration)
+        updateVideoDuration(currentVideo.value.bvid, progress.duration)
       }
 
       const now = Date.now()
