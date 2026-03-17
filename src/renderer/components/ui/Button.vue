@@ -30,10 +30,10 @@
 
   const sizeClasses = computed(() => {
     const sizes: Record<string, string> = {
-      default: 'h-10 px-4 py-2',
-      sm: 'h-9 rounded-md px-3',
-      lg: 'h-11 rounded-md px-8',
-      icon: 'h-10 w-10'
+      default: 'h-10 px-4 py-2 btn-size-default',
+      sm: 'h-9 rounded-md px-3 btn-size-sm',
+      lg: 'h-11 rounded-md px-8 btn-size-lg',
+      icon: 'h-10 w-10 btn-size-icon'
     }
     return sizes[props.size]
   })
@@ -45,7 +45,7 @@
   <button
     :class="
       cn(
-        'relative inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+        'btn-base relative inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
         variantClasses,
         sizeClasses
       )
@@ -67,6 +67,20 @@
 </template>
 
 <style scoped>
+  .btn-base {
+    font-size: var(--text-sm);
+  }
+
+  .btn-size-default,
+  .btn-size-lg,
+  .btn-size-icon {
+    font-size: var(--text-sm);
+  }
+
+  .btn-size-sm {
+    font-size: var(--text-xs);
+  }
+
   .btn-spinner {
     width: 16px;
     height: 16px;

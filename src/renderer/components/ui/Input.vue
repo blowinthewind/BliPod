@@ -41,7 +41,7 @@
       :aria-busy="props.loading ? 'true' : undefined"
       :class="
         cn(
-          'flex h-10 w-full rounded-lg border bg-bg-primary px-3 py-2 text-sm text-text-primary',
+          'input-base flex h-10 w-full rounded-lg border bg-bg-primary px-3 py-2 text-text-primary',
           'border-border',
           'placeholder:text-text-tertiary',
           'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2',
@@ -64,6 +64,10 @@
     position: relative;
     display: flex;
     align-items: center;
+  }
+
+  .input-base {
+    font-size: var(--text-sm);
   }
 
   .input-loading-icon {

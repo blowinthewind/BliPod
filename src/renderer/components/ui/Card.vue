@@ -35,10 +35,10 @@
       <Loader2 :size="24" class="animate-spin text-text-tertiary" />
     </div>
     <div v-else-if="props.empty" class="card-empty-state">
-      <span class="text-text-tertiary text-sm">{{ props.emptyText }}</span>
+      <span class="card-meta text-text-tertiary">{{ props.emptyText }}</span>
     </div>
     <div v-else-if="props.error" class="card-error-state">
-      <span class="text-error text-sm">Failed to load content</span>
+      <span class="card-meta text-error">Failed to load content</span>
     </div>
     <slot v-else />
   </div>
@@ -58,6 +58,10 @@
     align-items: center;
     justify-content: center;
     min-height: 80px;
+  }
+
+  .card-meta {
+    font-size: var(--text-sm);
   }
 
   .animate-spin {

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { getToasts, removeToast } from '../../composables/useToast'
-import Toast from './Toast.vue'
+  import { getToasts, removeToast } from '../../composables/useToast'
+  import Toast from './Toast.vue'
 
-const toasts = getToasts()
+  const toasts = getToasts()
 
-function handleClose(id: string) {
-  removeToast(id)
-}
+  function handleClose(id: string) {
+    removeToast(id)
+  }
 </script>
 
 <template>
@@ -26,38 +26,39 @@ function handleClose(id: string) {
 </template>
 
 <style scoped>
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    font-size: var(--text-sm);
+  }
 
-.toast-container > * {
-  pointer-events: auto;
-}
+  .toast-container > * {
+    pointer-events: auto;
+  }
 
-/* Transition animations */
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
-}
+  /* Transition animations */
+  .toast-enter-active,
+  .toast-leave-active {
+    transition: all 0.3s ease;
+  }
 
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
+  .toast-enter-from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
+  .toast-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 
-.toast-move {
-  transition: transform 0.3s ease;
-}
+  .toast-move {
+    transition: transform 0.3s ease;
+  }
 </style>
