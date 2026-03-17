@@ -274,7 +274,7 @@
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    background: linear-gradient(135deg, var(--accent), var(--accent-amber));
     color: white;
     flex-shrink: 0;
   }

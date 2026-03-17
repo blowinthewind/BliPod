@@ -1029,7 +1029,7 @@
     width: 56px;
     height: 56px;
     border-radius: var(--radius-lg, 12px);
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    background: linear-gradient(135deg, var(--accent), var(--accent-mint));
     color: white;
   }
 

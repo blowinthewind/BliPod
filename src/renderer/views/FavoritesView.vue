@@ -123,7 +123,7 @@
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent), #ff8a80);
+    background: linear-gradient(135deg, var(--accent), var(--accent-blush));
     color: white;
   }
 

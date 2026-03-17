@@ -15,6 +15,13 @@
   --accent: #e05a5f;
   --accent-hover: #ef6c71;
   --accent-muted: rgba(224, 90, 95, 0.16);
+  --accent-rose: #ff8a80;
+  --accent-blush: #ffb2a6;
+  --accent-lilac: #a5b4fc;
+  --accent-violet: #8b7cf6;
+  --accent-sky: #7dd3fc;
+  --accent-amber: #f59e0b;
+  --accent-mint: #34d399;
 
   --border: #232633;
   --border-subtle: #1b1e29;
@@ -98,6 +105,13 @@
   --accent: #cc3944;
   --accent-hover: #b8323d;
   --accent-muted: rgba(204, 57, 68, 0.12);
+  --accent-rose: #ff8a80;
+  --accent-blush: #ffb2a6;
+  --accent-lilac: #a5b4fc;
+  --accent-violet: #8b7cf6;
+  --accent-sky: #7dd3fc;
+  --accent-amber: #f59e0b;
+  --accent-mint: #34d399;
 
   --border: #d9d6cf;
   --border-subtle: #efede8;
@@ -132,6 +146,13 @@
     --accent: oklch(62% 0.18 25);
     --accent-hover: oklch(68% 0.18 25);
     --accent-muted: color-mix(in oklch, var(--accent) 18%, transparent);
+    --accent-rose: color-mix(in oklch, var(--accent) 70%, oklch(75% 0.11 25) 30%);
+    --accent-blush: color-mix(in oklch, var(--accent) 55%, oklch(86% 0.07 30) 45%);
+    --accent-lilac: color-mix(in oklch, var(--accent) 60%, oklch(78% 0.08 280) 40%);
+    --accent-violet: color-mix(in oklch, var(--accent) 55%, oklch(70% 0.16 290) 45%);
+    --accent-sky: color-mix(in oklch, var(--accent) 65%, oklch(80% 0.09 230) 35%);
+    --accent-amber: color-mix(in oklch, var(--accent) 60%, oklch(80% 0.12 80) 40%);
+    --accent-mint: color-mix(in oklch, var(--accent) 65%, oklch(78% 0.12 160) 35%);
 
     --border: oklch(25% 0.01 250);
     --border-subtle: oklch(20% 0.01 250);
@@ -160,6 +181,13 @@
     --accent: oklch(55% 0.18 25);
     --accent-hover: oklch(50% 0.18 25);
     --accent-muted: color-mix(in oklch, var(--accent) 14%, transparent);
+    --accent-rose: color-mix(in oklch, var(--accent) 70%, oklch(72% 0.11 25) 30%);
+    --accent-blush: color-mix(in oklch, var(--accent) 55%, oklch(88% 0.06 30) 45%);
+    --accent-lilac: color-mix(in oklch, var(--accent) 60%, oklch(74% 0.08 280) 40%);
+    --accent-violet: color-mix(in oklch, var(--accent) 55%, oklch(66% 0.16 290) 45%);
+    --accent-sky: color-mix(in oklch, var(--accent) 65%, oklch(76% 0.09 230) 35%);
+    --accent-amber: color-mix(in oklch, var(--accent) 60%, oklch(76% 0.12 80) 40%);
+    --accent-mint: color-mix(in oklch, var(--accent) 65%, oklch(74% 0.12 160) 35%);
 
     --border: oklch(88% 0.01 100);
     --border-subtle: oklch(94% 0.008 100);
