@@ -159,6 +159,7 @@ export interface StoreAPI {
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
   removeFavorite: (bvid: string) => Promise<boolean>
   isFavorite: (bvid: string) => Promise<boolean>
+  updateFavoriteDuration: (bvid: string, duration: string) => Promise<boolean>
   getPlaylists: () => Promise<Playlist[]>
   createPlaylist: (name: string, description?: string) => Promise<Playlist>
   updatePlaylist: (
@@ -168,6 +169,7 @@ export interface StoreAPI {
   deletePlaylist: (id: string) => Promise<boolean>
   addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
   removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
+  updatePlaylistVideoDuration: (bvid: string, duration: string) => Promise<boolean>
   getSettings: () => Promise<AppSettings>
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
@@ -313,6 +315,9 @@ const storeAPI: StoreAPI = {
   isFavorite: (bvid: string) => {
     return ipcRenderer.invoke('store:isFavorite', bvid)
   },
+  updateFavoriteDuration: (bvid: string, duration: string) => {
+    return ipcRenderer.invoke('store:updateFavoriteDuration', bvid, duration)
+  },
   getPlaylists: () => {
     return ipcRenderer.invoke('store:getPlaylists')
   },
@@ -333,6 +338,9 @@ const storeAPI: StoreAPI = {
   },
   removeVideoFromPlaylist: (playlistId: string, bvid: string) => {
     return ipcRenderer.invoke('store:removeVideoFromPlaylist', playlistId, bvid)
+  },
+  updatePlaylistVideoDuration: (bvid: string, duration: string) => {
+    return ipcRenderer.invoke('store:updatePlaylistVideoDuration', bvid, duration)
   },
   getSettings: () => {
     return ipcRenderer.invoke('store:getSettings')

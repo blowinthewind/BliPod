@@ -104,6 +104,16 @@ export function isFavorite(bvid: string): boolean {
   return favorites.some((f) => f.bvid === bvid)
 }
 
+export function updateFavoriteDuration(bvid: string, duration: string): boolean {
+  const favorites = store.get('favorites')
+  const index = favorites.findIndex((f) => f.bvid === bvid)
+  if (index === -1) return false
+
+  favorites[index].duration = duration
+  store.set('favorites', favorites)
+  return true
+}
+
 export function getPlaylists(): Playlist[] {
   return safeClone(store.get('playlists'))
 }
@@ -179,6 +189,25 @@ export function removeVideoFromPlaylist(playlistId: string, bvid: string): boole
   playlists[playlistIndex].updatedAt = Date.now()
   store.set('playlists', playlists)
   return true
+}
+
+export function updatePlaylistVideoDuration(bvid: string, duration: string): boolean {
+  const playlists = store.get('playlists')
+  let updated = false
+
+  for (const playlist of playlists) {
+    const videoIndex = playlist.videos.findIndex((v) => v.bvid === bvid)
+    if (videoIndex !== -1) {
+      playlist.videos[videoIndex].duration = duration
+      playlist.updatedAt = Date.now()
+      updated = true
+    }
+  }
+
+  if (updated) {
+    store.set('playlists', playlists)
+  }
+  return updated
 }
 
 export function getSettings(): AppSettings {

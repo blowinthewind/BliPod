@@ -165,6 +165,7 @@ interface StoreAPI {
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
   removeFavorite: (bvid: string) => Promise<boolean>
   isFavorite: (bvid: string) => Promise<boolean>
+  updateFavoriteDuration: (bvid: string, duration: string) => Promise<boolean>
   getPlaylists: () => Promise<Playlist[]>
   createPlaylist: (name: string, description?: string) => Promise<Playlist>
   updatePlaylist: (
@@ -174,6 +175,7 @@ interface StoreAPI {
   deletePlaylist: (id: string) => Promise<boolean>
   addVideoToPlaylist: (playlistId: string, video: ExtractedVideo) => Promise<boolean>
   removeVideoFromPlaylist: (playlistId: string, bvid: string) => Promise<boolean>
+  updatePlaylistVideoDuration: (bvid: string, duration: string) => Promise<boolean>
   getSettings: () => Promise<AppSettings>
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
   getPlayPosition: (bvid: string) => Promise<PlayPosition | null>

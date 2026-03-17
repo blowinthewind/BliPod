@@ -37,7 +37,9 @@ import {
   exportData,
   importData,
   getLastVolume,
-  setLastVolume
+  setLastVolume,
+  updateFavoriteDuration,
+  updatePlaylistVideoDuration
 } from './store'
 import {
   exportDataToFile,
@@ -966,6 +968,10 @@ function setupIPC() {
     return isFavorite(bvid)
   })
 
+  ipcMain.handle('store:updateFavoriteDuration', async (_event, bvid: string, duration: string) => {
+    return updateFavoriteDuration(bvid, duration)
+  })
+
   ipcMain.handle('store:getPlaylists', async () => {
     return getPlaylists()
   })
@@ -998,6 +1004,10 @@ function setupIPC() {
       return removeVideoFromPlaylist(playlistId, bvid)
     }
   )
+
+  ipcMain.handle('store:updatePlaylistVideoDuration', async (_event, bvid: string, duration: string) => {
+    return updatePlaylistVideoDuration(bvid, duration)
+  })
 
   ipcMain.handle('store:getSettings', async () => {
     return getSettings()

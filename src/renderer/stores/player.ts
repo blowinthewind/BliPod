@@ -648,6 +648,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     playHistory.value[index].duration = formattedDuration
     saveHistoryToStorage(playHistory.value)
+
+    void window.electronAPI.store.updateFavoriteDuration(bvid, formattedDuration)
+    void window.electronAPI.store.updatePlaylistVideoDuration(bvid, formattedDuration)
   }
 
   // ========== 用户维护的播放队列 ==========
