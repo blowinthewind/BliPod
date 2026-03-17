@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Play, Clock, TrendingUp, Search, Heart, History, ListMusic } from 'lucide-vue-next'
+import { Play, Clock, Search, Heart, History, ListMusic } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { usePlayerStore } from '../stores/player'
 import { useFavoritesStore } from '../stores/favorites'
@@ -31,13 +31,6 @@ interface ContinueVideo extends HistoryVideo {
 
 const continueVideos = ref<ContinueVideo[]>([])
 const isLoadingContinue = ref(false)
-
-const recommendations = ref([
-  { id: 1, title: 'Recommended Video 1', author: 'UP Owner A', views: '100K' },
-  { id: 2, title: 'Recommended Video 2', author: 'UP Owner B', views: '50K' },
-  { id: 3, title: 'Recommended Video 3', author: 'UP Owner C', views: '200K' },
-  { id: 4, title: 'Recommended Video 4', author: 'UP Owner D', views: '80K' }
-])
 
 const userName = computed(() => authStore.userName)
 const favorites = computed(() => favoritesStore.favorites.slice(0, 4))
@@ -153,15 +146,6 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
           <span class="shortcut-count">{{ favorites.length }} 个视频</span>
         </div>
       </div>
-      <div class="shortcut-card" @click="goToHistory">
-        <div class="shortcut-icon history">
-          <History :size="24" />
-        </div>
-        <div class="shortcut-info">
-          <span class="shortcut-title">播放历史</span>
-          <span class="shortcut-count">{{ history.length }} 个视频</span>
-        </div>
-      </div>
       <div class="shortcut-card" @click="goToPlaylists">
         <div class="shortcut-icon playlist">
           <ListMusic :size="24" />
@@ -169,6 +153,15 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
         <div class="shortcut-info">
           <span class="shortcut-title">播放列表</span>
           <span class="shortcut-count">{{ playlistsCount }} 个列表</span>
+        </div>
+      </div>
+      <div class="shortcut-card" @click="goToHistory">
+        <div class="shortcut-icon history">
+          <History :size="24" />
+        </div>
+        <div class="shortcut-info">
+          <span class="shortcut-title">播放历史</span>
+          <span class="shortcut-count">{{ history.length }} 个视频</span>
         </div>
       </div>
     </section>
@@ -256,38 +249,6 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
           <div class="video-info">
             <h3 class="video-title">{{ video.title }}</h3>
             <span class="video-author">{{ video.author }}</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-header">
-        <h2 class="section-title">
-          <TrendingUp :size="20" />
-          Trending
-        </h2>
-      </div>
-      <div class="video-grid">
-        <div
-          v-for="video in recommendations"
-          :key="video.id"
-          class="video-card"
-        >
-          <div class="video-cover">
-            <div class="cover-placeholder">
-              <Play :size="32" />
-            </div>
-            <div class="video-cover-overlay">
-              <button class="play-btn-overlay">
-                <Play :size="24" />
-              </button>
-            </div>
-          </div>
-          <div class="video-info">
-            <h3 class="video-title">{{ video.title }}</h3>
-            <span class="video-author">{{ video.author }}</span>
-            <span class="video-views">{{ video.views }} views</span>
           </div>
         </div>
       </div>
@@ -695,11 +656,6 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
 
 .video-author {
   font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.video-views {
-  font-size: 11px;
   color: var(--text-secondary);
 }
 
