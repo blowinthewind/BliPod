@@ -201,7 +201,6 @@ export function updatePlaylistVideoDuration(bvid: string, duration: string): boo
     const videoIndex = playlist.videos.findIndex((v) => v.bvid === bvid)
     if (videoIndex !== -1 && playlist.videos[videoIndex].duration !== duration) {
       playlist.videos[videoIndex].duration = duration
-      playlist.updatedAt = Date.now()
       updated = true
     }
   }
