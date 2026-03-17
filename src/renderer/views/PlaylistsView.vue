@@ -1,87 +1,90 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
-import LazyImage from '../components/ui/LazyImage.vue'
-import { usePlaylistsStore } from '../stores/playlists'
-import type { Playlist } from '../../preload/preload'
+  import { computed, onMounted, ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
+  import LazyImage from '../components/ui/LazyImage.vue'
+  import { usePlaylistsStore } from '../stores/playlists'
+  import type { Playlist } from '../../preload/preload'
 
-const router = useRouter()
-const playlistsStore = usePlaylistsStore()
+  const router = useRouter()
+  const playlistsStore = usePlaylistsStore()
 
-const isLoading = computed(() => playlistsStore.isLoading)
-const playlists = computed(() => playlistsStore.playlists)
+  const isLoading = computed(() => playlistsStore.isLoading)
+  const playlists = computed(() => playlistsStore.playlists)
 
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
-const showDeleteConfirm = ref(false)
-const editingPlaylist = ref<Playlist | null>(null)
-const deletingPlaylist = ref<Playlist | null>(null)
-const newPlaylistName = ref('')
-const newPlaylistDescription = ref('')
+  const showCreateModal = ref(false)
+  const showEditModal = ref(false)
+  const showDeleteConfirm = ref(false)
+  const editingPlaylist = ref<Playlist | null>(null)
+  const deletingPlaylist = ref<Playlist | null>(null)
+  const newPlaylistName = ref('')
+  const newPlaylistDescription = ref('')
 
-onMounted(() => {
-  playlistsStore.loadPlaylists()
-})
+  onMounted(() => {
+    playlistsStore.loadPlaylists()
+  })
 
-function openCreateModal() {
-  newPlaylistName.value = ''
-  newPlaylistDescription.value = ''
-  showCreateModal.value = true
-}
-
-async function createPlaylist() {
-  if (newPlaylistName.value.trim()) {
-    await playlistsStore.createPlaylist(newPlaylistName.value.trim(), newPlaylistDescription.value.trim() || undefined)
+  function openCreateModal() {
     newPlaylistName.value = ''
     newPlaylistDescription.value = ''
-    showCreateModal.value = false
+    showCreateModal.value = true
   }
-}
 
-function openEditModal(playlist: Playlist) {
-  editingPlaylist.value = playlist
-  newPlaylistName.value = playlist.name
-  newPlaylistDescription.value = playlist.description || ''
-  showEditModal.value = true
-}
+  async function createPlaylist() {
+    if (newPlaylistName.value.trim()) {
+      await playlistsStore.createPlaylist(
+        newPlaylistName.value.trim(),
+        newPlaylistDescription.value.trim() || undefined
+      )
+      newPlaylistName.value = ''
+      newPlaylistDescription.value = ''
+      showCreateModal.value = false
+    }
+  }
 
-async function updatePlaylist() {
-  if (editingPlaylist.value && newPlaylistName.value.trim()) {
-    await playlistsStore.updatePlaylist(editingPlaylist.value.id, {
-      name: newPlaylistName.value.trim(),
-      description: newPlaylistDescription.value.trim() || undefined
+  function openEditModal(playlist: Playlist) {
+    editingPlaylist.value = playlist
+    newPlaylistName.value = playlist.name
+    newPlaylistDescription.value = playlist.description || ''
+    showEditModal.value = true
+  }
+
+  async function updatePlaylist() {
+    if (editingPlaylist.value && newPlaylistName.value.trim()) {
+      await playlistsStore.updatePlaylist(editingPlaylist.value.id, {
+        name: newPlaylistName.value.trim(),
+        description: newPlaylistDescription.value.trim() || undefined
+      })
+      showEditModal.value = false
+      editingPlaylist.value = null
+    }
+  }
+
+  function openDeleteConfirm(playlist: Playlist) {
+    deletingPlaylist.value = playlist
+    showDeleteConfirm.value = true
+  }
+
+  async function deletePlaylist() {
+    if (deletingPlaylist.value) {
+      await playlistsStore.deletePlaylist(deletingPlaylist.value.id)
+      showDeleteConfirm.value = false
+      deletingPlaylist.value = null
+    }
+  }
+
+  function openPlaylist(playlist: Playlist) {
+    router.push({ name: 'playlist-detail', params: { id: playlist.id } })
+  }
+
+  function formatDate(timestamp: number): string {
+    const date = new Date(timestamp)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
     })
-    showEditModal.value = false
-    editingPlaylist.value = null
   }
-}
-
-function openDeleteConfirm(playlist: Playlist) {
-  deletingPlaylist.value = playlist
-  showDeleteConfirm.value = true
-}
-
-async function deletePlaylist() {
-  if (deletingPlaylist.value) {
-    await playlistsStore.deletePlaylist(deletingPlaylist.value.id)
-    showDeleteConfirm.value = false
-    deletingPlaylist.value = null
-  }
-}
-
-function openPlaylist(playlist: Playlist) {
-  router.push({ name: 'playlist-detail', params: { id: playlist.id } })
-}
-
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
-}
 </script>
 
 <template>
@@ -129,7 +132,9 @@ function formatDate(timestamp: number): string {
         </div>
         <div class="playlist-info">
           <h3 class="playlist-name">{{ playlist.name }}</h3>
-          <p class="playlist-meta">{{ playlist.videos.length }} 个视频 · {{ formatDate(playlist.createdAt) }}</p>
+          <p class="playlist-meta">
+            {{ playlist.videos.length }} 个视频 · {{ formatDate(playlist.createdAt) }}
+          </p>
         </div>
         <div class="card-actions">
           <button class="action-btn edit" title="编辑" @click.stop="openEditModal(playlist)">
@@ -170,7 +175,13 @@ function formatDate(timestamp: number): string {
         ></textarea>
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="showCreateModal = false">取消</button>
-          <button class="modal-btn confirm" @click="createPlaylist" :disabled="!newPlaylistName.trim()">创建</button>
+          <button
+            class="modal-btn confirm"
+            @click="createPlaylist"
+            :disabled="!newPlaylistName.trim()"
+          >
+            创建
+          </button>
         </div>
       </div>
     </div>
@@ -193,7 +204,13 @@ function formatDate(timestamp: number): string {
         ></textarea>
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="showEditModal = false">取消</button>
-          <button class="modal-btn confirm" @click="updatePlaylist" :disabled="!newPlaylistName.trim()">保存</button>
+          <button
+            class="modal-btn confirm"
+            @click="updatePlaylist"
+            :disabled="!newPlaylistName.trim()"
+          >
+            保存
+          </button>
         </div>
       </div>
     </div>
@@ -201,7 +218,9 @@ function formatDate(timestamp: number): string {
     <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
       <div class="modal confirm-modal">
         <h2 class="modal-title">确认删除</h2>
-        <p class="confirm-text">确定要删除播放列表「{{ deletingPlaylist?.name }}」吗？此操作不可撤销。</p>
+        <p class="confirm-text">
+          确定要删除播放列表「{{ deletingPlaylist?.name }}」吗？此操作不可撤销。
+        </p>
         <div class="modal-actions">
           <button class="modal-btn cancel" @click="showDeleteConfirm = false">取消</button>
           <button class="modal-btn delete" @click="deletePlaylist">删除</button>
@@ -212,332 +231,332 @@ function formatDate(timestamp: number): string {
 </template>
 
 <style scoped>
-.playlists-view {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+  .playlists-view {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-.header-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  color: white;
-}
+  .header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+  }
 
-.header-text {
-  flex: 1;
-}
+  .header-text {
+    flex: 1;
+  }
 
-.page-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
+  .page-title {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
 
-.page-desc {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
+  .page-desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
 
-.create-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+  .create-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
 
-.create-btn:hover {
-  background: var(--accent-hover);
-}
+  .create-btn:hover {
+    background: var(--accent-hover);
+  }
 
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 64px 32px;
-  color: var(--text-secondary);
-}
+  .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 32px;
+    color: var(--text-secondary);
+  }
 
-.playlists-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 24px;
-}
+  .playlists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+  }
 
-.playlist-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-}
+  .playlist-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
 
-.playlist-card:hover {
-  background: var(--bg-card);
-  transform: translateY(-2px);
-}
+  .playlist-card:hover {
+    background: var(--bg-card);
+    transform: translateY(-2px);
+  }
 
-.playlist-cover {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg-card);
-}
+  .playlist-cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
 
-.cover-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+  .cover-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 
-.cover-placeholder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-}
+  .cover-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+  }
 
-.video-count-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.75);
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-}
+  .video-count-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 4px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: white;
+  }
 
-.playlist-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+  .playlist-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
-.playlist-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+  .playlist-name {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
 
-.playlist-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
+  .playlist-meta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
 
-.card-actions {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
+  .card-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
 
-.playlist-card:hover .card-actions {
-  opacity: 1;
-}
+  .playlist-card:hover .card-actions {
+    opacity: 1;
+  }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.6);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
 
-.action-btn:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
+  .action-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+  }
 
-.action-btn.edit:hover {
-  color: var(--accent);
-}
+  .action-btn.edit:hover {
+    color: var(--accent);
+  }
 
-.action-btn.delete:hover {
-  color: #ff5252;
-}
+  .action-btn.delete:hover {
+    color: #ff5252;
+  }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 64px 32px;
-  color: var(--text-secondary);
-  text-align: center;
-  gap: 8px;
-}
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 32px;
+    color: var(--text-secondary);
+    text-align: center;
+    gap: 8px;
+  }
 
-.empty-icon {
-  opacity: 0.5;
-}
+  .empty-icon {
+    opacity: 0.5;
+  }
 
-.empty-state h3 {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
+  .empty-state h3 {
+    font-size: var(--text-lg);
+    font-weight: 500;
+    color: var(--text-primary);
+  }
 
-.empty-state p {
-  font-size: 14px;
-  margin-bottom: 16px;
-}
+  .empty-state p {
+    font-size: var(--text-sm);
+    margin-bottom: 16px;
+  }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 1000;
-}
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+  }
 
-.modal {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 400px;
-  max-width: 90vw;
-  padding: 24px;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-}
+  .modal {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 400px;
+    max-width: 90vw;
+    padding: 24px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+  }
 
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+  .modal-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
 
-.modal-input {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-}
+  .modal-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    outline: none;
+  }
 
-.modal-input:focus {
-  border-color: var(--accent);
-}
+  .modal-input:focus {
+    border-color: var(--accent);
+  }
 
-.modal-textarea {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-}
+  .modal-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+  }
 
-.modal-textarea:focus {
-  border-color: var(--accent);
-}
+  .modal-textarea:focus {
+    border-color: var(--accent);
+  }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
 
-.modal-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+  .modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
 
-.modal-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-.modal-btn.cancel {
-  background: var(--bg-card);
-  color: var(--text-primary);
-}
+  .modal-btn.cancel {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
 
-.modal-btn.cancel:hover {
-  background: var(--bg-primary);
-}
+  .modal-btn.cancel:hover {
+    background: var(--bg-primary);
+  }
 
-.modal-btn.confirm {
-  background: var(--accent);
-  color: white;
-}
+  .modal-btn.confirm {
+    background: var(--accent);
+    color: white;
+  }
 
-.modal-btn.confirm:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
+  .modal-btn.confirm:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 
-.modal-btn.delete {
-  background: #ff5252;
-  color: white;
-}
+  .modal-btn.delete {
+    background: #ff5252;
+    color: white;
+  }
 
-.modal-btn.delete:hover {
-  background: #ff1744;
-}
+  .modal-btn.delete:hover {
+    background: #ff1744;
+  }
 
-.confirm-modal .confirm-text {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
+  .confirm-modal .confirm-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
 </style>

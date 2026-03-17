@@ -723,7 +723,7 @@
     padding: 2px 6px;
     background: rgba(0, 0, 0, 0.75);
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: white;
   }
 

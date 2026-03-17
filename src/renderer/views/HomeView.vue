@@ -321,7 +321,7 @@
 
   .search-placeholder {
     color: var(--text-secondary);
-    font-size: 15px;
+    font-size: var(--text-sm);
   }
 
   .shortcuts-section {
@@ -404,7 +404,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.2s ease;
   }
@@ -681,7 +681,7 @@
     }
 
     .welcome-title {
-      font-size: 24px;
+      font-size: var(--text-2xl);
     }
   }
 

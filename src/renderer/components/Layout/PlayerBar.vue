@@ -434,7 +434,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    font-size: 24px;
+    font-size: var(--text-2xl);
   }
 
   .track-cover-overlay {
@@ -899,7 +899,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: var(--text-lg);
   }
 
   .queue-item-info {

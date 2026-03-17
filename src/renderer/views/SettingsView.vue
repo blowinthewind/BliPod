@@ -1395,7 +1395,7 @@
     color: var(--text-primary);
     border: none;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -1438,7 +1438,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.2s;
   }

@@ -29,11 +29,7 @@
     <p class="empty-state-description" v-if="props.description">
       {{ props.description }}
     </p>
-    <button
-      v-if="props.action"
-      class="btn btn-primary empty-state-action"
-      @click="emit('action')"
-    >
+    <button v-if="props.action" class="btn btn-primary empty-state-action" @click="emit('action')">
       {{ props.action }}
     </button>
   </div>
@@ -56,7 +52,7 @@
   }
 
   .empty-state-icon.default-icon {
-    font-size: 48px;
+    font-size: 3rem;
   }
 
   .empty-state-title {
