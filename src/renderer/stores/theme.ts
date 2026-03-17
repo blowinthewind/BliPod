@@ -6,14 +6,22 @@ export interface ThemeColors {
   bgSecondary: string
   bgCard: string
   bgElevated: string
+  bgOverlay?: string
   textPrimary: string
   textSecondary: string
+  textSecondaryStrong?: string
+  textTertiary?: string
   accent: string
   accentHover: string
+  accentMuted?: string
   border: string
+  borderSubtle?: string
   success?: string
   warning?: string
   error?: string
+  glow?: string
+  glassBg?: string
+  glassBorder?: string
 }
 
 export interface ThemeEffects {
@@ -40,14 +48,22 @@ const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
   bgSecondary: '--bg-secondary',
   bgCard: '--bg-card',
   bgElevated: '--bg-elevated',
+  bgOverlay: '--bg-overlay',
   textPrimary: '--text-primary',
   textSecondary: '--text-secondary',
+  textSecondaryStrong: '--text-secondary-strong',
+  textTertiary: '--text-tertiary',
   accent: '--accent',
   accentHover: '--accent-hover',
+  accentMuted: '--accent-muted',
   border: '--border',
+  borderSubtle: '--border-subtle',
   success: '--success',
   warning: '--warning',
-  error: '--error'
+  error: '--error',
+  glow: '--glow',
+  glassBg: '--glass-bg',
+  glassBorder: '--glass-border'
 }
 
 const EFFECTS_VAR_MAP: Record<keyof ThemeEffects, string> = {
@@ -71,14 +87,22 @@ const builtInThemes: Theme[] = [
       bgSecondary: '#141414',
       bgCard: '#1a1a1a',
       bgElevated: '#242424',
-      textPrimary: '#ffffff',
-      textSecondary: '#a0a0a0',
-      accent: '#e94560',
-      accentHover: '#ff6b6b',
-      border: '#2d2d2d',
+      bgOverlay: 'rgba(0, 0, 0, 0.6)',
+      textPrimary: '#fafafa',
+      textSecondary: '#8b8b96',
+      textSecondaryStrong: '#a7a7b2',
+      textTertiary: '#52525b',
+      accent: '#f43f5e',
+      accentHover: '#fb7185',
+      accentMuted: 'rgba(244, 63, 94, 0.15)',
+      border: '#27272a',
+      borderSubtle: '#1f1f23',
       success: '#22c55e',
       warning: '#f59e0b',
-      error: '#ef4444'
+      error: '#ef4444',
+      glow: 'rgba(244, 63, 94, 0.25)',
+      glassBg: 'rgba(17, 17, 19, 0.85)',
+      glassBorder: 'rgba(255, 255, 255, 0.08)'
     }
   },
   {
@@ -87,18 +111,26 @@ const builtInThemes: Theme[] = [
     description: 'Clean light theme',
     isBuiltIn: true,
     colors: {
-      bgPrimary: '#ffffff',
-      bgSecondary: '#f5f5f5',
-      bgCard: '#ebebeb',
-      bgElevated: '#e0e0e0',
-      textPrimary: '#1a1a1a',
-      textSecondary: '#666666',
-      accent: '#e94560',
-      accentHover: '#d63850',
-      border: '#d9d9d9',
+      bgPrimary: '#fafaf9',
+      bgSecondary: '#f5f5f4',
+      bgCard: '#ffffff',
+      bgElevated: '#ffffff',
+      bgOverlay: 'rgba(0, 0, 0, 0.4)',
+      textPrimary: '#18181b',
+      textSecondary: '#6b6b76',
+      textSecondaryStrong: '#52525b',
+      textTertiary: '#a1a1aa',
+      accent: '#e11d48',
+      accentHover: '#be123c',
+      accentMuted: 'rgba(225, 29, 72, 0.1)',
+      border: '#e4e4e7',
+      borderSubtle: '#f4f4f5',
       success: '#22c55e',
       warning: '#f59e0b',
-      error: '#ef4444'
+      error: '#ef4444',
+      glow: 'rgba(225, 29, 72, 0.15)',
+      glassBg: 'rgba(255, 255, 255, 0.9)',
+      glassBorder: 'rgba(0, 0, 0, 0.06)'
     }
   },
   {
@@ -111,11 +143,16 @@ const builtInThemes: Theme[] = [
       bgSecondary: '#16213e',
       bgCard: '#0f3460',
       bgElevated: '#1a4a7a',
+      bgOverlay: 'rgba(0, 0, 0, 0.6)',
       textPrimary: '#eaeaea',
       textSecondary: '#a0a0a0',
+      textSecondaryStrong: '#c2c2c2',
+      textTertiary: '#7d7d88',
       accent: '#e94560',
       accentHover: '#ff6b6b',
+      accentMuted: 'rgba(233, 69, 96, 0.15)',
       border: '#2d2d44',
+      borderSubtle: '#1f1f30',
       success: '#22c55e',
       warning: '#f59e0b',
       error: '#ef4444'
@@ -131,11 +168,16 @@ const builtInThemes: Theme[] = [
       bgSecondary: '#2d1f1f',
       bgCard: '#3d2a2a',
       bgElevated: '#4d3535',
+      bgOverlay: 'rgba(0, 0, 0, 0.6)',
       textPrimary: '#fff5f5',
       textSecondary: '#d4a5a5',
+      textSecondaryStrong: '#e8bcbc',
+      textTertiary: '#b08181',
       accent: '#ff6b35',
       accentHover: '#ff8c5a',
+      accentMuted: 'rgba(255, 107, 53, 0.18)',
       border: '#4a3030',
+      borderSubtle: '#3a2424',
       success: '#22c55e',
       warning: '#f59e0b',
       error: '#ef4444'
@@ -154,11 +196,16 @@ const builtInThemes: Theme[] = [
       bgSecondary: '#112240',
       bgCard: '#1d3557',
       bgElevated: '#264653',
+      bgOverlay: 'rgba(0, 0, 0, 0.6)',
       textPrimary: '#ccd6f6',
       textSecondary: '#8892b0',
+      textSecondaryStrong: '#a5afc8',
+      textTertiary: '#6c7691',
       accent: '#64ffda',
       accentHover: '#7fffd4',
+      accentMuted: 'rgba(100, 255, 218, 0.15)',
       border: '#233554',
+      borderSubtle: '#1a2a45',
       success: '#64ffda',
       warning: '#ffd93d',
       error: '#ff6b6b'
@@ -177,11 +224,16 @@ const builtInThemes: Theme[] = [
       bgSecondary: 'rgba(26, 26, 46, 0.8)',
       bgCard: 'rgba(15, 52, 96, 0.6)',
       bgElevated: 'rgba(26, 74, 122, 0.5)',
+      bgOverlay: 'rgba(0,  0, 0, 0.6)',
       textPrimary: '#ffffff',
       textSecondary: '#a0a0a0',
+      textSecondaryStrong: '#c2c2c2',
+      textTertiary: '#7d7d88',
       accent: '#e94560',
       accentHover: '#ff6b6b',
+      accentMuted: 'rgba(233, 69, 96, 0.15)',
       border: 'rgba(255, 255, 255, 0.1)',
+      borderSubtle: 'rgba(255, 255, 255, 0.06)',
       success: '#22c55e',
       warning: '#f59e0b',
       error: '#ef4444'
@@ -197,15 +249,15 @@ const builtInThemes: Theme[] = [
 export const useThemeStore = defineStore('theme', () => {
   const currentThemeId = ref<string>('dark')
   const customThemes = ref<Theme[]>([])
-  
+
   const allThemes = computed<Theme[]>(() => [...builtInThemes, ...customThemes.value])
-  
-  const currentTheme = computed<Theme | undefined>(() => 
-    allThemes.value.find(t => t.id === currentThemeId.value)
+
+  const currentTheme = computed<Theme | undefined>(() =>
+    allThemes.value.find((t) => t.id === currentThemeId.value)
   )
 
   function setTheme(themeId: string) {
-    const theme = allThemes.value.find(t => t.id === themeId)
+    const theme = allThemes.value.find((t) => t.id === themeId)
     if (theme) {
       currentThemeId.value = themeId
       applyTheme(theme)
@@ -215,13 +267,15 @@ export const useThemeStore = defineStore('theme', () => {
 
   function applyTheme(theme: Theme) {
     const root = document.documentElement
-    
+
+    root.setAttribute('data-theme', theme.id === 'light' ? 'light' : 'dark')
+
     Object.entries(theme.colors).forEach(([key, value]) => {
       if (value && CSS_VAR_MAP[key as keyof ThemeColors]) {
         root.style.setProperty(CSS_VAR_MAP[key as keyof ThemeColors], value)
       }
     })
-    
+
     if (theme.effects) {
       Object.entries(theme.effects).forEach(([key, value]) => {
         if (value !== undefined && EFFECTS_VAR_MAP[key as keyof ThemeEffects]) {
@@ -234,13 +288,13 @@ export const useThemeStore = defineStore('theme', () => {
         }
       })
     }
-    
+
     applyBodyStyles(theme)
   }
 
   function applyBodyStyles(theme: Theme) {
     const body = document.body
-    
+
     if (theme.effects?.bgGradient) {
       body.style.background = theme.effects.bgGradient
     } else if (theme.effects?.bgImage) {
@@ -254,7 +308,7 @@ export const useThemeStore = defineStore('theme', () => {
     } else {
       body.style.background = theme.colors.bgPrimary
     }
-    
+
     if (theme.effects?.bgBlur) {
       body.style.backdropFilter = `blur(${theme.effects.bgBlur})`
     } else {
@@ -263,7 +317,7 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function addCustomTheme(theme: Theme) {
-    const existing = allThemes.value.find(t => t.id === theme.id)
+    const existing = allThemes.value.find((t) => t.id === theme.id)
     if (existing) {
       console.warn(`Theme with id "${theme.id}" already exists`)
       return false
@@ -274,7 +328,7 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function removeCustomTheme(themeId: string) {
-    const index = customThemes.value.findIndex(t => t.id === themeId)
+    const index = customThemes.value.findIndex((t) => t.id === themeId)
     if (index !== -1) {
       customThemes.value.splice(index, 1)
       saveCustomThemesToStorage()
@@ -287,7 +341,7 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function updateCustomTheme(themeId: string, updates: Partial<Theme>) {
-    const theme = customThemes.value.find(t => t.id === themeId)
+    const theme = customThemes.value.find((t) => t.id === themeId)
     if (theme) {
       if (updates.colors) {
         theme.colors = { ...theme.colors, ...updates.colors }
@@ -325,10 +379,10 @@ export const useThemeStore = defineStore('theme', () => {
   function loadFromStorage() {
     try {
       const savedThemeId = localStorage.getItem('blipod-theme')
-      if (savedThemeId && allThemes.value.find(t => t.id === savedThemeId)) {
+      if (savedThemeId && allThemes.value.find((t) => t.id === savedThemeId)) {
         setTheme(savedThemeId)
       }
-      
+
       const savedCustomThemes = localStorage.getItem('blipod-custom-themes')
       if (savedCustomThemes) {
         customThemes.value = JSON.parse(savedCustomThemes)
@@ -349,7 +403,7 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function duplicateTheme(themeId: string, newId: string, newName: string) {
-    const source = allThemes.value.find(t => t.id === themeId)
+    const source = allThemes.value.find((t) => t.id === themeId)
     if (source) {
       return addCustomTheme({
         id: newId,
