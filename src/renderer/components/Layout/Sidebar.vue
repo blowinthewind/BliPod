@@ -13,7 +13,8 @@ import {
   LogIn,
   LogOut,
   History,
-  X
+  X,
+  Music
 } from 'lucide-vue-next'
 
 const navStore = useNavigationStore()
@@ -69,11 +70,15 @@ function cancelLogout() {
   >
     <div class="sidebar-header">
       <div class="logo" v-if="!navStore.sidebarCollapsed">
-        <span class="logo-icon">🎵</span>
+        <div class="logo-icon">
+          <Music :size="20" />
+        </div>
         <span class="logo-text">BliPod</span>
       </div>
       <div class="logo-mini" v-else>
-        <span>🎵</span>
+        <div class="logo-icon-mini">
+          <Music :size="20" />
+        </div>
       </div>
       <button 
         class="collapse-btn" 
@@ -186,7 +191,14 @@ function cancelLogout() {
 }
 
 .logo-icon {
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border-radius: var(--radius-md);
+  color: white;
 }
 
 .logo-text {
@@ -197,7 +209,20 @@ function cancelLogout() {
 }
 
 .logo-mini {
-  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon-mini {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  border-radius: var(--radius-md);
+  color: white;
 }
 
 .collapse-btn {
@@ -259,12 +284,12 @@ function cancelLogout() {
 }
 
 .nav-item.active {
-  background: var(--accent);
-  color: white;
+  background: var(--accent-muted);
+  color: var(--accent);
 }
 
 .nav-item.active .nav-icon {
-  color: white;
+  color: var(--accent);
 }
 
 .nav-icon {
