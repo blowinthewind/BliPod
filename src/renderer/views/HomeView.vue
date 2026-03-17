@@ -33,7 +33,8 @@ const continueVideos = ref<ContinueVideo[]>([])
 const isLoadingContinue = ref(false)
 
 const userName = computed(() => authStore.userName)
-const favorites = computed(() => 
+const favoritesCount = computed(() => favoritesStore.favorites.length)
+const recentFavorites = computed(() => 
   [...favoritesStore.favorites]
     .sort((a, b) => b.addedAt - a.addedAt)
     .slice(0, 4)
@@ -120,7 +121,7 @@ function playContinueVideo(video: HistoryVideo) {
   playerStore.playVideo(video, undefined, 'history')
 }
 
-function playFavoriteVideo(video: typeof favorites.value[0]) {
+function playFavoriteVideo(video: typeof recentFavorites.value[0]) {
   playerStore.playVideo(video, favoritesStore.favorites, 'favorite')
 }
 </script>
@@ -147,7 +148,7 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
         </div>
         <div class="shortcut-info">
           <span class="shortcut-title">我的收藏</span>
-          <span class="shortcut-count">{{ favorites.length }} 个视频</span>
+          <span class="shortcut-count">{{ favoritesCount }} 个视频</span>
         </div>
       </div>
       <div class="shortcut-card" @click="goToPlaylists">
@@ -216,7 +217,7 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
       </div>
     </section>
 
-    <section class="section" v-if="favorites.length > 0">
+    <section class="section" v-if="recentFavorites.length > 0">
       <div class="section-header">
         <h2 class="section-title">
           <Heart :size="20" />
@@ -226,7 +227,7 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
       </div>
       <div class="video-grid">
         <div
-          v-for="video in favorites"
+          v-for="video in recentFavorites"
           :key="video.bvid"
           class="video-card"
           @click="playFavoriteVideo(video)"
