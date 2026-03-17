@@ -19,6 +19,7 @@ Desktop.ini
 *.sublime-project
 .trae
 .agents
+.opencode
 
 # Database
 *.db
