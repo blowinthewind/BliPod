@@ -94,7 +94,7 @@ function getGreeting(): string {
 
 function goToSearch() {
   navStore.setActiveItem('search')
-  router.push('/search')
+  router.push('/search?focus=true')
 }
 
 function goToFavorites() {

@@ -3,7 +3,7 @@ import { Search, Loader2, Play, AlertCircle, Clock, X, History, ChevronDown, Hea
 import LazyImage from '../components/ui/LazyImage.vue'
 import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
 import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useSearch } from '../composables/useSearch'
 import { useFavoritesStore } from '../stores/favorites'
 import { usePlaylistsStore } from '../stores/playlists'
@@ -12,6 +12,7 @@ import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 import type { ExtractedVideo } from '../../preload/preload'
 
 const router = useRouter()
+const route = useRoute()
 
 const {
   searchStore,
@@ -34,6 +35,7 @@ const searchQuery = ref('')
 const showHistory = ref(false)
 const showPlaylistDialog = ref(false)
 const selectedVideo = ref<ExtractedVideo | null>(null)
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const hasError = computed(() => searchStore.error !== null)
 const errorMessage = computed(() => searchStore.error || '')
@@ -42,7 +44,9 @@ onMounted(() => {
   setupListeners()
   favoritesStore.loadFavorites()
   playlistsStore.loadPlaylists()
-  // 设置 searchView 销毁监听器
+  if (route.query.focus === 'true') {
+    searchInputRef.value?.focus()
+  }
   viewDestroyedUnsubscribe = searchStore.setViewDestroyedListener((data) => {
     // 更新搜索栏的值
     if (data.lastQuery) {
@@ -167,6 +171,7 @@ function isInQueue(bvid: string): boolean {
       <div class="search-input-wrapper">
         <Search :size="20" class="search-icon" />
         <input
+          ref="searchInputRef"
           type="text"
           class="search-input"
           placeholder="Enter keywords to search..."
