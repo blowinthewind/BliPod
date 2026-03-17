@@ -149,7 +149,8 @@ async function clearQueue() {
         class="like-btn" 
         v-if="playerStore.hasVideo"
         @click="toggleFavorite"
-        :title="isCurrentFavorite ? 'Remove from favorites' : 'Add to favorites'"
+        :aria-label="isCurrentFavorite ? 'Remove from favorites' : 'Add to favorites'"
+        :aria-pressed="isCurrentFavorite"
         :class="{ active: isCurrentFavorite }"
       >
         <Heart :size="18" :fill="isCurrentFavorite ? 'currentColor' : 'none'" />
@@ -162,13 +163,14 @@ async function clearQueue() {
           class="control-btn small"
           :class="{ active: playerStore.isShuffle }"
           @click="playerStore.toggleShuffle"
-          title="Shuffle"
+          :aria-label="playerStore.isShuffle ? 'Disable shuffle' : 'Enable shuffle'"
+          :aria-pressed="playerStore.isShuffle"
         >
           <Shuffle :size="16" />
         </button>
         <button
           class="control-btn small seek-btn"
-          title="快退15秒"
+          aria-label="Seek back 15 seconds"
           @click="playerStore.seekBackward(15)"
           :disabled="!playerStore.hasVideo"
         >
@@ -177,7 +179,7 @@ async function clearQueue() {
         </button>
         <button
           class="control-btn"
-          title="Previous"
+          aria-label="Previous track"
           @click="playerStore.previous"
           :disabled="!playerStore.hasPrevious"
         >
@@ -186,7 +188,7 @@ async function clearQueue() {
         <button
           class="control-btn play-btn"
           @click="playerStore.togglePlay"
-          :title="playerStore.isPlaying ? 'Pause' : 'Play'"
+          :aria-label="playerStore.isPlaying ? 'Pause' : 'Play'"
           :disabled="!playerStore.hasVideo"
         >
           <Loader2 v-if="playerStore.isLoading" :size="22" class="animate-spin" />
@@ -195,7 +197,7 @@ async function clearQueue() {
         </button>
         <button
           class="control-btn"
-          title="Next"
+          aria-label="Next track"
           @click="playerStore.next"
           :disabled="!playerStore.hasNext"
         >
@@ -203,7 +205,7 @@ async function clearQueue() {
         </button>
         <button
           class="control-btn small seek-btn"
-          title="快进30秒"
+          aria-label="Seek forward 30 seconds"
           @click="playerStore.seekForward(30)"
           :disabled="!playerStore.hasVideo"
         >
@@ -214,22 +216,36 @@ async function clearQueue() {
           class="control-btn small"
           :class="{ active: playerStore.isRepeat }"
           @click="playerStore.toggleRepeat"
-          title="Repeat"
+          :aria-label="playerStore.isRepeat ? 'Disable repeat' : 'Enable repeat'"
+          :aria-pressed="playerStore.isRepeat"
         >
           <Repeat :size="16" />
         </button>
       </div>
 
       <div class="progress-container">
-        <span class="time">{{ formattedCurrentTime }}</span>
-        <div class="progress-bar" :class="{ disabled: !playerStore.hasVideo }" @click="seekTo">
+        <span class="time" aria-label="Current time">{{ formattedCurrentTime }}</span>
+        <div 
+          class="progress-bar" 
+          :class="{ disabled: !playerStore.hasVideo }" 
+          @click="seekTo"
+          role="slider"
+          :aria-label="'Seek: ' + formattedCurrentTime + ' of ' + formattedDuration"
+          :aria-valuemin="0"
+          :aria-valuemax="playerStore.duration"
+          :aria-valuenow="playerStore.currentTime"
+          :aria-valuetext="formattedCurrentTime"
+          tabindex="0"
+          @keydown.left="playerStore.seekBackward(5)"
+          @keydown.right="playerStore.seekForward(5)"
+        >
           <div class="progress-track">
             <div class="progress-fill" :style="{ width: `${progress}%` }">
               <div class="progress-thumb"></div>
             </div>
           </div>
         </div>
-        <span class="time">{{ formattedDuration || '0:00' }}</span>
+        <span class="time" aria-label="Duration">{{ formattedDuration || '0:00' }}</span>
       </div>
     </div>
 
@@ -238,7 +254,8 @@ async function clearQueue() {
         class="control-btn small queue-btn"
         :class="{ active: showQueuePanel || isCurrentInQueue }"
         @click="toggleQueuePanel"
-        :title="`播放队列 (${queueCount})`"
+        :aria-label="'Queue (' + queueCount + ' tracks)'"
+        :aria-expanded="showQueuePanel"
       >
         <ListMusic :size="18" />
         <span v-if="queueCount > 0" class="queue-badge">{{ queueCount }}</span>
@@ -247,7 +264,7 @@ async function clearQueue() {
         class="control-btn small playlist-btn"
         v-if="playerStore.hasVideo"
         @click="openPlaylistDialog"
-        :title="playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid) ? '已添加到播放列表' : '添加到播放列表'"
+        :aria-label="playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid) ? 'Added to playlist' : 'Add to playlist'"
       >
         <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid)" :size="18" />
         <ListPlus v-else :size="18" />
@@ -256,7 +273,7 @@ async function clearQueue() {
         <button
           class="control-btn small"
           @click="playerStore.toggleMute"
-          :title="playerStore.isMuted ? 'Unmute' : 'Mute'"
+          :aria-label="playerStore.isMuted ? 'Unmute' : 'Mute'"
         >
           <VolumeX v-if="playerStore.isMuted" :size="18" />
           <Volume2 v-else :size="18" />
@@ -268,10 +285,11 @@ async function clearQueue() {
             max="100"
             :value="playerStore.isMuted ? 0 : playerStore.volume"
             @input="handleVolumeChange"
+            aria-label="Volume"
           />
         </div>
       </div>
-      <button class="control-btn small" title="Fullscreen">
+      <button class="control-btn small" aria-label="Fullscreen">
         <Maximize2 :size="18" />
       </button>
     </div>

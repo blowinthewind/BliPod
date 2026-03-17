@@ -532,20 +532,20 @@
                 <span v-if="theme.isBuiltIn" class="theme-badge">Built-in</span>
               </div>
               <div class="theme-actions" v-if="!theme.isBuiltIn">
-                <button class="theme-action-btn" @click.stop="openEditTheme(theme.id)" title="Edit">
+                <button class="theme-action-btn" @click.stop="openEditTheme(theme.id)" aria-label="Edit theme">
                   <Palette :size="14" />
                 </button>
                 <button
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
-                  title="Duplicate"
+                  aria-label="Duplicate theme"
                 >
                   <Copy :size="14" />
                 </button>
                 <button
                   class="theme-action-btn danger"
                   @click.stop="deleteTheme(theme.id)"
-                  title="Delete"
+                  aria-label="Delete theme"
                 >
                   <Trash2 :size="14" />
                 </button>
@@ -554,7 +554,7 @@
                 <button
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
-                  title="Duplicate"
+                  aria-label="Duplicate theme"
                 >
                   <Copy :size="14" />
                 </button>

@@ -10,10 +10,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Menu,
   LogIn,
   LogOut,
-  History
+  History,
+  X
 } from 'lucide-vue-next'
 
 const navStore = useNavigationStore()
@@ -75,12 +75,20 @@ function cancelLogout() {
       <div class="logo-mini" v-else>
         <span>🎵</span>
       </div>
-      <button class="collapse-btn" @click="navStore.toggleSidebar">
+      <button 
+        class="collapse-btn" 
+        @click="navStore.toggleSidebar"
+        :aria-label="navStore.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+      >
         <ChevronLeft v-if="!navStore.sidebarCollapsed" :size="18" />
         <ChevronRight v-else :size="18" />
       </button>
-      <button class="mobile-close-btn" @click="navStore.closeMobileMenu">
-        <Menu :size="20" />
+      <button 
+        class="mobile-close-btn" 
+        @click="navStore.closeMobileMenu"
+        aria-label="Close menu"
+      >
+        <X :size="20" />
       </button>
     </div>
 
