@@ -239,18 +239,26 @@
   }
 
   const defaultColors: ThemeColors = {
-    bgPrimary: '#0d0d0d',
-    bgSecondary: '#141414',
-    bgCard: '#1a1a1a',
-    bgElevated: '#242424',
-    textPrimary: '#ffffff',
-    textSecondary: '#a0a0a0',
-    accent: '#e94560',
-    accentHover: '#ff6b6b',
-    border: '#2d2d2d',
-    success: '#22c55e',
+    bgPrimary: '#0a0a0b',
+    bgSecondary: '#111113',
+    bgCard: '#18181b',
+    bgElevated: '#1f1f23',
+    bgOverlay: 'rgba(0, 0, 0, 0.6)',
+    textPrimary: '#fafafa',
+    textSecondary: '#8b8b96',
+    textSecondaryStrong: '#a7a7b2',
+    textTertiary: '#52525b',
+    accent: '#f43f5e',
+    accentHover: '#fb7185',
+    accentMuted: 'rgba(244, 63, 94, 0.15)',
+    border: '#27272a',
+    borderSubtle: '#1f1f23',
+    success: '#10b981',
     warning: '#f59e0b',
-    error: '#ef4444'
+    error: '#ef4444',
+    glow: 'rgba(244, 63, 94, 0.25)',
+    glassBg: 'rgba(17, 17, 19, 0.85)',
+    glassBorder: 'rgba(255, 255, 255, 0.08)'
   }
 
   const newTheme = ref<Partial<Theme>>({
@@ -268,14 +276,22 @@
     bgSecondary: 'Sidebar',
     bgCard: 'Cards',
     bgElevated: 'Elevated',
+    bgOverlay: 'Overlay',
     textPrimary: 'Text Primary',
     textSecondary: 'Text Secondary',
+    textSecondaryStrong: 'Text Secondary Strong',
+    textTertiary: 'Text Tertiary',
     accent: 'Accent',
     accentHover: 'Accent Hover',
+    accentMuted: 'Accent Muted',
     border: 'Border',
+    borderSubtle: 'Border Subtle',
     success: 'Success',
     warning: 'Warning',
-    error: 'Error'
+    error: 'Error',
+    glow: 'Glow',
+    glassBg: 'Glass Background',
+    glassBorder: 'Glass Border'
   }
 
   function setTheme(themeId: string) {
@@ -1008,8 +1024,8 @@
     justify-content: center;
     width: 56px;
     height: 56px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: var(--radius-lg, 12px);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     color: white;
   }
 
