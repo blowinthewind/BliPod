@@ -608,15 +608,15 @@
   .search-results {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
 
   .results-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle, var(--border));
   }
 
   .results-count {
@@ -635,22 +635,24 @@
   .results-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .result-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px;
+    gap: 14px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .result-item:hover {
     background: var(--bg-card);
+    border-color: var(--border);
   }
 
   .result-cover {
@@ -731,7 +733,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     overflow: hidden;
   }
 
@@ -739,6 +741,7 @@
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
+    line-height: 1.35;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -750,6 +753,7 @@
     gap: 8px;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .meta-item.author {

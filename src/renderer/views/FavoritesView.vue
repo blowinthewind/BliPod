@@ -149,22 +149,24 @@
   .favorites-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .favorite-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px;
+    gap: 14px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .favorite-item:hover {
     background: var(--bg-card);
+    border-color: var(--border);
   }
 
   .item-cover {
@@ -245,7 +247,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     overflow: hidden;
   }
 
@@ -253,6 +255,7 @@
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
+    line-height: 1.35;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -264,6 +267,7 @@
     gap: 12px;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .item-actions {

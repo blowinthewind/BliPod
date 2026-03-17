@@ -330,7 +330,7 @@
   .uploader-header {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
   }
 
   .back-btn {
@@ -391,6 +391,7 @@
     font-size: var(--text-2xl);
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
   }
 
   .uploader-id {
@@ -408,20 +409,21 @@
     border-radius: 8px;
     color: #ef4444;
     font-size: var(--text-sm);
+    line-height: 1.4;
   }
 
   .videos-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
 
   .results-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-subtle, var(--border));
   }
 
   .results-count {
@@ -440,22 +442,24 @@
   .videos-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .video-item {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px;
+    gap: 14px;
+    padding: 10px 12px;
     border-radius: 8px;
     background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .video-item:hover {
     background: var(--bg-card);
+    border-color: var(--border);
   }
 
   .video-cover {
@@ -536,7 +540,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     overflow: hidden;
   }
 
@@ -544,6 +548,7 @@
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
+    line-height: 1.35;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -555,6 +560,7 @@
     gap: 8px;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .play-btn {
