@@ -126,7 +126,7 @@ async function clearQueue() {
 <template>
   <footer class="player-bar">
     <div class="now-playing">
-      <div class="track-cover">
+      <div class="track-cover" @click="playerStore.togglePlay" :title="playerStore.currentVideo?.title">
         <img
           v-if="playerStore.currentVideo?.cover"
           :src="playerStore.currentVideo.cover"
@@ -135,6 +135,12 @@ async function clearQueue() {
         <div v-else class="cover-placeholder">
           <span v-if="playerStore.isLoading">⏳</span>
           <span v-else>🎵</span>
+        </div>
+        <div class="track-cover-overlay">
+          <button class="mini-play-btn" @click.stop="playerStore.togglePlay" :aria-label="playerStore.isPlaying ? 'Pause' : 'Play'">
+            <Play v-if="!playerStore.isPlaying" :size="14" />
+            <Pause v-else :size="14" />
+          </button>
         </div>
       </div>
       <div class="track-info">
@@ -386,17 +392,19 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 320px;
-  min-width: 240px;
+  width: 280px;
+  min-width: 200px;
 }
 
 .track-cover {
-  width: 100px;
+  position: relative;
+  width: 56px;
   height: 56px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .track-cover img {
@@ -412,6 +420,39 @@ export default {
   width: 100%;
   height: 100%;
   font-size: 24px;
+}
+
+.track-cover-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.track-cover:hover .track-cover-overlay {
+  opacity: 1;
+}
+
+.mini-play-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--bg-primary);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.mini-play-btn:hover {
+  transform: scale(1.1);
 }
 
 .track-info {
