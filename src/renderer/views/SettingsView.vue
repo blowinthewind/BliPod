@@ -532,7 +532,11 @@
                 <span v-if="theme.isBuiltIn" class="theme-badge">Built-in</span>
               </div>
               <div class="theme-actions" v-if="!theme.isBuiltIn">
-                <button class="theme-action-btn" @click.stop="openEditTheme(theme.id)" aria-label="Edit theme">
+                <button
+                  class="theme-action-btn"
+                  @click.stop="openEditTheme(theme.id)"
+                  aria-label="Edit theme"
+                >
                   <Palette :size="14" />
                 </button>
                 <button
@@ -1030,13 +1034,13 @@
   }
 
   .page-title {
-    font-size: 28px;
+    font-size: var(--text-3xl);
     font-weight: 700;
     color: var(--text-primary);
   }
 
   .page-desc {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text-secondary);
   }
 
@@ -1063,7 +1067,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 16px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -1091,13 +1095,13 @@
   }
 
   .setting-label {
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
   }
 
   .setting-desc {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
   }
 
@@ -1124,7 +1128,7 @@
   }
 
   .user-name-small {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text-primary);
   }
@@ -1138,7 +1142,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -1157,7 +1161,7 @@
     color: var(--text-secondary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -1178,7 +1182,7 @@
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -1263,17 +1267,18 @@
   }
 
   .theme-name {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text-primary);
   }
 
   .theme-badge {
-    font-size: 10px;
+    font-size: var(--text-xs);
     padding: 2px 6px;
     background: var(--bg-elevated);
     color: var(--text-secondary);
     border-radius: 4px;
+    line-height: 1.1;
   }
 
   .theme-actions {
@@ -1330,7 +1335,7 @@
   }
 
   .volume-value {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
     min-width: 40px;
   }
@@ -1474,12 +1479,12 @@
   }
 
   .checkbox-label {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-primary);
   }
 
   .category-count {
-    font-size: 11px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
   }
 
@@ -1499,7 +1504,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     outline: none;
   }
@@ -1514,7 +1519,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--text-xs);
     cursor: pointer;
     outline: none;
     min-width: 140px;
@@ -1536,7 +1541,7 @@
     margin-top: 8px;
     padding: 8px 12px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
 
   .message-toast.success {
@@ -1595,7 +1600,7 @@
   }
 
   .modal-title {
-    font-size: 20px;
+    font-size: var(--text-xl);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -1619,7 +1624,7 @@
   }
 
   .form-group label {
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text-secondary);
   }
@@ -1630,7 +1635,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     outline: none;
   }
 
@@ -1650,7 +1655,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -1668,7 +1673,7 @@
   }
 
   .color-item label {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
   }
 
@@ -1694,7 +1699,7 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--text-xs);
     font-family: monospace;
   }
 
@@ -1709,7 +1714,7 @@
   }
 
   .effect-item label {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--text-secondary);
   }
 
@@ -1719,7 +1724,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     outline: none;
   }
 
@@ -1741,7 +1746,7 @@
   }
 
   .effect-toggle span {
-    font-size: 13px;
+    font-size: var(--text-xs);
     color: var(--text-primary);
   }
 
@@ -1757,7 +1762,7 @@
     padding: 10px 20px;
     border: none;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
