@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Play, Clock, TrendingUp } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Play, Clock, TrendingUp, Search, Heart, History, ListMusic } from 'lucide-vue-next'
+import { useAuthStore } from '../stores/auth'
+import { usePlayerStore } from '../stores/player'
+import { useFavoritesStore } from '../stores/favorites'
+import { usePlaylistsStore } from '../stores/playlists'
+import { useNavigationStore, type NavItem } from '../stores/navigation'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const playerStore = usePlayerStore()
+const favoritesStore = useFavoritesStore()
+const playlistsStore = usePlaylistsStore()
+const navStore = useNavigationStore()
 
 const recentPlays = ref([
   { id: 1, title: 'Sample Video 1', author: 'UP Owner 1', duration: '10:30' },
@@ -14,10 +27,92 @@ const recommendations = ref([
   { id: 3, title: 'Recommended Video 3', author: 'UP Owner C', views: '200K' },
   { id: 4, title: 'Recommended Video 4', author: 'UP Owner D', views: '80K' }
 ])
+
+const userName = computed(() => authStore.userName)
+const favorites = computed(() => favoritesStore.favorites.slice(0, 4))
+const history = computed(() => playerStore.playHistory)
+const playlistsCount = computed(() => playlistsStore.playlistsCount)
+
+onMounted(() => {
+  favoritesStore.loadFavorites()
+  playlistsStore.loadPlaylists()
+})
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 6) return '夜深了'
+  if (hour < 12) return '早上好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  return '晚上好'
+}
+
+function goToSearch() {
+  navStore.setActiveItem('search')
+  router.push('/search')
+}
+
+function goToFavorites() {
+  navStore.setActiveItem('favorites')
+  router.push('/favorites')
+}
+
+function goToHistory() {
+  navStore.setActiveItem('history')
+  router.push('/history')
+}
+
+function goToPlaylists() {
+  navStore.setActiveItem('playlists')
+  router.push('/playlists')
+}
 </script>
 
 <template>
   <div class="home-view">
+    <section class="welcome-section">
+      <div class="welcome-content">
+        <h1 class="welcome-title">
+          {{ getGreeting() }}，<span class="accent">{{ userName }}</span>
+        </h1>
+        <p class="welcome-subtitle">今天想听点什么？</p>
+      </div>
+      <div class="quick-search" @click="goToSearch">
+        <Search :size="20" class="search-icon" />
+        <span class="search-placeholder">搜索视频、UP主...</span>
+      </div>
+    </section>
+
+    <section class="shortcuts-section">
+      <div class="shortcut-card" @click="goToFavorites">
+        <div class="shortcut-icon favorites">
+          <Heart :size="24" />
+        </div>
+        <div class="shortcut-info">
+          <span class="shortcut-title">我的收藏</span>
+          <span class="shortcut-count">{{ favorites.length }} 个视频</span>
+        </div>
+      </div>
+      <div class="shortcut-card" @click="goToHistory">
+        <div class="shortcut-icon history">
+          <History :size="24" />
+        </div>
+        <div class="shortcut-info">
+          <span class="shortcut-title">播放历史</span>
+          <span class="shortcut-count">{{ history.length }} 个视频</span>
+        </div>
+      </div>
+      <div class="shortcut-card" @click="goToPlaylists">
+        <div class="shortcut-icon playlist">
+          <ListMusic :size="24" />
+        </div>
+        <div class="shortcut-info">
+          <span class="shortcut-title">播放列表</span>
+          <span class="shortcut-count">{{ playlistsCount }} 个列表</span>
+        </div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">
@@ -92,6 +187,121 @@ const recommendations = ref([
   display: flex;
   flex-direction: column;
   gap: 32px;
+}
+
+.welcome-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+  border-radius: var(--radius-xl);
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.welcome-title .accent {
+  color: var(--accent);
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.quick-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.quick-search:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
+}
+
+.search-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.search-placeholder {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.shortcuts-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.shortcut-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shortcut-card:hover {
+  background: var(--bg-card);
+  transform: translateY(-2px);
+}
+
+.shortcut-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: white;
+  flex-shrink: 0;
+}
+
+.shortcut-icon.favorites {
+  background: linear-gradient(135deg, var(--accent), #ff8a80);
+}
+
+.shortcut-icon.history {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+}
+
+.shortcut-icon.playlist {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+.shortcut-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcut-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shortcut-count {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
 .section {
@@ -254,9 +464,17 @@ const recommendations = ref([
 }
 
 @media (max-width: 768px) {
+  .shortcuts-section {
+    grid-template-columns: 1fr;
+  }
+
   .video-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 16px;
+  }
+
+  .welcome-title {
+    font-size: 24px;
   }
 }
 </style>
