@@ -629,6 +629,11 @@ export default {
   background: var(--bg-card);
   border-radius: 2px;
   position: relative;
+  transition: height var(--duration-fast, 150ms) var(--ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
+.progress-bar:hover .progress-track {
+  height: 6px;
 }
 
 .progress-fill {
