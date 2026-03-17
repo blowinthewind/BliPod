@@ -33,7 +33,11 @@ const continueVideos = ref<ContinueVideo[]>([])
 const isLoadingContinue = ref(false)
 
 const userName = computed(() => authStore.userName)
-const favorites = computed(() => favoritesStore.favorites.slice(0, 4))
+const favorites = computed(() => 
+  [...favoritesStore.favorites]
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .slice(0, 4)
+)
 const history = computed(() => playerStore.playHistory)
 const playlistsCount = computed(() => playlistsStore.playlistsCount)
 
@@ -216,7 +220,7 @@ function playFavoriteVideo(video: typeof favorites.value[0]) {
       <div class="section-header">
         <h2 class="section-title">
           <Heart :size="20" />
-          你的收藏
+          最近收藏
         </h2>
         <button class="see-more-btn" @click="goToFavorites">查看全部</button>
       </div>
