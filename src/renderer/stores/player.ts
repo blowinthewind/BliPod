@@ -639,15 +639,15 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function updateHistoryDuration(bvid: string, durationSeconds: number) {
-    const index = playHistory.value.findIndex((v) => v.bvid === bvid)
-    if (index === -1) return
-
     const mins = Math.floor(durationSeconds / 60)
     const secs = Math.floor(durationSeconds % 60)
     const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`
 
-    playHistory.value[index].duration = formattedDuration
-    saveHistoryToStorage(playHistory.value)
+    const historyIndex = playHistory.value.findIndex((v) => v.bvid === bvid)
+    if (historyIndex !== -1 && playHistory.value[historyIndex].duration !== formattedDuration) {
+      playHistory.value[historyIndex].duration = formattedDuration
+      saveHistoryToStorage(playHistory.value)
+    }
 
     void window.electronAPI.store.updateFavoriteDuration(bvid, formattedDuration)
     void window.electronAPI.store.updatePlaylistVideoDuration(bvid, formattedDuration)
@@ -874,10 +874,7 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = !progress.paused
 
       if (progress.duration > 0) {
-        const historyItem = playHistory.value.find((v) => v.bvid === currentVideo.value!.bvid)
-        if (historyItem && !historyItem.duration) {
-          updateHistoryDuration(currentVideo.value.bvid, progress.duration)
-        }
+        updateHistoryDuration(currentVideo.value.bvid, progress.duration)
       }
 
       const now = Date.now()

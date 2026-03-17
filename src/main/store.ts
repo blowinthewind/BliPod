@@ -109,6 +109,8 @@ export function updateFavoriteDuration(bvid: string, duration: string): boolean 
   const index = favorites.findIndex((f) => f.bvid === bvid)
   if (index === -1) return false
 
+  if (favorites[index].duration === duration) return false
+
   favorites[index].duration = duration
   store.set('favorites', favorites)
   return true
@@ -197,7 +199,7 @@ export function updatePlaylistVideoDuration(bvid: string, duration: string): boo
 
   for (const playlist of playlists) {
     const videoIndex = playlist.videos.findIndex((v) => v.bvid === bvid)
-    if (videoIndex !== -1) {
+    if (videoIndex !== -1 && playlist.videos[videoIndex].duration !== duration) {
       playlist.videos[videoIndex].duration = duration
       playlist.updatedAt = Date.now()
       updated = true
