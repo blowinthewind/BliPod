@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+  import { cn } from '@/lib/utils'
 
-interface Props {
-  class?: string
-}
+  interface Props {
+    class?: string
+  }
 
-const props = defineProps<Props>()
+  const props = defineProps<Props>()
 </script>
 
 <template>
   <div
-    :class="cn(
-      'rounded-lg border border-border bg-bg-secondary p-4',
-      props.class
-    )"
+    :class="
+      cn('rounded-lg border border-border bg-bg-secondary p-4 transition-colors', props.class)
+    "
   >
     <slot />
   </div>
