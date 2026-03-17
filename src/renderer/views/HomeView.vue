@@ -550,7 +550,7 @@ function playFavoriteVideo(video: typeof recentFavorites.value[0]) {
 
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
@@ -671,12 +671,18 @@ function playFavoriteVideo(video: typeof recentFavorites.value[0]) {
   }
 
   .video-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 16px;
   }
 
   .welcome-title {
     font-size: 24px;
+  }
+}
+
+@media (max-width: 420px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+    max-width: 320px;
   }
 }
 </style>
