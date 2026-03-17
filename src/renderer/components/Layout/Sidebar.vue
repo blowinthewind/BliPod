@@ -100,10 +100,7 @@
         :to="{ name: item.id }"
         class="nav-item"
         :class="{ active: navStore.activeItem === item.id }"
-        @click="
-          navStore.setActiveItem(item.id)
-          navStore.closeMobileMenu()
-        "
+        @click="navStore.setActiveItem(item.id);navStore.closeMobileMenu()"
       >
         <component :is="item.icon" :size="22" class="nav-icon" />
         <span class="nav-label" v-if="!navStore.sidebarCollapsed">
