@@ -66,8 +66,10 @@ async function loadContinueVideos() {
       if (position && position.currentTime > 0 && position.duration > 0) {
         const progressPercent = position.currentTime / position.duration
         if (progressPercent < CONTINUE_CONFIG.MAX_PROGRESS && progressPercent > CONTINUE_CONFIG.MIN_PROGRESS) {
+          const durationFormatted = video.duration || formatTime(position.duration)
           videos.push({
             ...video,
+            duration: durationFormatted,
             progressPercent,
             currentTimeFormatted: formatTime(position.currentTime)
           })

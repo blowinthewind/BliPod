@@ -638,6 +638,18 @@ export const usePlayerStore = defineStore('player', () => {
     playHistory.value = loadHistoryFromStorage()
   }
 
+  function updateHistoryDuration(bvid: string, durationSeconds: number) {
+    const index = playHistory.value.findIndex((v) => v.bvid === bvid)
+    if (index === -1) return
+
+    const mins = Math.floor(durationSeconds / 60)
+    const secs = Math.floor(durationSeconds % 60)
+    const formattedDuration = `${mins}:${secs.toString().padStart(2, '0')}`
+
+    playHistory.value[index].duration = formattedDuration
+    saveHistoryToStorage(playHistory.value)
+  }
+
   // ========== 用户维护的播放队列 ==========
 
   async function addToUserQueue(video: ExtractedVideo) {
@@ -857,6 +869,13 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value = progress.currentTime
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
+
+      if (progress.duration > 0) {
+        const historyItem = playHistory.value.find((v) => v.bvid === currentVideo.value!.bvid)
+        if (historyItem && !historyItem.duration) {
+          updateHistoryDuration(currentVideo.value.bvid, progress.duration)
+        }
+      }
 
       const now = Date.now()
       let deltaSeconds = 0
