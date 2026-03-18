@@ -52,41 +52,53 @@
     </div>
 
     <div class="favorites-list" v-else-if="favorites.length > 0">
-      <div
-        v-for="item in favorites"
-        :key="item.bvid"
-        class="favorite-item"
-        @click="playVideo(item)"
-      >
-        <div class="item-cover">
-          <LazyImage
-            v-if="item.cover"
-            :src="item.cover"
-            :alt="item.title"
-            :width="320"
-            aspect-ratio="16/9"
-            placeholder-icon="play"
-          />
-          <div v-else class="cover-placeholder">🎵</div>
-          <div class="cover-overlay">
-            <button class="play-btn-overlay" @click.stop="playVideo(item)">
-              <Play :size="18" />
-            </button>
+      <div v-for="item in favorites" :key="item.bvid" class="favorite-item">
+        <button
+          class="favorite-item-main"
+          type="button"
+          :aria-label="`播放收藏视频 ${item.title}`"
+          @click="playVideo(item)"
+        >
+          <div class="item-cover">
+            <LazyImage
+              v-if="item.cover"
+              :src="item.cover"
+              :alt="item.title"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
+            />
+            <div v-else class="cover-placeholder">🎵</div>
+            <div class="cover-overlay">
+              <span class="play-btn-overlay" aria-hidden="true">
+                <Play :size="18" />
+              </span>
+            </div>
+            <span class="item-duration">{{ item.duration }}</span>
           </div>
-          <span class="item-duration">{{ item.duration }}</span>
-        </div>
-        <div class="item-info">
-          <h3 class="item-title">{{ item.title }}</h3>
-          <div class="item-meta">
-            <span class="meta-author">{{ item.author }}</span>
-            <span class="meta-date">收藏于 {{ formatDate(item.addedAt) }}</span>
+          <div class="item-info">
+            <h3 class="item-title">{{ item.title }}</h3>
+            <div class="item-meta">
+              <span class="meta-author">{{ item.author }}</span>
+              <span class="meta-date">收藏于 {{ formatDate(item.addedAt) }}</span>
+            </div>
           </div>
-        </div>
+        </button>
         <div class="item-actions">
-          <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
+          <button
+            class="action-btn play"
+            type="button"
+            :aria-label="`播放 ${item.title}`"
+            @click.stop="playVideo(item)"
+          >
             <Play :size="18" />
           </button>
-          <button class="action-btn remove" title="移除" @click.stop="removeFavorite(item.bvid)">
+          <button
+            class="action-btn remove"
+            type="button"
+            :aria-label="`从收藏中移除 ${item.title}`"
+            @click.stop="removeFavorite(item.bvid)"
+          >
             <Trash2 :size="18" />
           </button>
         </div>
@@ -164,9 +176,24 @@
     transition: all 0.2s;
   }
 
-  .favorite-item:hover {
+  .favorite-item:hover,
+  .favorite-item:focus-within {
     background: var(--bg-card);
     border-color: var(--border);
+  }
+
+  .favorite-item-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .item-cover {
@@ -186,7 +213,8 @@
     transition: transform 0.4s ease;
   }
 
-  .favorite-item:hover .item-cover img {
+  .favorite-item:hover .item-cover img,
+  .favorite-item:focus-within .item-cover img {
     transform: scale(1.05);
   }
 
@@ -201,7 +229,8 @@
     transition: opacity 0.3s ease;
   }
 
-  .favorite-item:hover .cover-overlay {
+  .favorite-item:hover .cover-overlay,
+  .favorite-item:focus-within .cover-overlay {
     opacity: 1;
   }
 
