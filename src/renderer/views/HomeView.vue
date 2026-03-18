@@ -133,14 +133,14 @@
         </h1>
         <p class="welcome-subtitle">今天想听点什么？</p>
       </div>
-      <div class="quick-search" @click="goToSearch">
+      <button class="quick-search" type="button" aria-label="搜索视频和 UP 主" @click="goToSearch">
         <Search :size="20" class="search-icon" />
         <span class="search-placeholder">搜索视频、UP主...</span>
-      </div>
+      </button>
     </section>
 
     <section class="shortcuts-section">
-      <div class="shortcut-card" @click="goToFavorites">
+      <button class="shortcut-card" type="button" aria-label="打开我的收藏" @click="goToFavorites">
         <div class="shortcut-icon favorites">
           <Heart :size="24" />
         </div>
@@ -148,8 +148,8 @@
           <span class="shortcut-title">我的收藏</span>
           <span class="shortcut-count">{{ favoritesCount }} 个视频</span>
         </div>
-      </div>
-      <div class="shortcut-card" @click="goToPlaylists">
+      </button>
+      <button class="shortcut-card" type="button" aria-label="打开播放列表" @click="goToPlaylists">
         <div class="shortcut-icon playlist">
           <ListMusic :size="24" />
         </div>
@@ -157,8 +157,8 @@
           <span class="shortcut-title">播放列表</span>
           <span class="shortcut-count">{{ playlistsCount }} 个列表</span>
         </div>
-      </div>
-      <div class="shortcut-card" @click="goToHistory">
+      </button>
+      <button class="shortcut-card" type="button" aria-label="打开播放历史" @click="goToHistory">
         <div class="shortcut-icon history">
           <History :size="24" />
         </div>
@@ -166,7 +166,7 @@
           <span class="shortcut-title">播放历史</span>
           <span class="shortcut-count">{{ history.length }} 个视频</span>
         </div>
-      </div>
+      </button>
     </section>
 
     <section class="section" v-if="continueVideos.length > 0">
@@ -177,10 +177,12 @@
         </h2>
       </div>
       <div class="continue-grid">
-        <div
+        <button
           v-for="video in continueVideos"
           :key="video.bvid"
           class="continue-card"
+          type="button"
+          :aria-label="`继续播放 ${video.title}`"
           @click="playContinueVideo(video)"
         >
           <div class="continue-cover">
@@ -196,9 +198,9 @@
               <Play :size="24" />
             </div>
             <div class="continue-overlay">
-              <button class="continue-play-btn">
+              <span class="continue-play-btn" aria-hidden="true">
                 <Play :size="20" />
-              </button>
+              </span>
             </div>
             <div class="continue-progress">
               <div
@@ -216,7 +218,7 @@
               >
             </div>
           </div>
-        </div>
+        </button>
       </div>
     </section>
 
@@ -229,10 +231,12 @@
         <button class="see-more-btn" @click="goToFavorites">查看全部</button>
       </div>
       <div class="video-grid">
-        <div
+        <button
           v-for="video in recentFavorites"
           :key="video.bvid"
           class="video-card"
+          type="button"
+          :aria-label="`播放收藏视频 ${video.title}`"
           @click="playFavoriteVideo(video)"
         >
           <div class="video-cover">
@@ -248,9 +252,9 @@
               <Play :size="32" />
             </div>
             <div class="video-cover-overlay">
-              <button class="play-btn-overlay">
+              <span class="play-btn-overlay" aria-hidden="true">
                 <Play :size="24" />
-              </button>
+              </span>
             </div>
             <span v-if="video.duration" class="video-duration">{{ video.duration }}</span>
           </div>
@@ -258,7 +262,7 @@
             <h3 class="video-title">{{ video.title }}</h3>
             <span class="video-author">{{ video.author }}</span>
           </div>
-        </div>
+        </button>
       </div>
     </section>
   </div>
@@ -307,9 +311,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    width: 100%;
+    text-align: left;
   }
 
-  .quick-search:hover {
+  .quick-search:hover,
+  .quick-search:focus-visible {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
   }
@@ -339,9 +346,13 @@
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all 0.2s ease;
+    border: none;
+    width: 100%;
+    text-align: left;
   }
 
-  .shortcut-card:hover {
+  .shortcut-card:hover,
+  .shortcut-card:focus-visible {
     background: var(--bg-card);
     transform: translateY(-2px);
   }
@@ -438,9 +449,14 @@
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all 0.2s ease;
+    border: none;
+    width: 100%;
+    text-align: left;
   }
 
-  .continue-card:hover {
+  .continue-card:hover,
+  .continue-card:focus-visible,
+  .continue-card:focus-within {
     background: var(--bg-card);
     transform: translateY(-2px);
   }
@@ -462,7 +478,9 @@
     transition: transform 0.4s ease;
   }
 
-  .continue-card:hover .continue-cover img {
+  .continue-card:hover .continue-cover img,
+  .continue-card:focus-visible .continue-cover img,
+  .continue-card:focus-within .continue-cover img {
     transform: scale(1.05);
   }
 
@@ -486,7 +504,9 @@
     transition: opacity 0.3s ease;
   }
 
-  .continue-card:hover .continue-overlay {
+  .continue-card:hover .continue-overlay,
+  .continue-card:focus-visible .continue-overlay,
+  .continue-card:focus-within .continue-overlay {
     opacity: 1;
   }
 
@@ -569,9 +589,14 @@
     background: var(--bg-secondary);
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    width: 100%;
+    text-align: left;
   }
 
-  .video-card:hover {
+  .video-card:hover,
+  .video-card:focus-visible,
+  .video-card:focus-within {
     background: var(--bg-card);
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
@@ -604,12 +629,18 @@
     color: var(--text-secondary);
   }
 
-  .video-card:hover .cover-placeholder {
+  .video-card:hover .cover-placeholder,
+  .video-card:focus-visible .cover-placeholder,
+  .video-card:focus-within .cover-placeholder {
     color: var(--accent);
   }
 
   .video-card:hover .video-cover img,
-  .video-card:hover .cover-placeholder {
+  .video-card:hover .cover-placeholder,
+  .video-card:focus-visible .video-cover img,
+  .video-card:focus-visible .cover-placeholder,
+  .video-card:focus-within .video-cover img,
+  .video-card:focus-within .cover-placeholder {
     transform: scale(1.05);
   }
 
@@ -624,7 +655,9 @@
     transition: opacity 0.3s ease;
   }
 
-  .video-card:hover .video-cover-overlay {
+  .video-card:hover .video-cover-overlay,
+  .video-card:focus-visible .video-cover-overlay,
+  .video-card:focus-within .video-cover-overlay {
     opacity: 1;
   }
 
