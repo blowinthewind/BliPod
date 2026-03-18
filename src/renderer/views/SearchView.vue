@@ -183,18 +183,27 @@
 
     <div class="search-box">
       <div class="search-input-wrapper">
+        <label class="sr-only" for="search-query-input">搜索关键词</label>
         <Search :size="20" class="search-icon" />
         <input
+          id="search-query-input"
           ref="searchInputRef"
           type="text"
           class="search-input"
           placeholder="Enter keywords to search..."
+          aria-label="搜索关键词"
           v-model="searchQuery"
           @keyup.enter="handleSearch"
           @focus="focusInput"
           @blur="blurInput"
         />
-        <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
+        <button
+          v-if="searchQuery"
+          class="clear-btn"
+          type="button"
+          aria-label="清空搜索关键词"
+          @click="searchQuery = ''"
+        >
           <X :size="16" />
         </button>
       </div>
@@ -212,15 +221,22 @@
           <button class="clear-history-btn" @click="clearAllHistory">Clear All</button>
         </div>
         <div class="history-list">
-          <div
-            v-for="item in searchStore.searchHistory"
-            :key="item"
-            class="history-item"
-            @click="handleHistoryClick(item)"
-          >
-            <Clock :size="14" class="history-icon" />
-            <span class="history-text">{{ item }}</span>
-            <button class="remove-history-btn" @click="removeHistoryItem(item, $event)">
+          <div v-for="item in searchStore.searchHistory" :key="item" class="history-item">
+            <button
+              class="history-item-main"
+              type="button"
+              :aria-label="`搜索历史：${item}`"
+              @click="handleHistoryClick(item)"
+            >
+              <Clock :size="14" class="history-icon" />
+              <span class="history-text">{{ item }}</span>
+            </button>
+            <button
+              class="remove-history-btn"
+              type="button"
+              :aria-label="`从搜索历史中移除 ${item}`"
+              @click="removeHistoryItem(item, $event)"
+            >
               <X :size="14" />
             </button>
           </div>
@@ -247,73 +263,90 @@
       </div>
 
       <div class="results-list">
-        <div
-          v-for="result in searchStore.results"
-          :key="result.bvid"
-          class="result-item"
-          @click="handlePlay(result.bvid)"
-        >
-          <div class="result-cover">
-            <LazyImage
-              v-if="result.cover"
-              :src="result.cover"
-              :alt="result.title"
-              :width="320"
-              aspect-ratio="16/9"
-              placeholder-icon="play"
-            />
-            <div v-else class="cover-placeholder">
-              <Play :size="24" />
+        <div v-for="result in searchStore.results" :key="result.bvid" class="result-item">
+          <button
+            class="result-main"
+            type="button"
+            :aria-label="`播放搜索结果 ${result.title}`"
+            @click="handlePlay(result.bvid)"
+          >
+            <div class="result-cover">
+              <LazyImage
+                v-if="result.cover"
+                :src="result.cover"
+                :alt="result.title"
+                :width="320"
+                aspect-ratio="16/9"
+                placeholder-icon="play"
+              />
+              <div v-else class="cover-placeholder">
+                <Play :size="24" />
+              </div>
+              <div class="result-cover-overlay">
+                <span class="play-btn-overlay" aria-hidden="true">
+                  <Play :size="18" />
+                </span>
+              </div>
+              <span v-if="result.duration" class="duration-badge">{{ result.duration }}</span>
             </div>
-            <div class="result-cover-overlay">
-              <button class="play-btn-overlay" @click.stop="handlePlay(result.bvid)">
-                <Play :size="18" />
-              </button>
+            <div class="result-info">
+              <h3 class="result-title" :title="result.title">{{ result.title }}</h3>
+              <div class="result-meta">
+                <button
+                  class="meta-item author clickable"
+                  type="button"
+                  :aria-label="`查看 ${result.author} 的视频`"
+                  @click.stop="handleAuthorClick(result.authorLink, $event)"
+                >
+                  {{ result.author }}
+                </button>
+                <span class="meta-divider">•</span>
+                <span v-if="result.playCount" class="meta-item">{{ result.playCount }} plays</span>
+              </div>
             </div>
-            <span v-if="result.duration" class="duration-badge">{{ result.duration }}</span>
-          </div>
-          <div class="result-info">
-            <h3 class="result-title" :title="result.title">{{ result.title }}</h3>
-            <div class="result-meta">
-              <span
-                class="meta-item author clickable"
-                @click="handleAuthorClick(result.authorLink, $event)"
-                :title="`View ${result.author}'s videos`"
-              >
-                {{ result.author }}
-              </span>
-              <span class="meta-divider">•</span>
-              <span v-if="result.playCount" class="meta-item">{{ result.playCount }} plays</span>
-            </div>
-          </div>
+          </button>
           <button
             class="favorite-btn"
+            type="button"
             @click.stop="toggleFavorite(result, $event)"
-            :title="isFavorite(result.bvid) ? 'Remove from favorites' : 'Add to favorites'"
+            :aria-label="
+              isFavorite(result.bvid) ? `从收藏中移除 ${result.title}` : `收藏 ${result.title}`
+            "
           >
             <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
           </button>
           <button
             class="queue-btn"
+            type="button"
             @click.stop="addToQueue(result, $event)"
-            :title="isInQueue(result.bvid) ? '已在播放队列中' : '添加到播放队列'"
+            :aria-label="
+              isInQueue(result.bvid)
+                ? `${result.title} 已在播放队列中`
+                : `将 ${result.title} 添加到播放队列`
+            "
           >
             <Check v-if="isInQueue(result.bvid)" :size="16" />
             <ListMusic v-else :size="16" />
           </button>
           <button
             class="playlist-btn"
+            type="button"
             @click.stop="openPlaylistDialog(result, $event)"
-            :title="
+            :aria-label="
               playlistsStore.isVideoInAnyPlaylist(result.bvid)
-                ? '已添加到播放列表'
-                : '添加到播放列表'
+                ? `${result.title} 已添加到播放列表`
+                : `将 ${result.title} 添加到播放列表`
             "
           >
             <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(result.bvid)" :size="16" />
             <ListPlus v-else :size="16" />
           </button>
-          <button class="play-btn" @click.stop="handlePlay(result.bvid)">
+          <button
+            class="play-btn"
+            type="button"
+            :aria-label="`播放 ${result.title}`"
+            @click.stop="handlePlay(result.bvid)"
+          >
             <Play :size="18" />
           </button>
         </div>
@@ -361,6 +394,18 @@
     flex-direction: column;
     gap: 24px;
     max-width: 900px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .search-header {
@@ -533,14 +578,28 @@
   .history-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 12px 16px;
-    cursor: pointer;
     transition: background 0.2s;
   }
 
-  .history-item:hover {
+  .history-item:hover,
+  .history-item:focus-within {
     background: var(--bg-card);
+  }
+
+  .history-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .history-icon {
@@ -572,7 +631,8 @@
     transition: all 0.2s;
   }
 
-  .history-item:hover .remove-history-btn {
+  .history-item:hover .remove-history-btn,
+  .history-item:focus-within .remove-history-btn {
     opacity: 1;
   }
 
@@ -650,9 +710,24 @@
     transition: all 0.2s;
   }
 
-  .result-item:hover {
+  .result-item:hover,
+  .result-item:focus-within {
     background: var(--bg-card);
     border-color: var(--border);
+  }
+
+  .result-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .result-cover {
@@ -672,7 +747,8 @@
     transition: transform 0.4s ease;
   }
 
-  .result-item:hover .result-cover img {
+  .result-item:hover .result-cover img,
+  .result-item:focus-within .result-cover img {
     transform: scale(1.05);
   }
 
@@ -687,7 +763,8 @@
     transition: opacity 0.3s ease;
   }
 
-  .result-item:hover .result-cover-overlay {
+  .result-item:hover .result-cover-overlay,
+  .result-item:focus-within .result-cover-overlay {
     opacity: 1;
   }
 
@@ -761,6 +838,9 @@
   }
 
   .meta-item.author.clickable {
+    border: none;
+    background: transparent;
+    padding: 0;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -790,7 +870,8 @@
     flex-shrink: 0;
   }
 
-  .result-item:hover .favorite-btn {
+  .result-item:hover .favorite-btn,
+  .result-item:focus-within .favorite-btn {
     opacity: 1;
   }
 
@@ -819,7 +900,8 @@
     flex-shrink: 0;
   }
 
-  .result-item:hover .queue-btn {
+  .result-item:hover .queue-btn,
+  .result-item:focus-within .queue-btn {
     opacity: 1;
   }
 
@@ -849,7 +931,8 @@
     flex-shrink: 0;
   }
 
-  .result-item:hover .playlist-btn {
+  .result-item:hover .playlist-btn,
+  .result-item:focus-within .playlist-btn {
     opacity: 1;
   }
 
@@ -879,7 +962,8 @@
     flex-shrink: 0;
   }
 
-  .result-item:hover .play-btn {
+  .result-item:hover .play-btn,
+  .result-item:focus-within .play-btn {
     opacity: 1;
   }
 
