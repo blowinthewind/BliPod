@@ -58,6 +58,11 @@
   function cancelLogout() {
     showLogoutConfirm.value = false
   }
+
+  function handleNavClick(itemId: NavItem) {
+    navStore.setActiveItem(itemId)
+    navStore.closeMobileMenu()
+  }
 </script>
 
 <template>
@@ -100,7 +105,7 @@
         :to="{ name: item.id }"
         class="nav-item"
         :class="{ active: navStore.activeItem === item.id }"
-        @click="navStore.setActiveItem(item.id);navStore.closeMobileMenu()"
+        @click="handleNavClick(item.id)"
       >
         <component :is="item.icon" :size="22" class="nav-icon" />
         <span class="nav-label" v-if="!navStore.sidebarCollapsed">
@@ -127,7 +132,14 @@
             <span class="user-name">
               {{ authStore.userInfo?.name }}
             </span>
-            <LogOut :size="16" class="logout-icon" @click.stop="showLogoutConfirm = true" />
+            <button
+              class="logout-btn"
+              type="button"
+              aria-label="退出登录"
+              @click.stop="showLogoutConfirm = true"
+            >
+              <LogOut :size="16" class="logout-icon" />
+            </button>
           </div>
         </div>
       </div>
@@ -375,6 +387,20 @@
 
   .logout-icon {
     color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
     flex-shrink: 0;
   }
 
