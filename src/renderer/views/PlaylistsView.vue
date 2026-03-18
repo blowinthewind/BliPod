@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
@@ -19,15 +19,62 @@
   const deletingPlaylist = ref<Playlist | null>(null)
   const newPlaylistName = ref('')
   const newPlaylistDescription = ref('')
+  const createModalRef = ref<HTMLDivElement | null>(null)
+  const editModalRef = ref<HTMLDivElement | null>(null)
+  const deleteModalRef = ref<HTMLDivElement | null>(null)
+  const createNameInputRef = ref<HTMLInputElement | null>(null)
+  const editNameInputRef = ref<HTMLInputElement | null>(null)
+  const deleteCancelButtonRef = ref<HTMLButtonElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     playlistsStore.loadPlaylists()
+  })
+
+  watch(showCreateModal, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      createNameInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
+  })
+
+  watch(showEditModal, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      editNameInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
+  })
+
+  watch(showDeleteConfirm, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      deleteCancelButtonRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
   })
 
   function openCreateModal() {
     newPlaylistName.value = ''
     newPlaylistDescription.value = ''
     showCreateModal.value = true
+  }
+
+  function closeCreateModal() {
+    showCreateModal.value = false
   }
 
   async function createPlaylist() {
@@ -49,6 +96,11 @@
     showEditModal.value = true
   }
 
+  function closeEditModal() {
+    showEditModal.value = false
+    editingPlaylist.value = null
+  }
+
   async function updatePlaylist() {
     if (editingPlaylist.value && newPlaylistName.value.trim()) {
       await playlistsStore.updatePlaylist(editingPlaylist.value.id, {
@@ -65,6 +117,11 @@
     showDeleteConfirm.value = true
   }
 
+  function closeDeleteConfirm() {
+    showDeleteConfirm.value = false
+    deletingPlaylist.value = null
+  }
+
   async function deletePlaylist() {
     if (deletingPlaylist.value) {
       await playlistsStore.deletePlaylist(deletingPlaylist.value.id)
@@ -75,6 +132,65 @@
 
   function openPlaylist(playlist: Playlist) {
     router.push({ name: 'playlist-detail', params: { id: playlist.id } })
+  }
+
+  function getFocusableElements(container: HTMLElement | null) {
+    if (!container) return [] as HTMLElement[]
+
+    const selectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
+    )
+  }
+
+  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onEscape()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getFocusableElements(container)
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !container?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
+  function handleCreateDialogKeydown(event: KeyboardEvent) {
+    trapFocus(event, createModalRef.value, closeCreateModal)
+  }
+
+  function handleEditDialogKeydown(event: KeyboardEvent) {
+    trapFocus(event, editModalRef.value, closeEditModal)
+  }
+
+  function handleDeleteDialogKeydown(event: KeyboardEvent) {
+    trapFocus(event, deleteModalRef.value, closeDeleteConfirm)
   }
 
   function formatDate(timestamp: number): string {
@@ -108,39 +224,51 @@
     </div>
 
     <div class="playlists-grid" v-else-if="playlists.length > 0">
-      <div
-        v-for="playlist in playlists"
-        :key="playlist.id"
-        class="playlist-card"
-        @click="openPlaylist(playlist)"
-      >
-        <div class="playlist-cover">
-          <LazyImage
-            v-if="playlist.videos.length > 0 && playlist.videos[0].cover"
-            :src="playlist.videos[0].cover"
-            :alt="playlist.name"
-            :width="480"
-            aspect-ratio="16/9"
-            placeholder-icon="image"
-          />
-          <div v-else class="cover-placeholder">
-            <ListMusic :size="32" />
+      <div v-for="playlist in playlists" :key="playlist.id" class="playlist-card">
+        <button
+          class="playlist-card-main"
+          type="button"
+          :aria-label="`打开播放列表 ${playlist.name}`"
+          @click="openPlaylist(playlist)"
+        >
+          <div class="playlist-cover">
+            <LazyImage
+              v-if="playlist.videos.length > 0 && playlist.videos[0].cover"
+              :src="playlist.videos[0].cover"
+              :alt="playlist.name"
+              :width="480"
+              aspect-ratio="16/9"
+              placeholder-icon="image"
+            />
+            <div v-else class="cover-placeholder">
+              <ListMusic :size="32" />
+            </div>
+            <div class="video-count-badge" v-if="playlist.videos.length > 0">
+              {{ playlist.videos.length }}
+            </div>
           </div>
-          <div class="video-count-badge" v-if="playlist.videos.length > 0">
-            {{ playlist.videos.length }}
+          <div class="playlist-info">
+            <h3 class="playlist-name">{{ playlist.name }}</h3>
+            <p class="playlist-meta">
+              {{ playlist.videos.length }} 个视频 · {{ formatDate(playlist.createdAt) }}
+            </p>
           </div>
-        </div>
-        <div class="playlist-info">
-          <h3 class="playlist-name">{{ playlist.name }}</h3>
-          <p class="playlist-meta">
-            {{ playlist.videos.length }} 个视频 · {{ formatDate(playlist.createdAt) }}
-          </p>
-        </div>
+        </button>
         <div class="card-actions">
-          <button class="action-btn edit" title="编辑" @click.stop="openEditModal(playlist)">
+          <button
+            class="action-btn edit"
+            type="button"
+            :aria-label="`编辑播放列表 ${playlist.name}`"
+            @click.stop="openEditModal(playlist)"
+          >
             <Edit3 :size="16" />
           </button>
-          <button class="action-btn delete" title="删除" @click.stop="openDeleteConfirm(playlist)">
+          <button
+            class="action-btn delete"
+            type="button"
+            :aria-label="`删除播放列表 ${playlist.name}`"
+            @click.stop="openDeleteConfirm(playlist)"
+          >
             <Trash2 :size="16" />
           </button>
         </div>
@@ -157,26 +285,41 @@
       </button>
     </div>
 
-    <div class="modal-overlay" v-if="showCreateModal" @click.self="showCreateModal = false">
-      <div class="modal">
-        <h2 class="modal-title">新建播放列表</h2>
+    <div class="modal-overlay" v-if="showCreateModal" @click.self="closeCreateModal">
+      <div
+        ref="createModalRef"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-playlist-title"
+        @keydown="handleCreateDialogKeydown"
+      >
+        <h2 id="create-playlist-title" class="modal-title">新建播放列表</h2>
+        <label class="sr-only" for="create-playlist-name">播放列表名称</label>
         <input
+          id="create-playlist-name"
+          ref="createNameInputRef"
           type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="newPlaylistName"
           @keyup.enter="createPlaylist"
+          aria-label="播放列表名称"
         />
+        <label class="sr-only" for="create-playlist-description">播放列表描述</label>
         <textarea
+          id="create-playlist-description"
           class="modal-textarea"
           placeholder="输入描述（可选）..."
           v-model="newPlaylistDescription"
           rows="3"
+          aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showCreateModal = false">取消</button>
+          <button class="modal-btn cancel" type="button" @click="closeCreateModal">取消</button>
           <button
             class="modal-btn confirm"
+            type="button"
             @click="createPlaylist"
             :disabled="!newPlaylistName.trim()"
           >
@@ -186,26 +329,41 @@
       </div>
     </div>
 
-    <div class="modal-overlay" v-if="showEditModal" @click.self="showEditModal = false">
-      <div class="modal">
-        <h2 class="modal-title">编辑播放列表</h2>
+    <div class="modal-overlay" v-if="showEditModal" @click.self="closeEditModal">
+      <div
+        ref="editModalRef"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-playlist-title"
+        @keydown="handleEditDialogKeydown"
+      >
+        <h2 id="edit-playlist-title" class="modal-title">编辑播放列表</h2>
+        <label class="sr-only" for="edit-playlist-name">播放列表名称</label>
         <input
+          id="edit-playlist-name"
+          ref="editNameInputRef"
           type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="newPlaylistName"
           @keyup.enter="updatePlaylist"
+          aria-label="播放列表名称"
         />
+        <label class="sr-only" for="edit-playlist-description">播放列表描述</label>
         <textarea
+          id="edit-playlist-description"
           class="modal-textarea"
           placeholder="输入描述（可选）..."
           v-model="newPlaylistDescription"
           rows="3"
+          aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showEditModal = false">取消</button>
+          <button class="modal-btn cancel" type="button" @click="closeEditModal">取消</button>
           <button
             class="modal-btn confirm"
+            type="button"
             @click="updatePlaylist"
             :disabled="!newPlaylistName.trim()"
           >
@@ -215,15 +373,32 @@
       </div>
     </div>
 
-    <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
-      <div class="modal confirm-modal">
-        <h2 class="modal-title">确认删除</h2>
+    <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="closeDeleteConfirm">
+      <div
+        ref="deleteModalRef"
+        class="modal confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-playlist-title"
+        aria-describedby="delete-playlist-description"
+        @keydown="handleDeleteDialogKeydown"
+      >
+        <h2 id="delete-playlist-title" class="modal-title">确认删除</h2>
         <p class="confirm-text">
-          确定要删除播放列表「{{ deletingPlaylist?.name }}」吗？此操作不可撤销。
+          <span id="delete-playlist-description">
+            确定要删除播放列表「{{ deletingPlaylist?.name }}」吗？此操作不可撤销。
+          </span>
         </p>
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showDeleteConfirm = false">取消</button>
-          <button class="modal-btn delete" @click="deletePlaylist">删除</button>
+          <button
+            ref="deleteCancelButtonRef"
+            class="modal-btn cancel"
+            type="button"
+            @click="closeDeleteConfirm"
+          >
+            取消
+          </button>
+          <button class="modal-btn delete" type="button" @click="deletePlaylist">删除</button>
         </div>
       </div>
     </div>
@@ -235,6 +410,18 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .page-header {
@@ -317,10 +504,23 @@
     position: relative;
   }
 
-  .playlist-card:hover {
+  .playlist-card:hover,
+  .playlist-card:focus-within {
     background: var(--bg-card);
     transform: translateY(-2px);
     border-color: var(--border);
+  }
+
+  .playlist-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .playlist-cover {
@@ -394,7 +594,8 @@
     transition: opacity 0.2s;
   }
 
-  .playlist-card:hover .card-actions {
+  .playlist-card:hover .card-actions,
+  .playlist-card:focus-within .card-actions {
     opacity: 1;
   }
 
