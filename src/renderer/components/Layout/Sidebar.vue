@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted } from 'vue'
+  import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
   import { useNavigationStore, type NavItem } from '@/stores/navigation'
   import { useAuthStore } from '@/stores/auth'
   import {
@@ -21,6 +21,9 @@
   const authStore = useAuthStore()
 
   const showLogoutConfirm = ref(false)
+  const logoutButtonRef = ref<HTMLButtonElement | null>(null)
+  const cancelLogoutButtonRef = ref<HTMLButtonElement | null>(null)
+  const confirmLogoutButtonRef = ref<HTMLButtonElement | null>(null)
 
   interface NavMenuItem {
     id: NavItem
@@ -50,6 +53,17 @@
     }
   })
 
+  watch(showLogoutConfirm, async (isOpen) => {
+    if (isOpen) {
+      await nextTick()
+      cancelLogoutButtonRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    logoutButtonRef.value?.focus()
+  })
+
   function confirmLogout() {
     authStore.logout()
     showLogoutConfirm.value = false
@@ -62,6 +76,37 @@
   function handleNavClick(itemId: NavItem) {
     navStore.setActiveItem(itemId)
     navStore.closeMobileMenu()
+  }
+
+  function handleLogoutDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      cancelLogout()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = [cancelLogoutButtonRef.value, confirmLogoutButtonRef.value].filter(
+      (element): element is HTMLButtonElement => element !== null
+    )
+
+    if (focusableElements.length === 0) return
+
+    const currentIndex = focusableElements.indexOf(document.activeElement as HTMLButtonElement)
+
+    if (event.shiftKey) {
+      if (currentIndex <= 0) {
+        event.preventDefault()
+        focusableElements[focusableElements.length - 1].focus()
+      }
+      return
+    }
+
+    if (currentIndex === focusableElements.length - 1) {
+      event.preventDefault()
+      focusableElements[0].focus()
+    }
   }
 </script>
 
@@ -133,6 +178,7 @@
               {{ authStore.userInfo?.name }}
             </span>
             <button
+              ref="logoutButtonRef"
               class="logout-btn"
               type="button"
               aria-label="退出登录"
@@ -146,11 +192,21 @@
     </div>
 
     <div class="logout-confirm-overlay" v-if="showLogoutConfirm" @click.self="cancelLogout">
-      <div class="logout-confirm-dialog">
-        <p class="confirm-text">Confirm logout?</p>
+      <div
+        class="logout-confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-confirm-title"
+        @keydown="handleLogoutDialogKeydown"
+      >
+        <p id="logout-confirm-title" class="confirm-text">Confirm logout?</p>
         <div class="confirm-actions">
-          <button class="confirm-btn cancel" @click="cancelLogout">Cancel</button>
-          <button class="confirm-btn logout" @click="confirmLogout">Logout</button>
+          <button ref="cancelLogoutButtonRef" class="confirm-btn cancel" @click="cancelLogout">
+            Cancel
+          </button>
+          <button ref="confirmLogoutButtonRef" class="confirm-btn logout" @click="confirmLogout">
+            Logout
+          </button>
         </div>
       </div>
     </div>
