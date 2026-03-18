@@ -18,7 +18,7 @@
     X,
     Trash2
   } from 'lucide-vue-next'
-  import { computed, onMounted, onBeforeUnmount, ref, toRaw } from 'vue'
+  import { computed, nextTick, onMounted, onBeforeUnmount, ref, toRaw, watch } from 'vue'
   import { usePlayerStore } from '../../stores/player'
   import { useFavoritesStore } from '../../stores/favorites'
   import { usePlaylistsStore } from '../../stores/playlists'
@@ -45,6 +45,10 @@
 
   const showPlaylistDialog = ref(false)
   const showQueuePanel = ref(false)
+  const queueToggleButtonRef = ref<HTMLButtonElement | null>(null)
+  const queuePanelRef = ref<HTMLDivElement | null>(null)
+  const closeQueueButtonRef = ref<HTMLButtonElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(async () => {
     favoritesStore.loadFavorites()
@@ -59,6 +63,18 @@
 
   onBeforeUnmount(async () => {
     await playerStore.saveCurrentPosition()
+  })
+
+  watch(showQueuePanel, async (isOpen) => {
+    if (isOpen) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      closeQueueButtonRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    ;(queueToggleButtonRef.value ?? lastFocusedElementRef.value)?.focus()
   })
 
   function openPlaylistDialog() {
@@ -107,6 +123,48 @@
     showQueuePanel.value = false
   }
 
+  function handleQueuePanelKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeQueuePanel()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableSelectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    const focusableElements = Array.from(
+      queuePanelRef.value?.querySelectorAll<HTMLElement>(focusableSelectors) ?? []
+    ).filter((element) => !element.hasAttribute('disabled') && element.offsetParent !== null)
+
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !queuePanelRef.value?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
   function playFromQueue(index: number) {
     playerStore.playFromUserQueue(index)
   }
@@ -121,15 +179,52 @@
       await playerStore.clearUserQueue()
     }
   }
+
+  function handleProgressKeydown(event: KeyboardEvent) {
+    if (!playerStore.hasVideo) return
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault()
+        playerStore.seekBackward(5)
+        break
+      case 'ArrowRight':
+        event.preventDefault()
+        playerStore.seekForward(5)
+        break
+      case 'Home':
+        event.preventDefault()
+        playerStore.seekByPercent(0)
+        break
+      case 'End':
+        event.preventDefault()
+        playerStore.seekByPercent(100)
+        break
+      case 'PageDown':
+        event.preventDefault()
+        playerStore.seekBackward(15)
+        break
+      case 'PageUp':
+        event.preventDefault()
+        playerStore.seekForward(15)
+        break
+    }
+  }
 </script>
 
 <template>
   <footer class="player-bar">
     <div class="now-playing">
-      <div
+      <button
         class="track-cover"
+        type="button"
         @click="playerStore.togglePlay"
-        :title="playerStore.currentVideo?.title"
+        :aria-label="
+          playerStore.isPlaying
+            ? `暂停 ${playerStore.currentVideo?.title || '当前内容'}`
+            : `播放 ${playerStore.currentVideo?.title || '当前内容'}`
+        "
+        :disabled="!playerStore.hasVideo"
       >
         <img
           v-if="playerStore.currentVideo?.cover"
@@ -141,16 +236,12 @@
           <span v-else>🎵</span>
         </div>
         <div class="track-cover-overlay">
-          <button
-            class="mini-play-btn"
-            @click.stop="playerStore.togglePlay"
-            :aria-label="playerStore.isPlaying ? 'Pause' : 'Play'"
-          >
+          <span class="mini-play-btn" aria-hidden="true">
             <Play v-if="!playerStore.isPlaying" :size="14" />
             <Pause v-else :size="14" />
-          </button>
+          </span>
         </div>
-      </div>
+      </button>
       <div class="track-info">
         <span class="track-title" :title="playerStore.currentVideo?.title">
           {{ playerStore.currentVideo?.title || 'Waiting to play...' }}
@@ -250,8 +341,7 @@
           :aria-valuenow="playerStore.currentTime"
           :aria-valuetext="formattedCurrentTime"
           tabindex="0"
-          @keydown.left="playerStore.seekBackward(5)"
-          @keydown.right="playerStore.seekForward(5)"
+          @keydown="handleProgressKeydown"
         >
           <div class="progress-track">
             <div class="progress-fill" :style="{ width: `${progress}%` }">
@@ -265,11 +355,13 @@
 
     <div class="extra-controls">
       <button
+        ref="queueToggleButtonRef"
         class="control-btn small queue-btn"
         :class="{ active: showQueuePanel || isCurrentInQueue }"
         @click="toggleQueuePanel"
         :aria-label="'Queue (' + queueCount + ' tracks)'"
         :aria-expanded="showQueuePanel"
+        aria-controls="player-queue-panel"
       >
         <ListMusic :size="18" />
         <span v-if="queueCount > 0" class="queue-badge">{{ queueCount }}</span>
@@ -317,9 +409,17 @@
 
     <!-- 播放队列面板 -->
     <div class="queue-panel-overlay" v-if="showQueuePanel" @click.self="closeQueuePanel">
-      <div class="queue-panel">
+      <div
+        id="player-queue-panel"
+        ref="queuePanelRef"
+        class="queue-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="player-queue-title"
+        @keydown="handleQueuePanelKeydown"
+      >
         <div class="queue-header">
-          <div class="queue-title">
+          <div id="player-queue-title" class="queue-title">
             <ListMusic :size="18" />
             <span>播放队列</span>
             <span class="queue-count">({{ queueCount }})</span>
@@ -328,12 +428,19 @@
             <button
               v-if="queueCount > 0"
               class="queue-action-btn"
+              type="button"
               @click="clearQueue"
-              title="清空队列"
+              aria-label="清空播放队列"
             >
               <Trash2 :size="14" />
             </button>
-            <button class="queue-action-btn" @click="closeQueuePanel" title="关闭">
+            <button
+              ref="closeQueueButtonRef"
+              class="queue-action-btn"
+              type="button"
+              aria-label="关闭播放队列"
+              @click="closeQueuePanel"
+            >
               <X :size="16" />
             </button>
           </div>
@@ -345,24 +452,31 @@
             :key="video.bvid"
             class="queue-item"
             :class="{ active: playerStore.currentVideo?.bvid === video.bvid }"
-            @click="playFromQueue(index)"
           >
-            <div class="queue-item-index">
-              <span v-if="playerStore.currentVideo?.bvid === video.bvid">▶</span>
-              <span v-else>{{ index + 1 }}</span>
-            </div>
-            <div class="queue-item-cover">
-              <img v-if="video.cover" :src="video.cover" :alt="video.title" />
-              <div v-else class="queue-item-placeholder">🎵</div>
-            </div>
-            <div class="queue-item-info">
-              <div class="queue-item-title" :title="video.title">{{ video.title }}</div>
-              <div class="queue-item-author">{{ video.author }}</div>
-            </div>
+            <button
+              class="queue-item-main"
+              type="button"
+              :aria-label="`播放队列中的 ${video.title}`"
+              @click="playFromQueue(index)"
+            >
+              <div class="queue-item-index">
+                <span v-if="playerStore.currentVideo?.bvid === video.bvid">▶</span>
+                <span v-else>{{ index + 1 }}</span>
+              </div>
+              <div class="queue-item-cover">
+                <img v-if="video.cover" :src="video.cover" :alt="video.title" />
+                <div v-else class="queue-item-placeholder">🎵</div>
+              </div>
+              <div class="queue-item-info">
+                <div class="queue-item-title" :title="video.title">{{ video.title }}</div>
+                <div class="queue-item-author">{{ video.author }}</div>
+              </div>
+            </button>
             <button
               class="queue-item-remove"
+              type="button"
               @click.stop="removeFromQueue(video.bvid, $event)"
-              title="移除"
+              :aria-label="`从播放队列移除 ${video.title}`"
             >
               <X :size="14" />
             </button>
@@ -420,6 +534,8 @@
     background: var(--bg-card);
     flex-shrink: 0;
     cursor: pointer;
+    padding: 0;
+    border: none;
   }
 
   .track-cover img {
@@ -854,12 +970,26 @@
     gap: 12px;
     padding: 10px;
     border-radius: 8px;
-    cursor: pointer;
     transition: all 0.2s;
   }
 
-  .queue-item:hover {
+  .queue-item:hover,
+  .queue-item:focus-within {
     background: var(--bg-card);
+  }
+
+  .queue-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .queue-item.active {
