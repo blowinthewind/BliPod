@@ -222,7 +222,7 @@
   .sidebar {
     display: flex;
     flex-direction: column;
-    width: 240px;
+    width: clamp(220px, 18vw, 240px);
     height: 100%;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
@@ -234,7 +234,7 @@
   }
 
   .sidebar.collapsed {
-    width: 72px;
+    width: 80px;
   }
 
   .sidebar-header {
@@ -291,8 +291,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 6px;
     background: transparent;
@@ -555,7 +555,7 @@
       top: 0;
       bottom: 0;
       transform: translateX(-100%);
-      width: 280px;
+      width: min(280px, calc(100vw - 24px));
     }
 
     .sidebar.mobile-open {
@@ -563,7 +563,7 @@
     }
 
     .sidebar.collapsed {
-      width: 280px;
+      width: min(280px, calc(100vw - 24px));
     }
 
     .collapse-btn {
