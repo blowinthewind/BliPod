@@ -662,17 +662,20 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
     z-index: 1000;
+    padding: 12px;
   }
 
   .modal {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    width: 400px;
-    max-width: 90vw;
-    padding: 24px;
+    width: min(400px, 100%);
+    max-width: 100%;
+    max-height: min(80vh, 720px);
+    padding: clamp(16px, 4vw, 24px);
     background: var(--bg-secondary);
     border-radius: 12px;
+    overflow: auto;
   }
 
   .modal-title {
@@ -765,5 +768,17 @@
     font-size: var(--text-sm);
     color: var(--text-secondary);
     line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    .modal-actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+
+    .modal-btn {
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
