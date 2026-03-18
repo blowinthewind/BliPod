@@ -340,7 +340,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 900px;
+    max-width: min(900px, 100%);
   }
 
   .uploader-header {
@@ -353,8 +353,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 50%;
     background: var(--bg-secondary);
@@ -790,6 +790,73 @@
     }
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .uploader-header {
+      align-items: flex-start;
+    }
+
+    .uploader-info {
+      min-width: 0;
+    }
+
+    .video-cover {
+      width: clamp(104px, 24vw, 120px);
+      height: auto;
+      aspect-ratio: 16 / 9;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .uploader-header {
+      gap: 12px;
+    }
+
+    .uploader-text {
+      min-width: 0;
+    }
+
+    .uploader-name {
+      font-size: var(--text-xl);
+    }
+
+    .results-header {
+      align-items: flex-start;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    .video-item {
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .video-item-main {
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .video-meta {
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .video-item {
+      padding: 10px;
+    }
+
+    .video-cover {
+      width: 96px;
+    }
+
+    .play-btn,
+    .favorite-btn,
+    .queue-btn,
+    .playlist-btn {
+      opacity: 1;
     }
   }
 </style>
