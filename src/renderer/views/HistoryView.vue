@@ -75,47 +75,55 @@
     </div>
 
     <div class="history-list" v-if="history.length > 0">
-      <div
-        v-for="(item, index) in history"
-        :key="item.bvid"
-        class="history-item"
-        @click="playVideo(item)"
-      >
+      <div v-for="(item, index) in history" :key="item.bvid" class="history-item">
         <span class="item-index">{{ index + 1 }}</span>
-        <div class="item-cover">
-          <LazyImage
-            v-if="item.cover"
-            :src="item.cover"
-            :alt="item.title"
-            :width="320"
-            aspect-ratio="16/9"
-            placeholder-icon="play"
-          />
-          <div v-else class="cover-placeholder">🎵</div>
-          <div class="cover-overlay">
-            <button class="play-btn-overlay" @click.stop="playVideo(item)">
-              <Play :size="18" />
-            </button>
+        <button
+          class="history-item-main"
+          type="button"
+          :aria-label="`播放历史视频 ${item.title}`"
+          @click="playVideo(item)"
+        >
+          <div class="item-cover">
+            <LazyImage
+              v-if="item.cover"
+              :src="item.cover"
+              :alt="item.title"
+              :width="320"
+              aspect-ratio="16/9"
+              placeholder-icon="play"
+            />
+            <div v-else class="cover-placeholder">🎵</div>
+            <div class="cover-overlay">
+              <span class="play-btn-overlay" aria-hidden="true">
+                <Play :size="18" />
+              </span>
+            </div>
+            <span class="item-duration">{{ item.duration }}</span>
           </div>
-          <span class="item-duration">{{ item.duration }}</span>
-        </div>
-        <div class="item-info">
-          <h3 class="item-title">{{ item.title }}</h3>
-          <div class="item-meta">
-            <span class="meta-author">{{ item.author }}</span>
-            <span class="meta-date">
-              <Clock :size="12" />
-              {{ formatDate(item.playedAt) }}
-            </span>
+          <div class="item-info">
+            <h3 class="item-title">{{ item.title }}</h3>
+            <div class="item-meta">
+              <span class="meta-author">{{ item.author }}</span>
+              <span class="meta-date">
+                <Clock :size="12" />
+                {{ formatDate(item.playedAt) }}
+              </span>
+            </div>
           </div>
-        </div>
+        </button>
         <div class="item-actions">
-          <button class="action-btn play" title="播放" @click.stop="playVideo(item)">
+          <button
+            class="action-btn play"
+            type="button"
+            :aria-label="`播放 ${item.title}`"
+            @click.stop="playVideo(item)"
+          >
             <Play :size="18" />
           </button>
           <button
             class="action-btn remove"
-            title="移除"
+            type="button"
+            :aria-label="`从播放历史中移除 ${item.title}`"
             @click.stop="removeFromHistory(item.bvid, $event)"
           >
             <Trash2 :size="18" />
@@ -213,9 +221,24 @@
     transition: all 0.2s;
   }
 
-  .history-item:hover {
+  .history-item:hover,
+  .history-item:focus-within {
     background: var(--bg-card);
     border-color: var(--border);
+  }
+
+  .history-item-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .item-index {
@@ -243,7 +266,8 @@
     transition: transform 0.4s ease;
   }
 
-  .history-item:hover .item-cover img {
+  .history-item:hover .item-cover img,
+  .history-item:focus-within .item-cover img {
     transform: scale(1.05);
   }
 
@@ -258,7 +282,8 @@
     transition: opacity 0.3s ease;
   }
 
-  .history-item:hover .cover-overlay {
+  .history-item:hover .cover-overlay,
+  .history-item:focus-within .cover-overlay {
     opacity: 1;
   }
 
