@@ -8,7 +8,12 @@
 <template>
   <header class="header">
     <div class="header-left">
-      <button class="mobile-menu-btn" @click="navStore.toggleMobileMenu">
+      <button
+        class="mobile-menu-btn"
+        type="button"
+        aria-label="打开导航菜单"
+        @click="navStore.toggleMobileMenu"
+      >
         <Menu :size="22" />
       </button>
     </div>
