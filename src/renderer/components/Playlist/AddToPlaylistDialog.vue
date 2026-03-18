@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch, toRaw } from 'vue'
+  import { computed, nextTick, onMounted, ref, watch, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
   import { usePlaylistsStore } from '../../stores/playlists'
   import type { ExtractedVideo } from '../../../preload/preload'
@@ -34,6 +34,12 @@
   const showCreateModal = ref(false)
   const newPlaylistName = ref('')
   const isProcessing = ref<string | null>(null)
+  const dialogRef = ref<HTMLDivElement | null>(null)
+  const closeButtonRef = ref<HTMLButtonElement | null>(null)
+  const createModalRef = ref<HTMLDivElement | null>(null)
+  const createInputRef = ref<HTMLInputElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
+  const createModalTriggerRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     playlistsStore.loadPlaylists()
@@ -41,12 +47,33 @@
 
   watch(
     () => props.visible,
-    (visible) => {
+    async (visible) => {
       if (visible) {
+        lastFocusedElementRef.value = document.activeElement as HTMLElement | null
         playlistsStore.loadPlaylists()
+        await nextTick()
+        closeButtonRef.value?.focus()
+        return
+      }
+
+      await nextTick()
+      if (!showCreateModal.value) {
+        lastFocusedElementRef.value?.focus()
       }
     }
   )
+
+  watch(showCreateModal, async (visible) => {
+    if (visible) {
+      createModalTriggerRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      createInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    createModalTriggerRef.value?.focus()
+  })
 
   function isVideoInPlaylist(playlistId: string): boolean {
     if (!props.video) return false
@@ -81,6 +108,10 @@
     showCreateModal.value = true
   }
 
+  function closeCreateModal() {
+    showCreateModal.value = false
+  }
+
   async function createAndAdd() {
     if (!newPlaylistName.value.trim() || !props.video) return
 
@@ -102,14 +133,83 @@
   function isProcessingPlaylist(playlistId: string): boolean {
     return isProcessing.value === playlistId
   }
+
+  function getFocusableElements(container: HTMLElement | null) {
+    if (!container) return [] as HTMLElement[]
+
+    const selectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
+    )
+  }
+
+  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onEscape()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getFocusableElements(container)
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !container?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (showCreateModal.value) return
+    trapFocus(event, dialogRef.value, close)
+  }
+
+  function handleCreateModalKeydown(event: KeyboardEvent) {
+    trapFocus(event, createModalRef.value, closeCreateModal)
+  }
 </script>
 
 <template>
   <div class="modal-overlay" v-if="visible" @click.self="close">
-    <div class="dialog">
+    <div
+      ref="dialogRef"
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-to-playlist-title"
+      @keydown="handleDialogKeydown"
+    >
       <div class="dialog-header">
-        <h2 class="dialog-title">添加到播放列表</h2>
-        <button class="close-btn" @click="close">
+        <h2 id="add-to-playlist-title" class="dialog-title">添加到播放列表</h2>
+        <button
+          ref="closeButtonRef"
+          class="close-btn"
+          type="button"
+          aria-label="关闭添加到播放列表弹窗"
+          @click="close"
+        >
           <X :size="18" />
         </button>
       </div>
@@ -126,7 +226,7 @@
       </div>
 
       <div class="playlists-section">
-        <button class="create-new-btn" @click="openCreateModal">
+        <button class="create-new-btn" type="button" @click="openCreateModal">
           <Plus :size="18" />
           新建播放列表
         </button>
@@ -158,25 +258,32 @@
         </div>
       </div>
 
-      <div
-        class="create-modal-overlay"
-        v-if="showCreateModal"
-        @click.self="showCreateModal = false"
-      >
-        <div class="create-modal">
-          <h3 class="create-title">新建播放列表</h3>
+      <div class="create-modal-overlay" v-if="showCreateModal" @click.self="closeCreateModal">
+        <div
+          ref="createModalRef"
+          class="create-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-playlist-title"
+          @keydown.stop="handleCreateModalKeydown"
+        >
+          <h3 id="create-playlist-title" class="create-title">新建播放列表</h3>
+          <label class="sr-only" for="new-playlist-name">播放列表名称</label>
           <input
+            id="new-playlist-name"
+            ref="createInputRef"
             type="text"
             class="create-input"
             placeholder="输入列表名称..."
             v-model="newPlaylistName"
             @keyup.enter="createAndAdd"
-            autofocus
+            aria-label="播放列表名称"
           />
           <div class="create-actions">
-            <button class="create-btn cancel" @click="showCreateModal = false">取消</button>
+            <button class="create-btn cancel" type="button" @click="closeCreateModal">取消</button>
             <button
               class="create-btn confirm"
+              type="button"
               @click="createAndAdd"
               :disabled="!newPlaylistName.trim()"
             >
@@ -497,5 +604,17 @@
 
   .create-btn.confirm:hover:not(:disabled) {
     background: var(--accent-hover);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>
