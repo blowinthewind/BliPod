@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, onUnmounted } from 'vue'
+  import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
   import { useAuthStore } from '@/stores/auth'
   import { X, QrCode, Loader2, CheckCircle, AlertCircle } from 'lucide-vue-next'
 
@@ -14,6 +14,9 @@
   }>()
 
   let unsubscribe: (() => void) | null = null
+  const loginDialogRef = ref<HTMLDivElement | null>(null)
+  const closeButtonRef = ref<HTMLButtonElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     unsubscribe = authStore.setLoginListener()
@@ -25,6 +28,21 @@
       unsubscribe()
     }
   })
+
+  watch(
+    () => props.visible,
+    async (isVisible) => {
+      if (isVisible) {
+        lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+        await nextTick()
+        closeButtonRef.value?.focus()
+        return
+      }
+
+      await nextTick()
+      lastFocusedElementRef.value?.focus()
+    }
+  )
 
   function handleClose() {
     authStore.cancelLogin()
@@ -38,17 +56,72 @@
   function handleLogout() {
     authStore.logout()
   }
+
+  function handleDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      handleClose()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableSelectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    const focusableElements = Array.from(
+      loginDialogRef.value?.querySelectorAll<HTMLElement>(focusableSelectors) ?? []
+    ).filter((element) => !element.hasAttribute('disabled') && element.offsetParent !== null)
+
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !loginDialogRef.value?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
 </script>
 
 <template>
   <div class="login-dialog-overlay" v-if="visible" @click.self="handleClose">
-    <div class="login-dialog">
-      <button class="close-btn" @click="handleClose">
+    <div
+      ref="loginDialogRef"
+      class="login-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-dialog-title"
+      @keydown="handleDialogKeydown"
+    >
+      <button
+        ref="closeButtonRef"
+        class="close-btn"
+        type="button"
+        aria-label="关闭登录弹窗"
+        @click="handleClose"
+      >
         <X :size="20" />
       </button>
 
       <div class="dialog-header">
-        <h2 class="dialog-title">Bilibili Login</h2>
+        <h2 id="login-dialog-title" class="dialog-title">Bilibili Login</h2>
         <p class="dialog-desc">Scan QR code with Bilibili App to login</p>
       </div>
 
