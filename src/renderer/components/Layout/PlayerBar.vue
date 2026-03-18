@@ -521,8 +521,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 280px;
-    min-width: 200px;
+    width: clamp(220px, 24vw, 280px);
+    min-width: 0;
   }
 
   .track-cover {
@@ -806,8 +806,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 240px;
-    min-width: 180px;
+    width: clamp(180px, 20vw, 240px);
+    min-width: 0;
     justify-content: flex-end;
   }
 
@@ -899,8 +899,9 @@
   }
 
   .queue-panel {
-    width: 360px;
-    max-height: 480px;
+    width: min(360px, calc(100vw - 32px));
+    max-width: 100%;
+    max-height: min(480px, calc(100vh - 138px));
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -1105,6 +1106,29 @@
   }
 
   @media (max-width: 768px) {
+    .player-bar {
+      gap: 12px;
+      padding: 0 12px;
+    }
+
+    .now-playing {
+      width: auto;
+      flex: 1 1 0;
+    }
+
+    .track-info {
+      min-width: 0;
+    }
+
+    .extra-controls {
+      width: auto;
+      flex: 0 1 auto;
+    }
+
+    .volume-slider {
+      width: clamp(72px, 16vw, 100px);
+    }
+
     .queue-panel-overlay {
       padding: 0;
       padding-bottom: 90px;
@@ -1116,6 +1140,47 @@
       width: calc(100% - 32px);
       max-height: 60vh;
       margin: 0 16px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .player-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      align-items: center;
+      height: auto;
+      min-height: 90px;
+      padding: 10px 12px 12px;
+    }
+
+    .now-playing {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .extra-controls {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+    }
+
+    .player-controls {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      max-width: none;
+    }
+
+    .control-buttons {
+      gap: 6px;
+    }
+
+    .volume-container {
+      gap: 2px;
+    }
+
+    .volume-slider {
+      display: none;
     }
   }
 </style>
