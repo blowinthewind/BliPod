@@ -220,65 +220,81 @@
       </div>
 
       <div class="videos-list">
-        <div
-          v-for="video in videos"
-          :key="video.bvid"
-          class="video-item"
-          @click="handlePlay(video.bvid)"
-        >
-          <div class="video-cover">
-            <LazyImage
-              v-if="video.cover"
-              :src="video.cover"
-              :alt="video.title"
-              :width="320"
-              aspect-ratio="16/9"
-              placeholder-icon="play"
-            />
-            <div v-else class="cover-placeholder">
-              <Play :size="24" />
+        <div v-for="video in videos" :key="video.bvid" class="video-item">
+          <button
+            class="video-item-main"
+            type="button"
+            :aria-label="`播放 UP 主视频 ${video.title}`"
+            @click="handlePlay(video.bvid)"
+          >
+            <div class="video-cover">
+              <LazyImage
+                v-if="video.cover"
+                :src="video.cover"
+                :alt="video.title"
+                :width="320"
+                aspect-ratio="16/9"
+                placeholder-icon="play"
+              />
+              <div v-else class="cover-placeholder">
+                <Play :size="24" />
+              </div>
+              <div class="video-cover-overlay">
+                <span class="play-btn-overlay" aria-hidden="true">
+                  <Play :size="18" />
+                </span>
+              </div>
+              <span v-if="video.duration" class="duration-badge">{{ video.duration }}</span>
             </div>
-            <div class="video-cover-overlay">
-              <button class="play-btn-overlay" @click.stop="handlePlay(video.bvid)">
-                <Play :size="18" />
-              </button>
+            <div class="video-info">
+              <h3 class="video-title" :title="video.title">{{ video.title }}</h3>
+              <div class="video-meta">
+                <span v-if="video.playCount" class="meta-item">{{ video.playCount }} plays</span>
+              </div>
             </div>
-            <span v-if="video.duration" class="duration-badge">{{ video.duration }}</span>
-          </div>
-          <div class="video-info">
-            <h3 class="video-title" :title="video.title">{{ video.title }}</h3>
-            <div class="video-meta">
-              <span v-if="video.playCount" class="meta-item">{{ video.playCount }} plays</span>
-            </div>
-          </div>
+          </button>
           <button
             class="favorite-btn"
+            type="button"
             @click.stop="toggleFavorite(video, $event)"
-            :title="isFavorite(video.bvid) ? 'Remove from favorites' : 'Add to favorites'"
+            :aria-label="
+              isFavorite(video.bvid) ? `从收藏中移除 ${video.title}` : `收藏 ${video.title}`
+            "
           >
             <Heart :size="16" :fill="isFavorite(video.bvid) ? 'currentColor' : 'none'" />
           </button>
           <button
             class="queue-btn"
+            type="button"
             @click.stop="addToQueue(video, $event)"
-            :title="isInQueue(video.bvid) ? '已在播放队列中' : '添加到播放队列'"
+            :aria-label="
+              isInQueue(video.bvid)
+                ? `${video.title} 已在播放队列中`
+                : `将 ${video.title} 添加到播放队列`
+            "
           >
             <Check v-if="isInQueue(video.bvid)" :size="16" />
             <ListMusic v-else :size="16" />
           </button>
           <button
             class="playlist-btn"
+            type="button"
             @click.stop="openPlaylistDialog(video, $event)"
-            :title="
+            :aria-label="
               playlistsStore.isVideoInAnyPlaylist(video.bvid)
-                ? '已添加到播放列表'
-                : '添加到播放列表'
+                ? `${video.title} 已添加到播放列表`
+                : `将 ${video.title} 添加到播放列表`
             "
           >
             <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(video.bvid)" :size="16" />
             <ListPlus v-else :size="16" />
           </button>
-          <button class="play-btn" @click.stop="handlePlay(video.bvid)">
+          <button
+            class="play-btn"
+            type="button"
+            :aria-label="`播放 ${video.title}`"
+            @click.stop="handlePlay(video.bvid)"
+          >
             <Play :size="18" />
           </button>
         </div>
@@ -457,9 +473,24 @@
     transition: all 0.2s;
   }
 
-  .video-item:hover {
+  .video-item:hover,
+  .video-item:focus-within {
     background: var(--bg-card);
     border-color: var(--border);
+  }
+
+  .video-item-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .video-cover {
@@ -479,7 +510,8 @@
     transition: transform 0.4s ease;
   }
 
-  .video-item:hover .video-cover img {
+  .video-item:hover .video-cover img,
+  .video-item:focus-within .video-cover img {
     transform: scale(1.05);
   }
 
@@ -494,7 +526,8 @@
     transition: opacity 0.3s ease;
   }
 
-  .video-item:hover .video-cover-overlay {
+  .video-item:hover .video-cover-overlay,
+  .video-item:focus-within .video-cover-overlay {
     opacity: 1;
   }
 
@@ -579,7 +612,8 @@
     flex-shrink: 0;
   }
 
-  .video-item:hover .play-btn {
+  .video-item:hover .play-btn,
+  .video-item:focus-within .play-btn {
     opacity: 1;
   }
 
@@ -603,7 +637,8 @@
     flex-shrink: 0;
   }
 
-  .video-item:hover .favorite-btn {
+  .video-item:hover .favorite-btn,
+  .video-item:focus-within .favorite-btn {
     opacity: 1;
   }
 
@@ -632,7 +667,8 @@
     flex-shrink: 0;
   }
 
-  .video-item:hover .queue-btn {
+  .video-item:hover .queue-btn,
+  .video-item:focus-within .queue-btn {
     opacity: 1;
   }
 
@@ -657,7 +693,8 @@
     flex-shrink: 0;
   }
 
-  .video-item:hover .playlist-btn {
+  .video-item:hover .playlist-btn,
+  .video-item:focus-within .playlist-btn {
     opacity: 1;
   }
 
