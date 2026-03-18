@@ -62,7 +62,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 24px;
+    padding: clamp(16px, 2vw + 8px, 24px);
   }
 
   .main-layout > :last-child {
@@ -80,7 +80,7 @@
     }
 
     .content-area {
-      padding: 16px;
+      padding: clamp(12px, 4vw, 16px);
     }
   }
 </style>
