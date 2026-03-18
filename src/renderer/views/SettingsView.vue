@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
+  import { ref, onMounted, onUnmounted, computed, toRaw, nextTick, watch } from 'vue'
   import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
   import { useAuthStore } from '@/stores/auth'
   import { useFavoritesStore } from '@/stores/favorites'
@@ -42,6 +42,11 @@
   const showEditTheme = ref(false)
   const showLoginDialog = ref(false)
   const editingThemeId = ref<string | null>(null)
+  const createThemeDialogRef = ref<HTMLDivElement | null>(null)
+  const editThemeDialogRef = ref<HTMLDivElement | null>(null)
+  const createThemeIdInputRef = ref<HTMLInputElement | null>(null)
+  const editThemeNameInputRef = ref<HTMLInputElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   interface CategoryStats {
     key: string
@@ -78,6 +83,30 @@
     if (unsubscribe) {
       unsubscribe()
     }
+  })
+
+  watch(showCreateTheme, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      createThemeIdInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
+  })
+
+  watch(showEditTheme, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      editThemeNameInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
   })
 
   async function loadCategoryStats() {
@@ -309,6 +338,10 @@
     showCreateTheme.value = true
   }
 
+  function closeCreateTheme() {
+    showCreateTheme.value = false
+  }
+
   function createCustomTheme() {
     if (!newTheme.value.id || !newTheme.value.name) return
 
@@ -338,6 +371,12 @@
     }
   }
 
+  function closeEditTheme() {
+    showEditTheme.value = false
+    editingTheme.value = null
+    editingThemeId.value = null
+  }
+
   function saveEditedTheme() {
     if (editingTheme.value && editingThemeId.value) {
       themeStore.updateCustomTheme(editingThemeId.value, {
@@ -350,6 +389,61 @@
       editingTheme.value = null
       editingThemeId.value = null
     }
+  }
+
+  function getFocusableElements(container: HTMLElement | null) {
+    if (!container) return [] as HTMLElement[]
+
+    const selectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
+    )
+  }
+
+  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onEscape()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getFocusableElements(container)
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !container?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
+  function handleCreateThemeKeydown(event: KeyboardEvent) {
+    trapFocus(event, createThemeDialogRef.value, closeCreateTheme)
+  }
+
+  function handleEditThemeKeydown(event: KeyboardEvent) {
+    trapFocus(event, editThemeDialogRef.value, closeEditTheme)
   }
 
   function deleteTheme(themeId: string) {
@@ -573,12 +667,12 @@
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Auto Play on Startup</span>
+              <span id="auto-play-label" class="setting-label">Auto Play on Startup</span>
               <span class="setting-desc"
                 >Automatically play the last unfinished video when app starts</span
               >
             </div>
-            <label class="toggle">
+            <label class="toggle" aria-labelledby="auto-play-label">
               <input type="checkbox" v-model="autoPlay" />
               <span class="toggle-slider"></span>
             </label>
@@ -586,10 +680,10 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Remember Position</span>
+              <span id="remember-position-label" class="setting-label">Remember Position</span>
               <span class="setting-desc">Resume videos from where you left off</span>
             </div>
-            <label class="toggle">
+            <label class="toggle" aria-labelledby="remember-position-label">
               <input type="checkbox" v-model="rememberPosition" />
               <span class="toggle-slider"></span>
             </label>
@@ -735,25 +829,44 @@
     <LoginDialog :visible="showLoginDialog" @close="closeLoginDialog" />
 
     <!-- Create Theme Modal -->
-    <div class="modal-overlay" v-if="showCreateTheme" @click.self="showCreateTheme = false">
-      <div class="modal theme-editor-modal">
-        <h2 class="modal-title">Create New Theme</h2>
+    <div class="modal-overlay" v-if="showCreateTheme" @click.self="closeCreateTheme">
+      <div
+        ref="createThemeDialogRef"
+        class="modal theme-editor-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-theme-title"
+        @keydown="handleCreateThemeKeydown"
+      >
+        <h2 id="create-theme-title" class="modal-title">Create New Theme</h2>
 
         <div class="modal-content">
           <div class="form-row">
             <div class="form-group">
-              <label>Theme ID</label>
-              <input type="text" v-model="newTheme.id" placeholder="my-theme" />
+              <label for="create-theme-id">Theme ID</label>
+              <input
+                id="create-theme-id"
+                ref="createThemeIdInputRef"
+                type="text"
+                v-model="newTheme.id"
+                placeholder="my-theme"
+              />
             </div>
             <div class="form-group">
-              <label>Theme Name</label>
-              <input type="text" v-model="newTheme.name" placeholder="My Theme" />
+              <label for="create-theme-name">Theme Name</label>
+              <input
+                id="create-theme-name"
+                type="text"
+                v-model="newTheme.name"
+                placeholder="My Theme"
+              />
             </div>
           </div>
 
           <div class="form-group">
-            <label>Description</label>
+            <label for="create-theme-description">Description</label>
             <input
+              id="create-theme-description"
               type="text"
               v-model="newTheme.description"
               placeholder="A beautiful custom theme"
@@ -767,7 +880,7 @@
             </h3>
             <div class="color-grid">
               <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
-                <label>{{ label }}</label>
+                <label :for="`create-color-text-${String(key)}`">{{ label }}</label>
                 <div class="color-input-wrapper">
                   <input
                     type="color"
@@ -781,6 +894,7 @@
                     "
                   />
                   <input
+                    :id="`create-color-text-${String(key)}`"
                     type="text"
                     :value="newTheme.colors?.[key as keyof ThemeColors] || ''"
                     @input="
@@ -804,8 +918,9 @@
             </h3>
 
             <div class="effect-item">
-              <label>Background Gradient</label>
+              <label for="create-theme-bg-gradient">Background Gradient</label>
               <input
+                id="create-theme-bg-gradient"
                 type="text"
                 v-model="newTheme.effects!.bgGradient"
                 placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
@@ -813,8 +928,9 @@
             </div>
 
             <div class="effect-item">
-              <label>Background Image URL</label>
+              <label for="create-theme-bg-image">Background Image URL</label>
               <input
+                id="create-theme-bg-image"
                 type="text"
                 v-model="newTheme.effects!.bgImage"
                 placeholder="https://example.com/image.jpg"
@@ -823,8 +939,9 @@
 
             <div class="effect-row">
               <div class="effect-item half">
-                <label>Image Opacity (0-1)</label>
+                <label for="create-theme-image-opacity">Image Opacity (0-1)</label>
                 <input
+                  id="create-theme-image-opacity"
                   type="number"
                   v-model.number="newTheme.effects!.bgImageOpacity"
                   min="0"
@@ -834,8 +951,13 @@
                 />
               </div>
               <div class="effect-item half">
-                <label>Background Blur</label>
-                <input type="text" v-model="newTheme.effects!.bgBlur" placeholder="10px" />
+                <label for="create-theme-bg-blur">Background Blur</label>
+                <input
+                  id="create-theme-bg-blur"
+                  type="text"
+                  v-model="newTheme.effects!.bgBlur"
+                  placeholder="10px"
+                />
               </div>
             </div>
 
@@ -849,12 +971,18 @@
 
             <div v-if="newTheme.effects?.glassEffect" class="effect-row">
               <div class="effect-item half">
-                <label>Glass Blur</label>
-                <input type="text" v-model="newTheme.effects!.glassBlur" placeholder="20px" />
+                <label for="create-theme-glass-blur">Glass Blur</label>
+                <input
+                  id="create-theme-glass-blur"
+                  type="text"
+                  v-model="newTheme.effects!.glassBlur"
+                  placeholder="20px"
+                />
               </div>
               <div class="effect-item half">
-                <label>Glass Opacity (0-1)</label>
+                <label for="create-theme-glass-opacity">Glass Opacity (0-1)</label>
                 <input
+                  id="create-theme-glass-opacity"
                   type="number"
                   v-model.number="newTheme.effects!.glassOpacity"
                   min="0"
@@ -868,32 +996,42 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showCreateTheme = false">Cancel</button>
-          <button class="modal-btn confirm" @click="createCustomTheme">Create Theme</button>
+          <button class="modal-btn cancel" type="button" @click="closeCreateTheme">Cancel</button>
+          <button class="modal-btn confirm" type="button" @click="createCustomTheme">
+            Create Theme
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Edit Theme Modal -->
-    <div
-      class="modal-overlay"
-      v-if="showEditTheme && editingTheme"
-      @click.self="showEditTheme = false"
-    >
-      <div class="modal theme-editor-modal">
-        <h2 class="modal-title">Edit Theme: {{ editingTheme.name }}</h2>
+    <div class="modal-overlay" v-if="showEditTheme && editingTheme" @click.self="closeEditTheme">
+      <div
+        ref="editThemeDialogRef"
+        class="modal theme-editor-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-theme-title"
+        @keydown="handleEditThemeKeydown"
+      >
+        <h2 id="edit-theme-title" class="modal-title">Edit Theme: {{ editingTheme.name }}</h2>
 
         <div class="modal-content">
           <div class="form-row">
             <div class="form-group">
-              <label>Theme Name</label>
-              <input type="text" v-model="editingTheme.name" />
+              <label for="edit-theme-name">Theme Name</label>
+              <input
+                id="edit-theme-name"
+                ref="editThemeNameInputRef"
+                type="text"
+                v-model="editingTheme.name"
+              />
             </div>
           </div>
 
           <div class="form-group">
-            <label>Description</label>
-            <input type="text" v-model="editingTheme.description" />
+            <label for="edit-theme-description">Description</label>
+            <input id="edit-theme-description" type="text" v-model="editingTheme.description" />
           </div>
 
           <div class="editor-section">
@@ -903,7 +1041,7 @@
             </h3>
             <div class="color-grid">
               <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
-                <label>{{ label }}</label>
+                <label :for="`edit-color-text-${String(key)}`">{{ label }}</label>
                 <div class="color-input-wrapper">
                   <input
                     type="color"
@@ -916,6 +1054,7 @@
                     "
                   />
                   <input
+                    :id="`edit-color-text-${String(key)}`"
                     type="text"
                     :value="editingTheme!.colors[key as keyof ThemeColors] || ''"
                     @input="
@@ -938,8 +1077,9 @@
             </h3>
 
             <div class="effect-item">
-              <label>Background Gradient</label>
+              <label for="edit-theme-bg-gradient">Background Gradient</label>
               <input
+                id="edit-theme-bg-gradient"
                 type="text"
                 v-model="editingTheme!.effects.bgGradient"
                 placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
@@ -947,8 +1087,9 @@
             </div>
 
             <div class="effect-item">
-              <label>Background Image URL</label>
+              <label for="edit-theme-bg-image">Background Image URL</label>
               <input
+                id="edit-theme-bg-image"
                 type="text"
                 v-model="editingTheme!.effects.bgImage"
                 placeholder="https://example.com/image.jpg"
@@ -957,8 +1098,9 @@
 
             <div class="effect-row">
               <div class="effect-item half">
-                <label>Image Opacity (0-1)</label>
+                <label for="edit-theme-image-opacity">Image Opacity (0-1)</label>
                 <input
+                  id="edit-theme-image-opacity"
                   type="number"
                   v-model.number="editingTheme!.effects.bgImageOpacity"
                   min="0"
@@ -967,8 +1109,13 @@
                 />
               </div>
               <div class="effect-item half">
-                <label>Background Blur</label>
-                <input type="text" v-model="editingTheme!.effects.bgBlur" placeholder="10px" />
+                <label for="edit-theme-bg-blur">Background Blur</label>
+                <input
+                  id="edit-theme-bg-blur"
+                  type="text"
+                  v-model="editingTheme!.effects.bgBlur"
+                  placeholder="10px"
+                />
               </div>
             </div>
 
@@ -982,12 +1129,18 @@
 
             <div v-if="editingTheme!.effects?.glassEffect" class="effect-row">
               <div class="effect-item half">
-                <label>Glass Blur</label>
-                <input type="text" v-model="editingTheme!.effects.glassBlur" placeholder="20px" />
+                <label for="edit-theme-glass-blur">Glass Blur</label>
+                <input
+                  id="edit-theme-glass-blur"
+                  type="text"
+                  v-model="editingTheme!.effects.glassBlur"
+                  placeholder="20px"
+                />
               </div>
               <div class="effect-item half">
-                <label>Glass Opacity (0-1)</label>
+                <label for="edit-theme-glass-opacity">Glass Opacity (0-1)</label>
                 <input
+                  id="edit-theme-glass-opacity"
                   type="number"
                   v-model.number="editingTheme!.effects.glassOpacity"
                   min="0"
@@ -1000,8 +1153,10 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showEditTheme = false">Cancel</button>
-          <button class="modal-btn confirm" @click="saveEditedTheme">Save Changes</button>
+          <button class="modal-btn cancel" type="button" @click="closeEditTheme">Cancel</button>
+          <button class="modal-btn confirm" type="button" @click="saveEditedTheme">
+            Save Changes
+          </button>
         </div>
       </div>
     </div>
