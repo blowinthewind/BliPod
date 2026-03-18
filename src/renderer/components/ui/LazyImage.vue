@@ -84,7 +84,15 @@
       <Play v-if="placeholderIcon === 'play'" :size="24" />
       <ImageOff v-else-if="placeholderIcon === 'image'" :size="24" />
       <slot name="placeholder">
-        <span v-if="hasError" class="error-text" @click="retryLoad">加载失败，点击重试</span>
+        <button
+          v-if="hasError"
+          class="error-text"
+          type="button"
+          aria-label="重新加载图片"
+          @click="retryLoad"
+        >
+          加载失败，点击重试
+        </button>
       </slot>
     </div>
 
@@ -176,7 +184,9 @@
     color: var(--text-secondary);
     cursor: pointer;
     padding: 4px 8px;
+    border: none;
     border-radius: 4px;
+    background: transparent;
     transition: all 0.2s;
   }
 
