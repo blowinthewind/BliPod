@@ -308,14 +308,15 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
     z-index: 1000;
+    padding: 12px;
   }
 
   .dialog {
     display: flex;
     flex-direction: column;
-    width: 420px;
-    max-width: 90vw;
-    max-height: 80vh;
+    width: min(420px, 100%);
+    max-width: 100%;
+    max-height: min(80vh, 720px);
     background: var(--bg-secondary);
     border-radius: 12px;
     overflow: hidden;
@@ -339,8 +340,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 50%;
     background: transparent;
@@ -539,11 +540,26 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    width: 320px;
-    padding: 20px;
+    width: min(320px, calc(100% - 24px));
+    max-width: 100%;
+    padding: clamp(16px, 4vw, 20px);
     background: var(--bg-secondary);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (max-width: 480px) {
+    .dialog-header {
+      padding: 14px 16px;
+    }
+
+    .video-preview {
+      padding: 14px 16px;
+    }
+
+    .playlists-section {
+      padding: 10px;
+    }
   }
 
   .create-title {

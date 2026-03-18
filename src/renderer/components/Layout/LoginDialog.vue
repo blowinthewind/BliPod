@@ -204,8 +204,8 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 360px;
-    padding: 24px;
+    max-width: min(360px, 100%);
+    padding: clamp(20px, 4vw, 24px);
     background: var(--bg-secondary);
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
@@ -213,13 +213,13 @@
 
   .close-btn {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 12px;
+    right: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     background: transparent;
     border: none;
     border-radius: 8px;
@@ -330,11 +330,12 @@
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    width: 100%;
   }
 
   .qr-code {
-    width: 200px;
-    height: 200px;
+    width: min(200px, 100%);
+    aspect-ratio: 1;
     border-radius: 12px;
     background: white;
     padding: 12px;
@@ -386,6 +387,31 @@
     align-items: center;
     gap: 20px;
     width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    .login-dialog-overlay {
+      padding: 12px;
+    }
+
+    .dialog-content {
+      min-height: 240px;
+    }
+
+    .user-info {
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .qr-placeholder {
+      width: 104px;
+      height: 104px;
+    }
+
+    .login-btn {
+      width: 100%;
+      justify-content: center;
+    }
   }
 
   .qr-placeholder {
