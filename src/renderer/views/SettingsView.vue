@@ -1168,7 +1168,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 900px;
+    max-width: min(900px, 100%);
   }
 
   .page-header {
@@ -1734,7 +1734,7 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.7);
     z-index: 1000;
-    padding: 20px;
+    padding: clamp(12px, 4vw, 20px);
   }
 
   .modal {
@@ -1742,16 +1742,16 @@
     flex-direction: column;
     gap: 16px;
     width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
+    max-width: min(500px, 100%);
+    max-height: min(90vh, 920px);
     overflow-y: auto;
-    padding: 24px;
+    padding: clamp(16px, 4vw, 24px);
     background: var(--bg-secondary);
     border-radius: 16px;
   }
 
   .theme-editor-modal {
-    max-width: 700px;
+    max-width: min(700px, 100%);
   }
 
   .modal-title {
@@ -1942,6 +1942,35 @@
   }
 
   @media (max-width: 768px) {
+    .page-header {
+      align-items: flex-start;
+    }
+
+    .section-header-row {
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .setting-item {
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .account-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .volume-control {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .volume-control input[type='range'] {
+      flex: 1;
+      min-width: 0;
+    }
+
     .theme-grid {
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
@@ -1956,6 +1985,75 @@
 
     .effect-row {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .page-header {
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .page-title {
+      font-size: var(--text-2xl);
+    }
+
+    .setting-item {
+      flex-direction: column;
+    }
+
+    .account-actions,
+    .category-actions,
+    .memory-actions,
+    .import-controls {
+      width: 100%;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .theme-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-actions {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .settings-view {
+      gap: 20px;
+    }
+
+    .settings-sections {
+      gap: 20px;
+    }
+
+    .settings-card {
+      padding: 4px 0;
+    }
+
+    .setting-item {
+      padding: 12px 16px;
+    }
+
+    .theme-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .color-input-wrapper {
+      flex-direction: column;
+    }
+
+    .color-input-wrapper input[type='color'] {
+      width: 100%;
+      height: 40px;
     }
   }
 </style>
