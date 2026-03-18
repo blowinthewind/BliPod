@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, nextTick, onMounted, ref, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
@@ -21,6 +21,9 @@
   const showEditModal = ref(false)
   const editName = ref('')
   const editDescription = ref('')
+  const editModalRef = ref<HTMLDivElement | null>(null)
+  const editNameInputRef = ref<HTMLInputElement | null>(null)
+  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     playlistsStore.loadPlaylists()
@@ -36,6 +39,18 @@
     },
     { immediate: true }
   )
+
+  watch(showEditModal, async (visible) => {
+    if (visible) {
+      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
+      await nextTick()
+      editNameInputRef.value?.focus()
+      return
+    }
+
+    await nextTick()
+    lastFocusedElementRef.value?.focus()
+  })
 
   function goBack() {
     router.push({ name: 'playlists' })
@@ -72,6 +87,10 @@
     }
   }
 
+  function closeEditModal() {
+    showEditModal.value = false
+  }
+
   async function updatePlaylist() {
     if (playlist.value && editName.value.trim()) {
       await playlistsStore.updatePlaylist(playlist.value.id, {
@@ -79,6 +98,53 @@
         description: editDescription.value.trim() || undefined
       })
       showEditModal.value = false
+    }
+  }
+
+  function getFocusableElements(container: HTMLElement | null) {
+    if (!container) return [] as HTMLElement[]
+
+    const selectors = [
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(', ')
+
+    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
+    )
+  }
+
+  function handleEditDialogKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeEditModal()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getFocusableElements(editModalRef.value)
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement || !editModalRef.value?.contains(activeElement)) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
     }
   }
 
@@ -135,49 +201,66 @@
             <Shuffle :size="18" />
             随机播放
           </button>
-          <button class="action-btn icon" @click="openEditModal">
+          <button
+            class="action-btn icon"
+            type="button"
+            aria-label="编辑播放列表"
+            @click="openEditModal"
+          >
             <Edit3 :size="18" />
           </button>
         </div>
       </div>
 
       <div class="videos-list" v-if="videos.length > 0">
-        <div
-          v-for="(video, index) in videos"
-          :key="video.bvid"
-          class="video-item"
-          @click="playVideo(video)"
-        >
+        <div v-for="(video, index) in videos" :key="video.bvid" class="video-item">
           <span class="item-index">{{ index + 1 }}</span>
-          <div class="item-cover">
-            <LazyImage
-              v-if="video.cover"
-              :src="video.cover"
-              :alt="video.title"
-              :width="320"
-              aspect-ratio="16/9"
-              placeholder-icon="play"
-            />
-            <div v-else class="cover-placeholder">🎵</div>
-            <div class="cover-overlay">
-              <button class="play-btn-overlay" @click.stop="playVideo(video)">
-                <Play :size="18" />
-              </button>
+          <button
+            class="video-item-main"
+            type="button"
+            :aria-label="`播放播放列表视频 ${video.title}`"
+            @click="playVideo(video)"
+          >
+            <div class="item-cover">
+              <LazyImage
+                v-if="video.cover"
+                :src="video.cover"
+                :alt="video.title"
+                :width="320"
+                aspect-ratio="16/9"
+                placeholder-icon="play"
+              />
+              <div v-else class="cover-placeholder">🎵</div>
+              <div class="cover-overlay">
+                <span class="play-btn-overlay" aria-hidden="true">
+                  <Play :size="18" />
+                </span>
+              </div>
+              <span class="item-duration">{{ formatDuration(video.duration) }}</span>
             </div>
-            <span class="item-duration">{{ formatDuration(video.duration) }}</span>
-          </div>
-          <div class="item-info">
-            <h3 class="item-title">{{ video.title }}</h3>
-            <div class="item-meta">
-              <span class="meta-author">{{ video.author }}</span>
-              <span class="meta-date">添加于 {{ formatDate(video.addedAt) }}</span>
+            <div class="item-info">
+              <h3 class="item-title">{{ video.title }}</h3>
+              <div class="item-meta">
+                <span class="meta-author">{{ video.author }}</span>
+                <span class="meta-date">添加于 {{ formatDate(video.addedAt) }}</span>
+              </div>
             </div>
-          </div>
+          </button>
           <div class="item-actions">
-            <button class="action-btn play" title="播放" @click.stop="playVideo(video)">
+            <button
+              class="action-btn play"
+              type="button"
+              :aria-label="`播放 ${video.title}`"
+              @click.stop="playVideo(video)"
+            >
               <Play :size="18" />
             </button>
-            <button class="action-btn remove" title="移除" @click.stop="removeVideo(video.bvid)">
+            <button
+              class="action-btn remove"
+              type="button"
+              :aria-label="`从播放列表中移除 ${video.title}`"
+              @click.stop="removeVideo(video.bvid)"
+            >
               <Trash2 :size="18" />
             </button>
           </div>
@@ -199,25 +282,44 @@
       <button class="back-link" @click="goBack">返回播放列表</button>
     </div>
 
-    <div class="modal-overlay" v-if="showEditModal" @click.self="showEditModal = false">
-      <div class="modal">
-        <h2 class="modal-title">编辑播放列表</h2>
+    <div class="modal-overlay" v-if="showEditModal" @click.self="closeEditModal">
+      <div
+        ref="editModalRef"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-playlist-title"
+        @keydown="handleEditDialogKeydown"
+      >
+        <h2 id="edit-playlist-title" class="modal-title">编辑播放列表</h2>
+        <label class="sr-only" for="edit-playlist-name">播放列表名称</label>
         <input
+          id="edit-playlist-name"
+          ref="editNameInputRef"
           type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="editName"
           @keyup.enter="updatePlaylist"
+          aria-label="播放列表名称"
         />
+        <label class="sr-only" for="edit-playlist-description">播放列表描述</label>
         <textarea
+          id="edit-playlist-description"
           class="modal-textarea"
           placeholder="输入描述（可选）..."
           v-model="editDescription"
           rows="3"
+          aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" @click="showEditModal = false">取消</button>
-          <button class="modal-btn confirm" @click="updatePlaylist" :disabled="!editName.trim()">
+          <button class="modal-btn cancel" type="button" @click="closeEditModal">取消</button>
+          <button
+            class="modal-btn confirm"
+            type="button"
+            @click="updatePlaylist"
+            :disabled="!editName.trim()"
+          >
             保存
           </button>
         </div>
@@ -231,6 +333,18 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .loading-state {
@@ -389,9 +503,24 @@
     transition: all 0.2s;
   }
 
-  .video-item:hover {
+  .video-item:hover,
+  .video-item:focus-within {
     background: var(--bg-card);
     border-color: var(--border);
+  }
+
+  .video-item-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
   }
 
   .item-index {
@@ -419,7 +548,8 @@
     transition: transform 0.4s ease;
   }
 
-  .video-item:hover .item-cover img {
+  .video-item:hover .item-cover img,
+  .video-item:focus-within .item-cover img {
     transform: scale(1.05);
   }
 
@@ -434,7 +564,8 @@
     transition: opacity 0.3s ease;
   }
 
-  .video-item:hover .cover-overlay {
+  .video-item:hover .cover-overlay,
+  .video-item:focus-within .cover-overlay {
     opacity: 1;
   }
 
@@ -511,7 +642,8 @@
     transition: opacity 0.2s;
   }
 
-  .video-item:hover .item-actions {
+  .video-item:hover .item-actions,
+  .video-item:focus-within .item-actions {
     opacity: 1;
   }
 
