@@ -701,15 +701,42 @@
   }
 
   @media (max-width: 768px) {
+    .page-header {
+      gap: 14px;
+    }
+
+    .welcome-section {
+      gap: 18px;
+    }
+
+    .quick-search {
+      padding: 12px 16px;
+    }
+
     .shortcuts-section {
       grid-template-columns: 1fr;
+    }
+
+    .shortcut-card {
+      padding: 14px;
     }
 
     .continue-grid {
       grid-template-columns: 1fr;
     }
 
+    .continue-card {
+      gap: 10px;
+    }
+
+    .continue-cover {
+      width: clamp(104px, 28vw, 120px);
+      height: auto;
+      aspect-ratio: 16 / 9;
+    }
+
     .video-grid {
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
       gap: 16px;
     }
 
@@ -718,10 +745,43 @@
     }
   }
 
+  @media (max-width: 560px) {
+    .continue-card {
+      flex-direction: column;
+    }
+
+    .continue-cover {
+      width: 100%;
+      max-width: none;
+    }
+
+    .continue-meta {
+      gap: 4px;
+    }
+  }
+
   @media (max-width: 420px) {
+    .page-header {
+      gap: 12px;
+    }
+
+    .quick-search {
+      padding: 11px 14px;
+    }
+
+    .shortcut-card {
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .shortcut-icon {
+      width: 44px;
+      height: 44px;
+    }
+
     .video-grid {
       grid-template-columns: 1fr;
-      max-width: 320px;
+      max-width: none;
     }
   }
 </style>
