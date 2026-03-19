@@ -165,14 +165,18 @@
         role="dialog"
         aria-modal="true"
         aria-labelledby="logout-confirm-title"
+        aria-describedby="logout-confirm-description"
         @keydown="handleLogoutDialogKeydown"
       >
-        <p id="logout-confirm-title" class="confirm-text">Confirm logout?</p>
+        <p id="logout-confirm-title" class="confirm-text">确认退出登录</p>
+        <p id="logout-confirm-description" class="confirm-description">
+          退出后将停止同步当前账号的登录状态。
+        </p>
         <div class="confirm-actions">
           <button ref="cancelLogoutButtonRef" class="confirm-btn cancel" @click="cancelLogout">
-            Cancel
+            取消
           </button>
-          <button class="confirm-btn logout" @click="confirmLogout">Logout</button>
+          <button class="confirm-btn logout" @click="confirmLogout">退出登录</button>
         </div>
       </div>
     </div>
@@ -460,7 +464,8 @@
   .logout-confirm-dialog {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    width: min(280px, calc(100% - 32px));
     padding: 20px;
     background: var(--bg-secondary);
     border-radius: 12px;
@@ -470,8 +475,15 @@
 
   .confirm-text {
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-primary);
+    text-align: center;
+  }
+
+  .confirm-description {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    line-height: 1.5;
     text-align: center;
   }
 
@@ -482,10 +494,11 @@
 
   .confirm-btn {
     flex: 1;
-    padding: 8px 16px;
+    min-height: 40px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 6px;
-    font-size: var(--text-xs);
+    border-radius: 8px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition:
