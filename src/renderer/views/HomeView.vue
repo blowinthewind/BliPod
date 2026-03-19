@@ -378,15 +378,15 @@
   }
 
   .shortcut-icon.favorites {
-    background: linear-gradient(135deg, var(--accent), #ff8a80);
+    background: linear-gradient(135deg, var(--accent), var(--accent-rose));
   }
 
   .shortcut-icon.history {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, var(--accent-sky), var(--accent-violet));
   }
 
   .shortcut-icon.playlist {
-    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-lilac));
   }
 
   .shortcut-info {
