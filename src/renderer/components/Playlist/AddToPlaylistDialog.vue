@@ -476,7 +476,7 @@
   }
 
   .playlist-item.added {
-    background: rgba(var(--accent-rgb), 0.1);
+    background: var(--accent-muted);
   }
 
   .playlist-icon {
