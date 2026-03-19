@@ -60,8 +60,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border: none;
-    border-radius: 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     font-family: inherit;
     font-size: var(--text-sm);
     font-weight: 500;
@@ -90,20 +90,24 @@
 
   .button--default {
     background: var(--accent);
-    color: white;
+    border-color: var(--accent);
+    color: var(--bg-primary);
   }
 
   .button--default:hover:not(:disabled) {
     background: var(--accent-hover);
+    border-color: var(--accent-hover);
   }
 
   .button--destructive {
-    background: var(--error);
-    color: white;
+    background: color-mix(in srgb, var(--error) 18%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--error) 28%, var(--border));
+    color: var(--error);
   }
 
   .button--destructive:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--error) 82%, black);
+    background: color-mix(in srgb, var(--error) 24%, var(--bg-card));
+    border-color: color-mix(in srgb, var(--error) 42%, var(--border));
   }
 
   .button--outline {
@@ -114,24 +118,28 @@
 
   .button--outline:hover:not(:disabled) {
     background: var(--bg-card);
+    border-color: var(--text-secondary);
   }
 
   .button--secondary {
     background: var(--bg-card);
     color: var(--text-primary);
+    border-color: var(--border);
   }
 
   .button--secondary:hover:not(:disabled) {
-    background: var(--bg-primary);
+    background: var(--bg-elevated);
+    border-color: var(--text-secondary);
   }
 
   .button--ghost {
     background: transparent;
-    color: var(--text-primary);
+    color: var(--text-secondary);
   }
 
   .button--ghost:hover:not(:disabled) {
-    background: var(--bg-card);
+    background: var(--accent-muted);
+    color: var(--text-primary);
   }
 
   .button--link {

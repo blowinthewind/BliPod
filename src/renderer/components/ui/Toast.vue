@@ -133,8 +133,8 @@
   }
 
   .toast--info {
-    border-color: color-mix(in srgb, var(--accent-sky) 38%, var(--border));
-    background: color-mix(in srgb, var(--accent-sky) 14%, var(--bg-elevated));
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
   }
 
   .toast-icon--success {
@@ -150,7 +150,7 @@
   }
 
   .toast-icon--info {
-    color: var(--accent-sky);
+    color: var(--accent);
   }
 
   @keyframes slideIn {

@@ -1,42 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-primary: #0b0c0e;
-  --bg-secondary: #121318;
-  --bg-card: #171922;
-  --bg-elevated: #1d202b;
-  --bg-overlay: rgba(7, 8, 10, 0.6);
+  --bg-primary: #111315;
+  --bg-secondary: #17191c;
+  --bg-card: #1c1f22;
+  --bg-elevated: #22262a;
+  --bg-overlay: rgba(8, 9, 11, 0.56);
 
-  --text-primary: #f2f3f5;
-  --text-secondary: #a1a7b3;
-  --text-secondary-strong: #c3c7d1;
-  --text-tertiary: #6a6f7b;
+  --text-primary: #f1eee8;
+  --text-secondary: #b4ada3;
+  --text-secondary-strong: #cbc3b8;
+  --text-tertiary: #7d776f;
 
-  --accent: #e05a5f;
-  --accent-hover: #ef6c71;
-  --accent-muted: rgba(224, 90, 95, 0.16);
-  --accent-rose: #ff8a80;
-  --accent-blush: #ffb2a6;
-  --accent-lilac: #a5b4fc;
-  --accent-violet: #8b7cf6;
-  --accent-sky: #7dd3fc;
-  --accent-amber: #f59e0b;
-  --accent-mint: #34d399;
+  --accent: #c96c4a;
+  --accent-hover: #d97a57;
+  --accent-muted: rgba(201, 108, 74, 0.14);
+  --accent-rose: #cf7a5d;
+  --accent-blush: #d8a18b;
+  --accent-lilac: #b58d7c;
+  --accent-violet: #a77866;
+  --accent-sky: #9a7f72;
+  --accent-amber: #bb8551;
+  --accent-mint: #7f9b8a;
 
-  --border: #232633;
-  --border-subtle: #1b1e29;
+  --border: #2a2d31;
+  --border-subtle: #212428;
 
-  --success: #2aa784;
-  --warning: #d48a2e;
-  --error: #de4c4c;
+  --success: #6f9a7f;
+  --warning: #b58a54;
+  --error: #c0685c;
 
-  --glow: rgba(224, 90, 95, 0.25);
-  --glass-bg: rgba(18, 19, 24, 0.82);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glow: rgba(201, 108, 74, 0.12);
+  --glass-bg: rgba(28, 31, 34, 0.88);
+  --glass-border: rgba(241, 238, 232, 0.06);
 
   --font-sans: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;
-  --font-display: 'Outfit', 'Noto Sans SC', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  --font-display: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;
 
   --text-xs: clamp(0.72rem, 0.7rem + 0.1vw, 0.8rem);
   --text-sm: clamp(0.82rem, 0.8rem + 0.12vw, 0.9rem);
@@ -91,38 +91,38 @@
 }
 
 :root[data-theme='light'] {
-  --bg-primary: #f6f5f2;
-  --bg-secondary: #eeece7;
-  --bg-card: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-overlay: rgba(21, 23, 28, 0.35);
+  --bg-primary: #f3efe8;
+  --bg-secondary: #ebe4da;
+  --bg-card: #faf7f2;
+  --bg-elevated: #fffdf9;
+  --bg-overlay: rgba(18, 19, 22, 0.3);
 
-  --text-primary: #1b1e25;
-  --text-secondary: #5f6673;
-  --text-secondary-strong: #495060;
-  --text-tertiary: #9aa2b1;
+  --text-primary: #28221d;
+  --text-secondary: #665d55;
+  --text-secondary-strong: #4f463f;
+  --text-tertiary: #9b9086;
 
-  --accent: #cc3944;
-  --accent-hover: #b8323d;
-  --accent-muted: rgba(204, 57, 68, 0.12);
-  --accent-rose: #ff8a80;
-  --accent-blush: #ffb2a6;
-  --accent-lilac: #a5b4fc;
-  --accent-violet: #8b7cf6;
-  --accent-sky: #7dd3fc;
-  --accent-amber: #f59e0b;
-  --accent-mint: #34d399;
+  --accent: #b45d3f;
+  --accent-hover: #a25236;
+  --accent-muted: rgba(180, 93, 63, 0.1);
+  --accent-rose: #be7257;
+  --accent-blush: #d7ac97;
+  --accent-lilac: #b5978a;
+  --accent-violet: #a47d6d;
+  --accent-sky: #8f8177;
+  --accent-amber: #b27a4a;
+  --accent-mint: #79917f;
 
-  --border: #d9d6cf;
-  --border-subtle: #efede8;
+  --border: #d8cec2;
+  --border-subtle: #ece4da;
 
-  --success: #1f9a78;
-  --warning: #c67b25;
-  --error: #c63a3a;
+  --success: #5f876d;
+  --warning: #aa7b45;
+  --error: #b75a50;
 
-  --glow: rgba(204, 57, 68, 0.16);
-  --glass-bg: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(24, 28, 36, 0.08);
+  --glow: rgba(180, 93, 63, 0.08);
+  --glass-bg: rgba(250, 247, 242, 0.9);
+  --glass-border: rgba(40, 34, 29, 0.08);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -132,73 +132,73 @@
 
 @supports (color: oklch(50% 0 0)) {
   :root {
-    --bg-primary: oklch(12% 0.01 250);
-    --bg-secondary: oklch(16% 0.012 250);
-    --bg-card: oklch(19% 0.014 250);
-    --bg-elevated: oklch(23% 0.016 250);
-    --bg-overlay: color-mix(in oklch, #000 60%, transparent);
+    --bg-primary: oklch(17% 0.006 45);
+    --bg-secondary: oklch(21% 0.007 45);
+    --bg-card: oklch(24% 0.008 45);
+    --bg-elevated: oklch(28% 0.009 45);
+    --bg-overlay: color-mix(in oklch, #000 54%, transparent);
 
-    --text-primary: oklch(96% 0.008 250);
-    --text-secondary: oklch(70% 0.01 250);
-    --text-secondary-strong: oklch(80% 0.01 250);
-    --text-tertiary: oklch(50% 0.01 250);
+    --text-primary: oklch(93% 0.01 70);
+    --text-secondary: oklch(74% 0.01 65);
+    --text-secondary-strong: oklch(82% 0.01 65);
+    --text-tertiary: oklch(56% 0.008 60);
 
-    --accent: oklch(62% 0.18 25);
-    --accent-hover: oklch(68% 0.18 25);
-    --accent-muted: color-mix(in oklch, var(--accent) 18%, transparent);
-    --accent-rose: color-mix(in oklch, var(--accent) 70%, oklch(75% 0.11 25) 30%);
-    --accent-blush: color-mix(in oklch, var(--accent) 55%, oklch(86% 0.07 30) 45%);
-    --accent-lilac: color-mix(in oklch, var(--accent) 60%, oklch(78% 0.08 280) 40%);
-    --accent-violet: color-mix(in oklch, var(--accent) 55%, oklch(70% 0.16 290) 45%);
-    --accent-sky: color-mix(in oklch, var(--accent) 65%, oklch(80% 0.09 230) 35%);
-    --accent-amber: color-mix(in oklch, var(--accent) 60%, oklch(80% 0.12 80) 40%);
-    --accent-mint: color-mix(in oklch, var(--accent) 65%, oklch(78% 0.12 160) 35%);
+    --accent: oklch(62% 0.11 45);
+    --accent-hover: oklch(67% 0.11 45);
+    --accent-muted: color-mix(in oklch, var(--accent) 16%, transparent);
+    --accent-rose: color-mix(in oklch, var(--accent) 82%, oklch(67% 0.08 40) 18%);
+    --accent-blush: color-mix(in oklch, var(--accent) 56%, oklch(82% 0.04 45) 44%);
+    --accent-lilac: color-mix(in oklch, var(--accent) 58%, oklch(64% 0.04 35) 42%);
+    --accent-violet: color-mix(in oklch, var(--accent) 72%, oklch(58% 0.06 35) 28%);
+    --accent-sky: color-mix(in oklch, var(--accent) 36%, oklch(62% 0.02 230) 64%);
+    --accent-amber: color-mix(in oklch, var(--accent) 80%, oklch(72% 0.09 70) 20%);
+    --accent-mint: color-mix(in oklch, var(--accent) 34%, oklch(70% 0.05 160) 66%);
 
-    --border: oklch(25% 0.01 250);
-    --border-subtle: oklch(20% 0.01 250);
+    --border: oklch(31% 0.007 45);
+    --border-subtle: oklch(26% 0.006 45);
 
-    --success: oklch(68% 0.12 160);
-    --warning: oklch(75% 0.12 80);
-    --error: oklch(62% 0.19 25);
+    --success: oklch(68% 0.06 155);
+    --warning: oklch(72% 0.09 70);
+    --error: oklch(60% 0.09 35);
 
-    --glow: color-mix(in oklch, var(--accent) 30%, transparent);
-    --glass-bg: color-mix(in oklch, var(--bg-secondary) 85%, transparent);
-    --glass-border: color-mix(in oklch, var(--text-primary) 10%, transparent);
+    --glow: color-mix(in oklch, var(--accent) 14%, transparent);
+    --glass-bg: color-mix(in oklch, var(--bg-card) 92%, transparent);
+    --glass-border: color-mix(in oklch, var(--text-primary) 8%, transparent);
   }
 
   :root[data-theme='light'] {
-    --bg-primary: oklch(97% 0.01 100);
-    --bg-secondary: oklch(94% 0.012 100);
-    --bg-card: oklch(99% 0.004 100);
-    --bg-elevated: oklch(99% 0.004 100);
-    --bg-overlay: color-mix(in oklch, #000 35%, transparent);
+    --bg-primary: oklch(95% 0.012 70);
+    --bg-secondary: oklch(92% 0.014 70);
+    --bg-card: oklch(97% 0.008 70);
+    --bg-elevated: oklch(99% 0.005 70);
+    --bg-overlay: color-mix(in oklch, #000 28%, transparent);
 
-    --text-primary: oklch(24% 0.02 250);
-    --text-secondary: oklch(44% 0.02 250);
-    --text-secondary-strong: oklch(36% 0.02 250);
-    --text-tertiary: oklch(70% 0.015 250);
+    --text-primary: oklch(26% 0.015 45);
+    --text-secondary: oklch(46% 0.012 45);
+    --text-secondary-strong: oklch(37% 0.013 45);
+    --text-tertiary: oklch(70% 0.01 45);
 
-    --accent: oklch(55% 0.18 25);
-    --accent-hover: oklch(50% 0.18 25);
-    --accent-muted: color-mix(in oklch, var(--accent) 14%, transparent);
-    --accent-rose: color-mix(in oklch, var(--accent) 70%, oklch(72% 0.11 25) 30%);
-    --accent-blush: color-mix(in oklch, var(--accent) 55%, oklch(88% 0.06 30) 45%);
-    --accent-lilac: color-mix(in oklch, var(--accent) 60%, oklch(74% 0.08 280) 40%);
-    --accent-violet: color-mix(in oklch, var(--accent) 55%, oklch(66% 0.16 290) 45%);
-    --accent-sky: color-mix(in oklch, var(--accent) 65%, oklch(76% 0.09 230) 35%);
-    --accent-amber: color-mix(in oklch, var(--accent) 60%, oklch(76% 0.12 80) 40%);
-    --accent-mint: color-mix(in oklch, var(--accent) 65%, oklch(74% 0.12 160) 35%);
+    --accent: oklch(56% 0.1 45);
+    --accent-hover: oklch(51% 0.1 45);
+    --accent-muted: color-mix(in oklch, var(--accent) 12%, transparent);
+    --accent-rose: color-mix(in oklch, var(--accent) 82%, oklch(64% 0.08 40) 18%);
+    --accent-blush: color-mix(in oklch, var(--accent) 46%, oklch(84% 0.035 45) 54%);
+    --accent-lilac: color-mix(in oklch, var(--accent) 54%, oklch(72% 0.025 35) 46%);
+    --accent-violet: color-mix(in oklch, var(--accent) 68%, oklch(61% 0.05 35) 32%);
+    --accent-sky: color-mix(in oklch, var(--accent) 28%, oklch(74% 0.015 230) 72%);
+    --accent-amber: color-mix(in oklch, var(--accent) 78%, oklch(71% 0.08 70) 22%);
+    --accent-mint: color-mix(in oklch, var(--accent) 28%, oklch(72% 0.04 160) 72%);
 
-    --border: oklch(88% 0.01 100);
-    --border-subtle: oklch(94% 0.008 100);
+    --border: oklch(84% 0.01 70);
+    --border-subtle: oklch(90% 0.008 70);
 
-    --success: oklch(62% 0.12 160);
-    --warning: oklch(68% 0.12 80);
-    --error: oklch(55% 0.19 25);
+    --success: oklch(61% 0.06 155);
+    --warning: oklch(66% 0.09 70);
+    --error: oklch(55% 0.09 35);
 
-    --glow: color-mix(in oklch, var(--accent) 22%, transparent);
-    --glass-bg: color-mix(in oklch, var(--bg-card) 88%, transparent);
-    --glass-border: color-mix(in oklch, var(--text-primary) 12%, transparent);
+    --glow: color-mix(in oklch, var(--accent) 10%, transparent);
+    --glass-bg: color-mix(in oklch, var(--bg-card) 94%, transparent);
+    --glass-border: color-mix(in oklch, var(--text-primary) 10%, transparent);
   }
 }
 
@@ -398,13 +398,15 @@ a:focus-visible {
 
 .btn-primary {
   background: var(--accent);
-  color: white;
+  border: 1px solid var(--accent);
+  color: var(--bg-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary:active {
