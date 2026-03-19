@@ -884,7 +884,10 @@
                 <div class="color-input-wrapper">
                   <input
                     type="color"
-                    :value="newTheme.colors?.[key as keyof ThemeColors] || '#000000'"
+                    :value="
+                      newTheme.colors?.[key as keyof ThemeColors] ||
+                      defaultColors[key as keyof ThemeColors]
+                    "
                     @input="
                       (e) =>
                         newTheme.colors &&
@@ -1045,7 +1048,10 @@
                 <div class="color-input-wrapper">
                   <input
                     type="color"
-                    :value="editingTheme!.colors[key as keyof ThemeColors] || '#000000'"
+                    :value="
+                      editingTheme!.colors[key as keyof ThemeColors] ||
+                      defaultColors[key as keyof ThemeColors]
+                    "
                     @input="
                       (e) =>
                         (editingTheme!.colors[key as keyof ThemeColors] = (
@@ -1421,7 +1427,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    color: rgba(255, 255, 255, 0.6);
+    color: color-mix(in srgb, white 60%, transparent);
   }
 
   .theme-info {
@@ -1739,12 +1745,12 @@
   }
 
   .message-toast.success {
-    background: rgba(34, 197, 94, 0.15);
+    background: color-mix(in srgb, var(--success) 15%, transparent);
     color: var(--success);
   }
 
   .message-toast.error {
-    background: rgba(239, 68, 68, 0.15);
+    background: color-mix(in srgb, var(--error) 15%, transparent);
     color: var(--error);
   }
 

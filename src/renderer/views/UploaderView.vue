@@ -424,10 +424,10 @@
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 32%, transparent);
     border-radius: 8px;
-    color: #ef4444;
+    color: var(--error);
     font-size: var(--text-sm);
     line-height: 1.4;
   }
