@@ -1777,7 +1777,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--bg-overlay);
     z-index: 1000;
     padding: clamp(12px, 4vw, 20px);
   }

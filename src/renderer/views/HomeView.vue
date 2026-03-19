@@ -516,7 +516,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-overlay);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -551,7 +551,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--bg-overlay);
   }
 
   .continue-progress-bar {
@@ -671,7 +671,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-overlay);
     opacity: 0;
     transition: opacity 0.3s ease;
   }

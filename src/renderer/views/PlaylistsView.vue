@@ -566,7 +566,7 @@
     bottom: 8px;
     right: 8px;
     padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--bg-overlay);
     border-radius: 4px;
     font-size: var(--text-xs);
     font-weight: 500;
@@ -615,7 +615,7 @@
     height: 32px;
     border: none;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--bg-overlay);
     color: white;
     cursor: pointer;
     transition:
@@ -626,7 +626,7 @@
   }
 
   .action-btn:hover {
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--bg-elevated);
   }
 
   .action-btn.edit:hover {
@@ -672,7 +672,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--bg-overlay);
     z-index: 1000;
     padding: 12px;
   }

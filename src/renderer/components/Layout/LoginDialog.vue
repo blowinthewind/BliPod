@@ -194,7 +194,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--bg-overlay);
     z-index: 1000;
     padding: 20px;
   }

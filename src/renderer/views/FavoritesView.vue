@@ -228,7 +228,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-overlay);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -270,7 +270,7 @@
     bottom: 4px;
     right: 4px;
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--bg-overlay);
     border-radius: 4px;
     font-size: var(--text-xs);
     color: white;
