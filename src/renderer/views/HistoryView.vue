@@ -204,9 +204,9 @@
   }
 
   .clear-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    border-color: color-mix(in srgb, var(--error) 32%, transparent);
+    color: var(--error);
   }
 
   .history-list {
@@ -402,7 +402,7 @@
   }
 
   .action-btn.remove:hover {
-    color: #ff5252;
+    color: var(--error);
   }
 
   .empty-state {
