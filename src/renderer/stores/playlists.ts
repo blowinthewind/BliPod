@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Playlist, ExtractedVideo } from '../../preload/preload'
 import { useToast } from '../composables/useToast'
-import { getUserFriendlyErrorMessage, getSuccessMessage, getErrorMessage } from '../utils/errorMessages'
+import { getUserFriendlyErrorMessage, getErrorMessage } from '../utils/errorMessages'
 import { logger } from '../utils/logger'
 
 export const usePlaylistsStore = defineStore('playlists', () => {
@@ -18,8 +18,8 @@ export const usePlaylistsStore = defineStore('playlists', () => {
   // 计算属性：所有播放列表中的视频 bvid 集合（用于快速查找）
   const allPlaylistBvids = computed(() => {
     const set = new Set<string>()
-    playlists.value.forEach(playlist => {
-      playlist.videos.forEach(video => {
+    playlists.value.forEach((playlist) => {
+      playlist.videos.forEach((video) => {
         set.add(video.bvid)
       })
     })
@@ -50,7 +50,6 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     try {
       const playlist = await window.electronAPI.store.createPlaylist(name, description)
       playlists.value.push(playlist)
-      toast.success(getSuccessMessage('createPlaylist'))
       return playlist
     } catch (e) {
       const friendlyError = getUserFriendlyErrorMessage(e, '创建播放列表失败')
@@ -61,15 +60,17 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     }
   }
 
-  async function updatePlaylist(id: string, updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>): Promise<boolean> {
+  async function updatePlaylist(
+    id: string,
+    updates: Partial<Pick<Playlist, 'name' | 'description' | 'cover'>>
+  ): Promise<boolean> {
     try {
       const result = await window.electronAPI.store.updatePlaylist(id, updates)
       if (result) {
-        const index = playlists.value.findIndex(p => p.id === id)
+        const index = playlists.value.findIndex((p) => p.id === id)
         if (index !== -1) {
           playlists.value[index] = result
         }
-        toast.success(getSuccessMessage('updatePlaylist'))
       } else {
         toast.error(getErrorMessage('updatePlaylist'))
       }
@@ -87,11 +88,10 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     try {
       const result = await window.electronAPI.store.deletePlaylist(id)
       if (result) {
-        playlists.value = playlists.value.filter(p => p.id !== id)
+        playlists.value = playlists.value.filter((p) => p.id !== id)
         if (currentPlaylist.value?.id === id) {
           currentPlaylist.value = null
         }
-        toast.success(getSuccessMessage('deletePlaylist'))
       } else {
         toast.error(getErrorMessage('deletePlaylist'))
       }
@@ -110,7 +110,6 @@ export const usePlaylistsStore = defineStore('playlists', () => {
       const result = await window.electronAPI.store.addVideoToPlaylist(playlistId, video)
       if (result) {
         await loadPlaylists()
-        toast.success(getSuccessMessage('addToPlaylist'))
       } else {
         toast.error(getErrorMessage('addToPlaylist'))
       }
@@ -128,12 +127,11 @@ export const usePlaylistsStore = defineStore('playlists', () => {
     try {
       const result = await window.electronAPI.store.removeVideoFromPlaylist(playlistId, bvid)
       if (result) {
-        const playlist = playlists.value.find(p => p.id === playlistId)
+        const playlist = playlists.value.find((p) => p.id === playlistId)
         if (playlist) {
-          playlist.videos = playlist.videos.filter(v => v.bvid !== bvid)
+          playlist.videos = playlist.videos.filter((v) => v.bvid !== bvid)
           playlist.updatedAt = Date.now()
         }
-        toast.success(getSuccessMessage('removeFromPlaylist'))
       } else {
         toast.error(getErrorMessage('removeFromPlaylist'))
       }
@@ -152,7 +150,7 @@ export const usePlaylistsStore = defineStore('playlists', () => {
   }
 
   function getPlaylistById(id: string): Playlist | undefined {
-    return playlists.value.find(p => p.id === id)
+    return playlists.value.find((p) => p.id === id)
   }
 
   return {
