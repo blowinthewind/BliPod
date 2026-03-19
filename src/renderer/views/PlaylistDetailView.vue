@@ -729,7 +729,19 @@
     outline: none;
   }
 
-  .modal-input:focus {
+  :deep(.modal-input.input-base) {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    outline: none;
+  }
+
+  .modal-input:focus,
+  :deep(.modal-input.input-base:focus) {
     border-color: var(--accent);
   }
 
