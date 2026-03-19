@@ -2,6 +2,7 @@
   import { computed, onMounted } from 'vue'
   import { Heart, Play, Trash2 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import { useFavoritesStore } from '../stores/favorites'
   import { usePlayerStore } from '../stores/player'
@@ -105,11 +106,7 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else>
-      <Heart :size="48" class="empty-icon" />
-      <h3>暂无收藏</h3>
-      <p>搜索并收藏你喜欢的视频</p>
-    </div>
+    <EmptyState v-else :icon="Heart" title="暂无收藏" description="搜索并收藏你喜欢的视频" />
 
     <ScrollToButtons scroll-container=".content-area" :threshold="5" />
   </div>
@@ -338,31 +335,5 @@
 
   .action-btn.remove:hover {
     color: var(--error);
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-  }
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
   }
 </style>

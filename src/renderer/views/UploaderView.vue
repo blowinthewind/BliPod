@@ -12,6 +12,7 @@
   } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { usePlayerStore } from '../stores/player'
@@ -310,11 +311,12 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else-if="!isLoading && !error">
-      <User :size="48" class="empty-icon" />
-      <h3>暂无视频</h3>
-      <p>这个 UP 主还没有可播放的视频内容</p>
-    </div>
+    <EmptyState
+      v-else-if="!isLoading && !error"
+      :icon="User"
+      title="暂无视频"
+      description="这个 UP 主还没有可播放的视频内容"
+    />
 
     <div class="loading-state" v-if="isLoading">
       <Loader2 :size="32" class="animate-spin" />
@@ -772,32 +774,6 @@
   .load-more-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-  }
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
   }
 
   .loading-state {

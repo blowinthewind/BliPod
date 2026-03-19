@@ -2,6 +2,7 @@
   import { computed } from 'vue'
   import { History, Play, Trash2, Clock } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import { usePlayerStore } from '../stores/player'
   import type { HistoryVideo } from '../stores/player'
@@ -132,11 +133,12 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else>
-      <History :size="48" class="empty-icon" />
-      <h3>暂无播放历史</h3>
-      <p>开始观看视频，历史记录将显示在这里</p>
-    </div>
+    <EmptyState
+      v-else
+      :icon="History"
+      title="暂无播放历史"
+      description="开始观看视频，历史记录将显示在这里"
+    />
 
     <ScrollToButtons v-if="history.length > 5" scroll-container=".content-area" :threshold="5" />
   </div>
@@ -403,31 +405,5 @@
 
   .action-btn.remove:hover {
     color: var(--error);
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-  }
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
   }
 </style>

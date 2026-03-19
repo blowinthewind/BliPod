@@ -3,6 +3,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import { usePlaylistsStore } from '../stores/playlists'
   import { usePlayerStore } from '../stores/player'
@@ -267,20 +268,24 @@
         </div>
       </div>
 
-      <div class="empty-state" v-else>
-        <ListMusic :size="48" class="empty-icon" />
-        <h3>播放列表为空</h3>
-        <p>从搜索结果或收藏中添加视频</p>
-      </div>
+      <EmptyState
+        v-else
+        :icon="ListMusic"
+        title="播放列表为空"
+        description="从搜索结果或收藏中添加视频"
+      />
 
       <ScrollToButtons v-if="videos.length > 5" scroll-container=".content-area" :threshold="5" />
     </template>
 
-    <div class="not-found" v-else>
-      <ListMusic :size="48" class="empty-icon" />
-      <h3>播放列表不存在</h3>
-      <button class="back-link" @click="goBack">返回播放列表</button>
-    </div>
+    <EmptyState
+      v-else
+      :icon="ListMusic"
+      title="播放列表不存在"
+      action="返回播放列表"
+      class="not-found"
+      @action="goBack"
+    />
 
     <div class="modal-overlay" v-if="showEditModal" @click.self="closeEditModal">
       <div
@@ -678,54 +683,6 @@
   .action-btn.remove:hover {
     background: var(--bg-primary);
     color: var(--error);
-  }
-
-  .empty-state,
-  .not-found {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-  }
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h3,
-  .not-found h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
-  }
-
-  .back-link {
-    margin-top: 16px;
-    padding: 8px 16px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .back-link:hover {
-    background: var(--accent-hover);
   }
 
   .modal-overlay {

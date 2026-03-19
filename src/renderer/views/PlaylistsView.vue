@@ -3,6 +3,7 @@
   import { useRouter } from 'vue-router'
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import { usePlaylistsStore } from '../stores/playlists'
   import type { Playlist } from '../../preload/preload'
 
@@ -275,15 +276,14 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else>
-      <ListMusic :size="48" class="empty-icon" />
-      <h3>暂无播放列表</h3>
-      <p>创建你的第一个播放列表</p>
-      <button class="create-btn" @click="openCreateModal">
-        <Plus :size="18" />
-        新建列表
-      </button>
-    </div>
+    <EmptyState
+      v-else
+      :icon="ListMusic"
+      title="暂无播放列表"
+      description="创建你的第一个播放列表"
+      action="新建列表"
+      @action="openCreateModal"
+    />
 
     <div class="modal-overlay" v-if="showCreateModal" @click.self="closeCreateModal">
       <div
@@ -635,32 +635,6 @@
 
   .action-btn.delete:hover {
     color: var(--error);
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-    gap: 8px;
-  }
-
-  .empty-icon {
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
-    margin-bottom: 16px;
   }
 
   .modal-overlay {

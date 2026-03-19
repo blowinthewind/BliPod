@@ -16,6 +16,7 @@
   } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
+  import EmptyState from '../components/ui/EmptyState.vue'
   import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useSearch } from '../composables/useSearch'
@@ -363,11 +364,12 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else-if="!searchStore.isSearching && !hasError">
-      <Search :size="48" class="empty-icon" />
-      <h3>搜索哔哩哔哩内容</h3>
-      <p>输入关键词，开始查找想听的视频和 UP 主</p>
-    </div>
+    <EmptyState
+      v-else-if="!searchStore.isSearching && !hasError"
+      :icon="Search"
+      title="搜索哔哩哔哩内容"
+      description="输入关键词，开始查找想听的视频和 UP 主"
+    />
 
     <div class="loading-state" v-if="searchStore.isSearching && !searchStore.hasResults">
       <Loader2 :size="32" class="animate-spin" />
@@ -1047,32 +1049,6 @@
   .load-more-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 64px 32px;
-    color: var(--text-secondary);
-    text-align: center;
-  }
-
-  .empty-icon {
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  .empty-state h3 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-  }
-
-  .empty-state p {
-    font-size: var(--text-sm);
   }
 
   .loading-state {
