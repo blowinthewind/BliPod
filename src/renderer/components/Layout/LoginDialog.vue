@@ -121,8 +121,8 @@
       </button>
 
       <div class="dialog-header">
-        <h2 id="login-dialog-title" class="dialog-title">Bilibili Login</h2>
-        <p class="dialog-desc">Scan QR code with Bilibili App to login</p>
+        <h2 id="login-dialog-title" class="dialog-title">登录哔哩哔哩</h2>
+        <p class="dialog-desc">扫码后即可同步收藏、历史和个性化推荐</p>
       </div>
 
       <div class="dialog-content">
@@ -138,7 +138,7 @@
               <span class="user-level">Lv.{{ authStore.userInfo.level }}</span>
             </div>
           </div>
-          <button class="logout-btn" @click="handleLogout">Logout</button>
+          <button class="logout-btn" @click="handleLogout">退出登录</button>
         </div>
 
         <div v-else-if="authStore.isLoggingIn" class="login-progress">
@@ -146,12 +146,12 @@
             <img :src="authStore.qrCodeDataUrl" alt="QR Code" class="qr-code" />
             <div class="qr-hint">
               <QrCode :size="16" />
-              <span>Open Bilibili App to scan</span>
+              <span>打开哔哩哔哩 App 扫码确认</span>
             </div>
           </div>
           <div v-else class="loading-state">
             <Loader2 :size="48" class="spin" />
-            <span>Generating QR Code...</span>
+            <span>正在生成登录二维码...</span>
           </div>
 
           <div v-if="authStore.loginError" class="error-message">
@@ -164,12 +164,10 @@
           <div class="qr-placeholder">
             <QrCode :size="64" />
           </div>
-          <p class="prompt-text">
-            Login to access your favorites and get personalized recommendations
-          </p>
+          <p class="prompt-text">登录后可同步你的收藏、历史记录和个性化推荐</p>
           <button class="login-btn" @click="handleLogin">
             <QrCode :size="18" />
-            Scan QR Code to Login
+            扫码登录
           </button>
         </div>
       </div>
@@ -177,7 +175,7 @@
       <div class="dialog-footer">
         <p class="security-note">
           <CheckCircle :size="14" />
-          Secure login via official Bilibili
+          通过哔哩哔哩官方登录流程安全授权
         </p>
       </div>
     </div>

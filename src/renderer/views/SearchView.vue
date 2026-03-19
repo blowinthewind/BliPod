@@ -177,8 +177,8 @@
 <template>
   <div class="search-view">
     <div class="search-header">
-      <h1 class="page-title">Search</h1>
-      <p class="page-desc">Search Bilibili videos</p>
+      <h1 class="page-title">搜索</h1>
+      <p class="page-desc">搜索视频、UP 主和你想听的内容</p>
     </div>
 
     <div class="search-box">
@@ -190,7 +190,7 @@
           ref="searchInputRef"
           type="text"
           class="search-input"
-          placeholder="Enter keywords to search..."
+          placeholder="搜索视频标题、UP 主或关键词"
           aria-label="搜索关键词"
           v-model="searchQuery"
           @keyup.enter="handleSearch"
@@ -209,16 +209,16 @@
       </div>
       <button class="search-btn" @click="handleSearch" :disabled="searchStore.isSearching">
         <Loader2 v-if="searchStore.isSearching" :size="18" class="animate-spin" />
-        <span v-else>Search</span>
+        <span v-else>搜索</span>
       </button>
 
       <div v-if="showHistory && searchStore.searchHistory.length > 0" class="history-dropdown">
         <div class="history-header">
           <span class="history-title">
             <History :size="14" />
-            Search History
+            搜索历史
           </span>
-          <button class="clear-history-btn" @click="clearAllHistory">Clear All</button>
+          <button class="clear-history-btn" @click="clearAllHistory">清空</button>
         </div>
         <div class="history-list">
           <div v-for="item in searchStore.searchHistory" :key="item" class="history-item">
@@ -251,14 +251,14 @@
     >
       <AlertCircle :size="20" />
       <span>{{ errorMessage }}</span>
-      <span v-if="isRetrying" class="retry-info">(Retrying... {{ retryCount }}/3)</span>
+      <span v-if="isRetrying" class="retry-info">（正在重试 {{ retryCount }}/3）</span>
     </div>
 
     <div class="search-results" v-if="searchStore.hasResults">
       <div class="results-header">
-        <span class="results-count">Found {{ searchStore.resultCount }} results</span>
+        <span class="results-count">共找到 {{ searchStore.resultCount }} 条结果</span>
         <span v-if="searchStore.currentPage > 1" class="page-info"
-          >Page {{ searchStore.currentPage }}</span
+          >第 {{ searchStore.currentPage }} 页</span
         >
       </div>
 
@@ -301,7 +301,7 @@
                   {{ result.author }}
                 </button>
                 <span class="meta-divider">•</span>
-                <span v-if="result.playCount" class="meta-item">{{ result.playCount }} plays</span>
+                <span v-if="result.playCount" class="meta-item">播放 {{ result.playCount }}</span>
               </div>
             </div>
           </button>
@@ -357,7 +357,7 @@
           <Loader2 v-if="searchStore.isLoadingMore" :size="18" class="animate-spin" />
           <template v-else>
             <ChevronDown :size="18" />
-            <span>Load More</span>
+            <span>加载更多</span>
           </template>
         </button>
       </div>
@@ -365,13 +365,13 @@
 
     <div class="empty-state" v-else-if="!searchStore.isSearching && !hasError">
       <Search :size="48" class="empty-icon" />
-      <h3>Search Bilibili Videos</h3>
-      <p>Enter keywords to start searching</p>
+      <h3>搜索哔哩哔哩内容</h3>
+      <p>输入关键词，开始查找想听的视频和 UP 主</p>
     </div>
 
     <div class="loading-state" v-if="searchStore.isSearching && !searchStore.hasResults">
       <Loader2 :size="32" class="animate-spin" />
-      <span>Searching...</span>
+      <span>正在搜索...</span>
     </div>
 
     <AddToPlaylistDialog
