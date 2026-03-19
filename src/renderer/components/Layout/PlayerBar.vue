@@ -559,7 +559,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--bg-overlay);
     opacity: 0;
     transition: opacity 0.2s ease;
   }
@@ -574,7 +574,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: white;
+    background: var(--text-primary);
     border: none;
     border-radius: var(--radius-full);
     color: var(--bg-primary);
