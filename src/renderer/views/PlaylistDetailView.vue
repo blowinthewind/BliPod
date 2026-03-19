@@ -3,6 +3,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import { usePlaylistsStore } from '../stores/playlists'
@@ -298,10 +299,9 @@
       >
         <h2 id="edit-playlist-title" class="modal-title">编辑播放列表</h2>
         <label class="sr-only" for="edit-playlist-name">播放列表名称</label>
-        <input
+        <Input
           id="edit-playlist-name"
           ref="editNameInputRef"
-          type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="editName"

@@ -3,6 +3,7 @@
   import { useRouter } from 'vue-router'
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { usePlaylistsStore } from '../stores/playlists'
   import type { Playlist } from '../../preload/preload'
@@ -296,10 +297,9 @@
       >
         <h2 id="create-playlist-title" class="modal-title">新建播放列表</h2>
         <label class="sr-only" for="create-playlist-name">播放列表名称</label>
-        <input
+        <Input
           id="create-playlist-name"
           ref="createNameInputRef"
-          type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="newPlaylistName"
@@ -340,10 +340,9 @@
       >
         <h2 id="edit-playlist-title" class="modal-title">编辑播放列表</h2>
         <label class="sr-only" for="edit-playlist-name">播放列表名称</label>
-        <input
+        <Input
           id="edit-playlist-name"
           ref="editNameInputRef"
-          type="text"
           class="modal-input"
           placeholder="输入列表名称..."
           v-model="newPlaylistName"

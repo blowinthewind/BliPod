@@ -1,6 +1,11 @@
 <script setup lang="ts">
   import { cn } from '@/lib/utils'
   import { Loader2 } from 'lucide-vue-next'
+  import { ref, useAttrs } from 'vue'
+
+  defineOptions({
+    inheritAttrs: false
+  })
 
   interface Props {
     type?: 'text' | 'password' | 'email' | 'number'
@@ -24,15 +29,25 @@
     'update:modelValue': [value: string]
   }>()
 
+  const attrs = useAttrs()
+  const inputRef = ref<HTMLInputElement | null>(null)
+
   function onInput(event: Event) {
     const target = event.target as HTMLInputElement
     emit('update:modelValue', target.value)
   }
+
+  defineExpose({
+    focus: () => inputRef.value?.focus(),
+    blur: () => inputRef.value?.blur(),
+    input: inputRef
+  })
 </script>
 
 <template>
   <div class="input-wrapper" :class="{ 'has-icon': props.loading }">
     <input
+      ref="inputRef"
       :type="props.type"
       :value="props.modelValue"
       :placeholder="props.placeholder"
@@ -40,17 +55,9 @@
       :aria-invalid="props.error"
       :aria-busy="props.loading ? 'true' : undefined"
       :class="
-        cn(
-          'input-base flex h-10 w-full rounded-lg border bg-bg-primary px-3 py-2 text-text-primary',
-          'border-border',
-          'placeholder:text-text-tertiary',
-          'focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'transition-colors',
-          props.error && 'border-error focus:ring-error',
-          props.loading && 'pr-10'
-        )
+        cn('input-base', props.error && 'input-error', props.loading && 'input-loading-padding')
       "
+      v-bind="attrs"
       @input="onInput"
     />
     <span v-if="props.loading" class="input-loading-icon" aria-hidden="true">
@@ -64,10 +71,33 @@
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
   }
 
   .input-base {
+    width: 100%;
     font-size: var(--text-sm);
+    font-family: inherit;
+    color: inherit;
+    background: transparent;
+    outline: none;
+  }
+
+  .input-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .input-base::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .input-loading-padding {
+    padding-right: 40px;
+  }
+
+  .input-error {
+    border-color: var(--error);
   }
 
   .input-loading-icon {

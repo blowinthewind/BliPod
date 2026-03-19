@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, nextTick, onMounted, ref, watch, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
+  import Input from '../ui/Input.vue'
   import { usePlaylistsStore } from '../../stores/playlists'
   import type { ExtractedVideo } from '../../../preload/preload'
 
@@ -269,10 +270,9 @@
         >
           <h3 id="create-playlist-title" class="create-title">新建播放列表</h3>
           <label class="sr-only" for="new-playlist-name">播放列表名称</label>
-          <input
+          <Input
             id="new-playlist-name"
             ref="createInputRef"
-            type="text"
             class="create-input"
             placeholder="输入列表名称..."
             v-model="newPlaylistName"

@@ -15,6 +15,7 @@
     Check
   } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Input from '../components/ui/Input.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
@@ -186,10 +187,9 @@
       <div class="search-input-wrapper">
         <label class="sr-only" for="search-query-input">搜索关键词</label>
         <Search :size="20" class="search-icon" />
-        <input
+        <Input
           id="search-query-input"
           ref="searchInputRef"
-          type="text"
           class="search-input"
           placeholder="搜索视频标题、UP 主或关键词"
           aria-label="搜索关键词"
@@ -467,6 +467,11 @@
     color: var(--text-primary);
     font-size: var(--text-base);
     outline: none;
+  }
+
+  .search-input-wrapper :deep(.input-wrapper) {
+    flex: 1;
+    min-width: 0;
   }
 
   .search-input::placeholder {
