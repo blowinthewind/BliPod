@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+  import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useAuthStore } from '@/stores/auth'
   import { X, QrCode, Loader2, CheckCircle, AlertCircle } from 'lucide-vue-next'
+  import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
 
   const authStore = useAuthStore()
 
@@ -16,7 +17,6 @@
   let unsubscribe: (() => void) | null = null
   const loginDialogRef = ref<HTMLDivElement | null>(null)
   const closeButtonRef = ref<HTMLButtonElement | null>(null)
-  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     unsubscribe = authStore.setLoginListener()
@@ -28,21 +28,6 @@
       unsubscribe()
     }
   })
-
-  watch(
-    () => props.visible,
-    async (isVisible) => {
-      if (isVisible) {
-        lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-        await nextTick()
-        closeButtonRef.value?.focus()
-        return
-      }
-
-      await nextTick()
-      lastFocusedElementRef.value?.focus()
-    }
-  )
 
   function handleClose() {
     authStore.cancelLogin()
@@ -57,47 +42,14 @@
     authStore.logout()
   }
 
-  function handleDialogKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      handleClose()
-      return
-    }
+  const isOpen = computed(() => props.visible)
 
-    if (event.key !== 'Tab') return
-
-    const focusableSelectors = [
-      'button:not([disabled])',
-      'a[href]',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])'
-    ].join(', ')
-
-    const focusableElements = Array.from(
-      loginDialogRef.value?.querySelectorAll<HTMLElement>(focusableSelectors) ?? []
-    ).filter((element) => !element.hasAttribute('disabled') && element.offsetParent !== null)
-
-    if (focusableElements.length === 0) return
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-    const activeElement = document.activeElement as HTMLElement | null
-
-    if (event.shiftKey) {
-      if (activeElement === firstElement || !loginDialogRef.value?.contains(activeElement)) {
-        event.preventDefault()
-        lastElement.focus()
-      }
-      return
-    }
-
-    if (activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
-    }
-  }
+  const { handleKeydown: handleDialogKeydown } = useDialogFocusTrap({
+    open: isOpen,
+    containerRef: loginDialogRef,
+    initialFocusRef: closeButtonRef,
+    onClose: handleClose
+  })
 </script>
 
 <template>

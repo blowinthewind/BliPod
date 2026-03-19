@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, computed, toRaw, nextTick, watch } from 'vue'
+  import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
   import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
   import { useAuthStore } from '@/stores/auth'
   import { useFavoritesStore } from '@/stores/favorites'
@@ -23,6 +23,7 @@
   } from 'lucide-vue-next'
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
   import Button from '@/components/ui/Button.vue'
+  import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
 
   const themeStore = useThemeStore()
   const authStore = useAuthStore()
@@ -43,11 +44,10 @@
   const showEditTheme = ref(false)
   const showLoginDialog = ref(false)
   const editingThemeId = ref<string | null>(null)
-  const createThemeDialogRef = ref<HTMLDivElement | null>(null)
-  const editThemeDialogRef = ref<HTMLDivElement | null>(null)
   const createThemeIdInputRef = ref<HTMLInputElement | null>(null)
   const editThemeNameInputRef = ref<HTMLInputElement | null>(null)
-  const lastFocusedElementRef = ref<HTMLElement | null>(null)
+  const createThemeDialogRef = ref<HTMLDivElement | null>(null)
+  const editThemeDialogRef = ref<HTMLDivElement | null>(null)
 
   interface CategoryStats {
     key: string
@@ -84,30 +84,6 @@
     if (unsubscribe) {
       unsubscribe()
     }
-  })
-
-  watch(showCreateTheme, async (visible) => {
-    if (visible) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      createThemeIdInputRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    lastFocusedElementRef.value?.focus()
-  })
-
-  watch(showEditTheme, async (visible) => {
-    if (visible) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      editThemeNameInputRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    lastFocusedElementRef.value?.focus()
   })
 
   async function loadCategoryStats() {
@@ -392,60 +368,19 @@
     }
   }
 
-  function getFocusableElements(container: HTMLElement | null) {
-    if (!container) return [] as HTMLElement[]
+  const { handleKeydown: handleCreateThemeKeydown } = useDialogFocusTrap({
+    open: showCreateTheme,
+    containerRef: createThemeDialogRef,
+    initialFocusRef: createThemeIdInputRef,
+    onClose: closeCreateTheme
+  })
 
-    const selectors = [
-      'button:not([disabled])',
-      'a[href]',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])'
-    ].join(', ')
-
-    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
-      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
-    )
-  }
-
-  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      onEscape()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const focusableElements = getFocusableElements(container)
-    if (focusableElements.length === 0) return
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-    const activeElement = document.activeElement as HTMLElement | null
-
-    if (event.shiftKey) {
-      if (activeElement === firstElement || !container?.contains(activeElement)) {
-        event.preventDefault()
-        lastElement.focus()
-      }
-      return
-    }
-
-    if (activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
-    }
-  }
-
-  function handleCreateThemeKeydown(event: KeyboardEvent) {
-    trapFocus(event, createThemeDialogRef.value, closeCreateTheme)
-  }
-
-  function handleEditThemeKeydown(event: KeyboardEvent) {
-    trapFocus(event, editThemeDialogRef.value, closeEditTheme)
-  }
+  const { handleKeydown: handleEditThemeKeydown } = useDialogFocusTrap({
+    open: showEditTheme,
+    containerRef: editThemeDialogRef,
+    initialFocusRef: editThemeNameInputRef,
+    onClose: closeEditTheme
+  })
 
   function deleteTheme(themeId: string) {
     themeStore.removeCustomTheme(themeId)

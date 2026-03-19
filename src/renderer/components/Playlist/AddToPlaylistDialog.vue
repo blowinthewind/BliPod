@@ -1,8 +1,9 @@
 <script setup lang="ts">
-  import { computed, nextTick, onMounted, ref, watch, toRaw } from 'vue'
+  import { computed, onMounted, ref, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
   import Button from '../ui/Button.vue'
   import Input from '../ui/Input.vue'
+  import { useDialogFocusTrap } from '../../composables/useDialogFocusTrap'
   import { usePlaylistsStore } from '../../stores/playlists'
   import type { ExtractedVideo } from '../../../preload/preload'
 
@@ -40,41 +41,9 @@
   const closeButtonRef = ref<HTMLButtonElement | null>(null)
   const createModalRef = ref<HTMLDivElement | null>(null)
   const createInputRef = ref<HTMLInputElement | null>(null)
-  const lastFocusedElementRef = ref<HTMLElement | null>(null)
-  const createModalTriggerRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     playlistsStore.loadPlaylists()
-  })
-
-  watch(
-    () => props.visible,
-    async (visible) => {
-      if (visible) {
-        lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-        playlistsStore.loadPlaylists()
-        await nextTick()
-        closeButtonRef.value?.focus()
-        return
-      }
-
-      await nextTick()
-      if (!showCreateModal.value) {
-        lastFocusedElementRef.value?.focus()
-      }
-    }
-  )
-
-  watch(showCreateModal, async (visible) => {
-    if (visible) {
-      createModalTriggerRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      createInputRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    createModalTriggerRef.value?.focus()
   })
 
   function isVideoInPlaylist(playlistId: string): boolean {
@@ -136,61 +105,20 @@
     return isProcessing.value === playlistId
   }
 
-  function getFocusableElements(container: HTMLElement | null) {
-    if (!container) return [] as HTMLElement[]
+  const { handleKeydown: handleDialogKeydown } = useDialogFocusTrap({
+    open: computed(() => props.visible),
+    containerRef: dialogRef,
+    initialFocusRef: closeButtonRef,
+    onClose: close,
+    restoreFocusWhen: () => !showCreateModal.value
+  })
 
-    const selectors = [
-      'button:not([disabled])',
-      'a[href]',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])'
-    ].join(', ')
-
-    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
-      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
-    )
-  }
-
-  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      onEscape()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const focusableElements = getFocusableElements(container)
-    if (focusableElements.length === 0) return
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-    const activeElement = document.activeElement as HTMLElement | null
-
-    if (event.shiftKey) {
-      if (activeElement === firstElement || !container?.contains(activeElement)) {
-        event.preventDefault()
-        lastElement.focus()
-      }
-      return
-    }
-
-    if (activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
-    }
-  }
-
-  function handleDialogKeydown(event: KeyboardEvent) {
-    if (showCreateModal.value) return
-    trapFocus(event, dialogRef.value, close)
-  }
-
-  function handleCreateModalKeydown(event: KeyboardEvent) {
-    trapFocus(event, createModalRef.value, closeCreateModal)
-  }
+  const { handleKeydown: handleCreateModalKeydown } = useDialogFocusTrap({
+    open: showCreateModal,
+    containerRef: createModalRef,
+    initialFocusRef: createInputRef,
+    onClose: closeCreateModal
+  })
 </script>
 
 <template>

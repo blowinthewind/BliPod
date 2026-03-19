@@ -1,11 +1,12 @@
 <script setup lang="ts">
-  import { computed, nextTick, onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import Button from '../components/ui/Button.vue'
   import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
+  import { useDialogFocusTrap } from '../composables/useDialogFocusTrap'
   import { usePlaylistsStore } from '../stores/playlists'
   import type { Playlist } from '../../preload/preload'
 
@@ -28,46 +29,9 @@
   const createNameInputRef = ref<HTMLInputElement | null>(null)
   const editNameInputRef = ref<HTMLInputElement | null>(null)
   const deleteCancelButtonRef = ref<HTMLButtonElement | null>(null)
-  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(() => {
     playlistsStore.loadPlaylists()
-  })
-
-  watch(showCreateModal, async (visible) => {
-    if (visible) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      createNameInputRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    lastFocusedElementRef.value?.focus()
-  })
-
-  watch(showEditModal, async (visible) => {
-    if (visible) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      editNameInputRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    lastFocusedElementRef.value?.focus()
-  })
-
-  watch(showDeleteConfirm, async (visible) => {
-    if (visible) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      deleteCancelButtonRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    lastFocusedElementRef.value?.focus()
   })
 
   function openCreateModal() {
@@ -137,64 +101,26 @@
     router.push({ name: 'playlist-detail', params: { id: playlist.id } })
   }
 
-  function getFocusableElements(container: HTMLElement | null) {
-    if (!container) return [] as HTMLElement[]
+  const { handleKeydown: handleCreateDialogKeydown } = useDialogFocusTrap({
+    open: showCreateModal,
+    containerRef: createModalRef,
+    initialFocusRef: createNameInputRef,
+    onClose: closeCreateModal
+  })
 
-    const selectors = [
-      'button:not([disabled])',
-      'a[href]',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])'
-    ].join(', ')
+  const { handleKeydown: handleEditDialogKeydown } = useDialogFocusTrap({
+    open: showEditModal,
+    containerRef: editModalRef,
+    initialFocusRef: editNameInputRef,
+    onClose: closeEditModal
+  })
 
-    return Array.from(container.querySelectorAll<HTMLElement>(selectors)).filter(
-      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
-    )
-  }
-
-  function trapFocus(event: KeyboardEvent, container: HTMLElement | null, onEscape: () => void) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      onEscape()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const focusableElements = getFocusableElements(container)
-    if (focusableElements.length === 0) return
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-    const activeElement = document.activeElement as HTMLElement | null
-
-    if (event.shiftKey) {
-      if (activeElement === firstElement || !container?.contains(activeElement)) {
-        event.preventDefault()
-        lastElement.focus()
-      }
-      return
-    }
-
-    if (activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
-    }
-  }
-
-  function handleCreateDialogKeydown(event: KeyboardEvent) {
-    trapFocus(event, createModalRef.value, closeCreateModal)
-  }
-
-  function handleEditDialogKeydown(event: KeyboardEvent) {
-    trapFocus(event, editModalRef.value, closeEditModal)
-  }
-
-  function handleDeleteDialogKeydown(event: KeyboardEvent) {
-    trapFocus(event, deleteModalRef.value, closeDeleteConfirm)
-  }
+  const { handleKeydown: handleDeleteDialogKeydown } = useDialogFocusTrap({
+    open: showDeleteConfirm,
+    containerRef: deleteModalRef,
+    initialFocusRef: deleteCancelButtonRef,
+    onClose: closeDeleteConfirm
+  })
 
   function formatDate(timestamp: number): string {
     const date = new Date(timestamp)
