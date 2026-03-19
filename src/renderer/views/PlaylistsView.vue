@@ -4,6 +4,8 @@
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import Button from '../components/ui/Button.vue'
+  import DialogOverlay from '../components/ui/DialogOverlay.vue'
+  import DialogPanel from '../components/ui/DialogPanel.vue'
   import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { useDialogFocusTrap } from '../composables/useDialogFocusTrap'
@@ -213,8 +215,8 @@
       @action="openCreateModal"
     />
 
-    <div class="modal-overlay" v-if="showCreateModal" @click.self="closeCreateModal">
-      <div
+    <DialogOverlay class="modal-overlay" v-if="showCreateModal" @close="closeCreateModal">
+      <DialogPanel
         ref="createModalRef"
         class="modal"
         role="dialog"
@@ -261,11 +263,11 @@
             创建
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </DialogOverlay>
 
-    <div class="modal-overlay" v-if="showEditModal" @click.self="closeEditModal">
-      <div
+    <DialogOverlay class="modal-overlay" v-if="showEditModal" @close="closeEditModal">
+      <DialogPanel
         ref="editModalRef"
         class="modal"
         role="dialog"
@@ -312,11 +314,11 @@
             保存
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </DialogOverlay>
 
-    <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="closeDeleteConfirm">
-      <div
+    <DialogOverlay class="modal-overlay" v-if="showDeleteConfirm" @close="closeDeleteConfirm">
+      <DialogPanel
         ref="deleteModalRef"
         class="modal confirm-modal"
         role="dialog"
@@ -350,8 +352,8 @@
             删除
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </DialogOverlay>
   </div>
 </template>
 

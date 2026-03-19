@@ -4,6 +4,8 @@
   import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import Button from '../components/ui/Button.vue'
+  import DialogOverlay from '../components/ui/DialogOverlay.vue'
+  import DialogPanel from '../components/ui/DialogPanel.vue'
   import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
@@ -243,8 +245,8 @@
       @action="goBack"
     />
 
-    <div class="modal-overlay" v-if="showEditModal" @click.self="closeEditModal">
-      <div
+    <DialogOverlay class="modal-overlay" v-if="showEditModal" @close="closeEditModal">
+      <DialogPanel
         ref="editModalRef"
         class="modal"
         role="dialog"
@@ -291,8 +293,8 @@
             保存
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPanel>
+    </DialogOverlay>
   </div>
 </template>
 

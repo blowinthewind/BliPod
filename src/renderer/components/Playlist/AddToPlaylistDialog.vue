@@ -2,6 +2,8 @@
   import { computed, onMounted, ref, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
   import Button from '../ui/Button.vue'
+  import DialogOverlay from '../ui/DialogOverlay.vue'
+  import DialogPanel from '../ui/DialogPanel.vue'
   import Input from '../ui/Input.vue'
   import { useDialogFocusTrap } from '../../composables/useDialogFocusTrap'
   import { usePlaylistsStore } from '../../stores/playlists'
@@ -122,8 +124,8 @@
 </script>
 
 <template>
-  <div class="modal-overlay" v-if="visible" @click.self="close">
-    <div
+  <DialogOverlay class="modal-overlay" v-if="visible" @close="close">
+    <DialogPanel
       ref="dialogRef"
       class="dialog"
       role="dialog"
@@ -188,8 +190,8 @@
         </div>
       </div>
 
-      <div class="create-modal-overlay" v-if="showCreateModal" @click.self="closeCreateModal">
-        <div
+      <DialogOverlay class="create-modal-overlay" v-if="showCreateModal" @close="closeCreateModal">
+        <DialogPanel
           ref="createModalRef"
           class="create-modal"
           role="dialog"
@@ -227,10 +229,10 @@
               创建并添加
             </Button>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
+        </DialogPanel>
+      </DialogOverlay>
+    </DialogPanel>
+  </DialogOverlay>
 </template>
 
 <style scoped>

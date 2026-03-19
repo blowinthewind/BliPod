@@ -15,6 +15,8 @@ declare module 'vue' {
     Button: typeof import('./components/ui/Button.vue')['default']
     Card: typeof import('./components/ui/Card.vue')['default']
     CardTitle: typeof import('./components/ui/CardTitle.vue')['default']
+    DialogOverlay: typeof import('./components/ui/DialogOverlay.vue')['default']
+    DialogPanel: typeof import('./components/ui/DialogPanel.vue')['default']
     EmptyState: typeof import('./components/ui/EmptyState.vue')['default']
     Header: typeof import('./components/Layout/Header.vue')['default']
     Input: typeof import('./components/ui/Input.vue')['default']
