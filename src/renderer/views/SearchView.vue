@@ -15,6 +15,7 @@
     Check
   } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Button from '../components/ui/Button.vue'
   import Input from '../components/ui/Input.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
@@ -208,10 +209,10 @@
           <X :size="16" />
         </button>
       </div>
-      <button class="search-btn" @click="handleSearch" :disabled="searchStore.isSearching">
+      <Button class="search-btn" @click="handleSearch" :disabled="searchStore.isSearching">
         <Loader2 v-if="searchStore.isSearching" :size="18" class="animate-spin" />
         <span v-else>搜索</span>
-      </button>
+      </Button>
 
       <div v-if="showHistory && searchStore.searchHistory.length > 0" class="history-dropdown">
         <div class="history-header">
@@ -219,7 +220,9 @@
             <History :size="14" />
             搜索历史
           </span>
-          <button class="clear-history-btn" @click="clearAllHistory">清空</button>
+          <Button class="clear-history-btn" variant="ghost" size="sm" @click="clearAllHistory">
+            清空
+          </Button>
         </div>
         <div class="history-list">
           <div v-for="item in searchStore.searchHistory" :key="item" class="history-item">
@@ -354,13 +357,18 @@
       </div>
 
       <div v-if="searchStore.hasMore" class="load-more-container">
-        <button class="load-more-btn" @click="handleLoadMore" :disabled="searchStore.isLoadingMore">
+        <Button
+          class="load-more-btn"
+          variant="secondary"
+          @click="handleLoadMore"
+          :disabled="searchStore.isLoadingMore"
+        >
           <Loader2 v-if="searchStore.isLoadingMore" :size="18" class="animate-spin" />
           <template v-else>
             <ChevronDown :size="18" />
             <span>加载更多</span>
           </template>
-        </button>
+        </Button>
       </div>
     </div>
 

@@ -22,6 +22,7 @@
     MemoryStick
   } from 'lucide-vue-next'
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
+  import Button from '@/components/ui/Button.vue'
 
   const themeStore = useThemeStore()
   const authStore = useAuthStore()
@@ -576,16 +577,16 @@
                   />
                   <span class="user-name-small">{{ authStore.userInfo.name }}</span>
                 </div>
-                <button class="logout-btn" @click="handleLogout">
+                <Button class="logout-btn" variant="outline" @click="handleLogout">
                   <LogOut :size="16" />
                   退出登录
-                </button>
+                </Button>
               </template>
               <template v-else>
-                <button class="login-btn" @click="openLoginDialog">
+                <Button class="login-btn" @click="openLoginDialog">
                   <LogIn :size="18" />
                   登录
-                </button>
+                </Button>
               </template>
             </div>
           </div>
@@ -598,10 +599,10 @@
             <Palette :size="18" />
             主题
           </h2>
-          <button class="add-theme-btn" @click="openCreateTheme">
+          <Button class="add-theme-btn" @click="openCreateTheme">
             <Plus :size="16" />
             新建主题
-          </button>
+          </Button>
         </div>
 
         <div class="theme-grid">
@@ -723,8 +724,12 @@
               <span class="setting-desc">查看当前内存占用和活跃页面</span>
             </div>
             <div class="memory-actions">
-              <button class="action-btn" @click="showMemoryStats">查看状态</button>
-              <button class="action-btn" @click="cleanupMemoryNow">立即清理</button>
+              <Button class="action-btn" variant="secondary" @click="showMemoryStats"
+                >查看状态</Button
+              >
+              <Button class="action-btn" variant="secondary" @click="cleanupMemoryNow"
+                >立即清理</Button
+              >
             </div>
           </div>
         </div>
@@ -747,8 +752,20 @@
               <div class="category-header">
                 <span class="setting-label">导出数据</span>
                 <div class="category-actions" v-if="showExportOptions">
-                  <button class="small-btn" @click="selectAllExportCategories">全选</button>
-                  <button class="small-btn" @click="deselectAllExportCategories">取消全选</button>
+                  <Button
+                    class="small-btn"
+                    variant="secondary"
+                    size="sm"
+                    @click="selectAllExportCategories"
+                    >全选</Button
+                  >
+                  <Button
+                    class="small-btn"
+                    variant="secondary"
+                    size="sm"
+                    @click="deselectAllExportCategories"
+                    >取消全选</Button
+                  >
                 </div>
               </div>
               <span class="setting-desc">选择要导出的数据分类</span>
@@ -775,10 +792,15 @@
                 </span>
               </label>
             </div>
-            <button class="action-btn" :disabled="isExporting" @click="handleExportAction">
+            <Button
+              class="action-btn"
+              variant="secondary"
+              :disabled="isExporting"
+              @click="handleExportAction"
+            >
               <Download :size="18" :class="{ 'animate-spin': isExporting }" />
               {{ isExporting ? '正在导出...' : showExportOptions ? '导出已选内容' : '导出' }}
-            </button>
+            </Button>
           </div>
 
           <div class="setting-item category-selection">
@@ -813,10 +835,15 @@
                 </span>
               </label>
             </div>
-            <button class="action-btn" :disabled="isImporting" @click="handleImportAction">
+            <Button
+              class="action-btn"
+              variant="secondary"
+              :disabled="isImporting"
+              @click="handleImportAction"
+            >
               <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
               {{ isImporting ? '正在导入...' : showImportOptions ? '导入已选内容' : '导入' }}
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -995,10 +1022,21 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeCreateTheme">取消</button>
-          <button class="modal-btn confirm" type="button" @click="createCustomTheme">
+          <Button
+            class="modal-btn cancel"
+            variant="secondary"
+            type="button"
+            @click="closeCreateTheme"
+            >取消</Button
+          >
+          <Button
+            class="modal-btn confirm"
+            variant="default"
+            type="button"
+            @click="createCustomTheme"
+          >
             创建主题
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -1155,8 +1193,12 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeEditTheme">取消</button>
-          <button class="modal-btn confirm" type="button" @click="saveEditedTheme">保存修改</button>
+          <Button class="modal-btn cancel" variant="secondary" type="button" @click="closeEditTheme"
+            >取消</Button
+          >
+          <Button class="modal-btn confirm" variant="default" type="button" @click="saveEditedTheme"
+            >保存修改</Button
+          >
         </div>
       </div>
     </div>
