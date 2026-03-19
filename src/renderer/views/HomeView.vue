@@ -309,7 +309,12 @@
     background: var(--bg-primary);
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
     border: 1px solid transparent;
     width: 100%;
     text-align: left;
@@ -345,7 +350,11 @@
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     border: none;
     width: 100%;
     text-align: left;
@@ -417,7 +426,11 @@
     color: var(--text-secondary);
     font-size: var(--text-xs);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
   }
 
   .see-more-btn:hover {
@@ -448,7 +461,11 @@
     background: var(--bg-secondary);
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     border: none;
     width: 100%;
     text-align: left;
@@ -588,7 +605,11 @@
     border-radius: var(--radius-lg);
     background: var(--bg-secondary);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: none;
     width: 100%;
     text-align: left;

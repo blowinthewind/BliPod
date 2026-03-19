@@ -470,7 +470,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .create-btn:hover {
@@ -500,7 +504,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
     position: relative;
   }
 
@@ -610,7 +618,11 @@
     background: rgba(0, 0, 0, 0.6);
     color: white;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .action-btn:hover {
@@ -729,7 +741,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .modal-btn:disabled {

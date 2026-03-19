@@ -373,7 +373,11 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .back-btn:hover {
@@ -451,7 +455,12 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
   }
 
   .action-btn.primary {
@@ -500,7 +509,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .video-item:hover,
@@ -704,7 +717,11 @@
     border-radius: 8px;
     font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .back-link:hover {
@@ -789,7 +806,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .modal-btn:disabled {

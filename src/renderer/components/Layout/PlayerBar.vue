@@ -621,7 +621,11 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .like-btn:hover {
@@ -675,7 +679,11 @@
     background: transparent;
     color: var(--text-primary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .control-btn:hover:not(:disabled) {
@@ -951,7 +959,11 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .queue-action-btn:hover {
@@ -971,7 +983,10 @@
     gap: 12px;
     padding: 10px;
     border-radius: 8px;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      opacity 0.2s;
   }
 
   .queue-item:hover,
@@ -1070,7 +1085,11 @@
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .queue-item:hover .queue-item-remove {

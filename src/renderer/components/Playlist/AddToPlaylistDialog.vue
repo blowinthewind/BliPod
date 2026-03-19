@@ -347,7 +347,11 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .close-btn:hover {
@@ -426,7 +430,11 @@
     color: var(--text-secondary);
     font-size: var(--text-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      border-color 0.2s,
+      color 0.2s,
+      background-color 0.2s,
+      transform 0.2s;
     margin-bottom: 12px;
   }
 
@@ -450,7 +458,11 @@
     border-radius: 8px;
     background: transparent;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      border-color 0.2s,
+      opacity 0.2s;
     text-align: left;
     width: 100%;
   }
@@ -596,7 +608,11 @@
     font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .create-btn:disabled {

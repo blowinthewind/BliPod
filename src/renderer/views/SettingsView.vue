@@ -1300,7 +1300,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .login-btn:hover {
@@ -1318,7 +1322,12 @@
     border-radius: 8px;
     font-size: var(--text-xs);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .logout-btn:hover {
@@ -1340,7 +1349,11 @@
     font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .add-theme-btn:hover {
@@ -1360,7 +1373,11 @@
     overflow: hidden;
     background: var(--bg-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
     border: 2px solid transparent;
   }
 
@@ -1452,7 +1469,11 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .theme-action-btn:hover {
@@ -1517,7 +1538,10 @@
     bottom: 0;
     background: var(--bg-card);
     border-radius: 26px;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
   }
 
   .toggle-slider::before {
@@ -1529,7 +1553,10 @@
     bottom: 3px;
     background: var(--text-secondary);
     border-radius: 50%;
-    transition: all 0.2s;
+    transition:
+      transform 0.2s,
+      background-color 0.2s,
+      opacity 0.2s;
   }
 
   .toggle input:checked + .toggle-slider {
@@ -1552,7 +1579,11 @@
     border-radius: 8px;
     font-size: var(--text-xs);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .action-btn:hover {
@@ -1595,7 +1626,11 @@
     color: var(--text-secondary);
     font-size: var(--text-xs);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      transform 0.2s;
   }
 
   .small-btn:hover {
@@ -1619,7 +1654,11 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      transform 0.2s;
   }
 
   .category-checkbox:hover {
@@ -1920,7 +1959,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .modal-btn.cancel {

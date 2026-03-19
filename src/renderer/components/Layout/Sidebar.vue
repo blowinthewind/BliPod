@@ -298,7 +298,10 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s;
   }
 
   .collapse-btn:hover {
@@ -336,7 +339,10 @@
     border-radius: 8px;
     color: var(--text-secondary);
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
     cursor: pointer;
   }
 
@@ -516,7 +522,10 @@
     font-size: var(--text-xs);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s;
   }
 
   .confirm-btn.cancel {
