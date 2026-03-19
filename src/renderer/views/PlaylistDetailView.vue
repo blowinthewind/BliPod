@@ -3,6 +3,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import { ListMusic, Play, ArrowLeft, Trash2, Edit3, Shuffle } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Button from '../components/ui/Button.vue'
   import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
@@ -195,14 +196,19 @@
           <p v-if="playlist.description" class="page-description">{{ playlist.description }}</p>
         </div>
         <div class="header-actions">
-          <button class="action-btn primary" v-if="videos.length > 0" @click="playAll">
+          <Button class="action-btn primary" v-if="videos.length > 0" @click="playAll">
             <Play :size="18" />
             播放全部
-          </button>
-          <button class="action-btn secondary" v-if="videos.length > 1" @click="shufflePlay">
+          </Button>
+          <Button
+            class="action-btn secondary"
+            variant="secondary"
+            v-if="videos.length > 1"
+            @click="shufflePlay"
+          >
             <Shuffle :size="18" />
             随机播放
-          </button>
+          </Button>
           <button
             class="action-btn icon"
             type="button"
@@ -318,15 +324,23 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeEditModal">取消</button>
-          <button
+          <Button
+            class="modal-btn cancel"
+            variant="secondary"
+            type="button"
+            @click="closeEditModal"
+          >
+            取消
+          </Button>
+          <Button
             class="modal-btn confirm"
+            variant="default"
             type="button"
             @click="updatePlaylist"
             :disabled="!editName.trim()"
           >
             保存
-          </button>
+          </Button>
         </div>
       </div>
     </div>

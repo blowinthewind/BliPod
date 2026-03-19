@@ -3,6 +3,7 @@
   import { useRouter } from 'vue-router'
   import { ListMusic, Plus, Trash2, Edit3 } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Button from '../components/ui/Button.vue'
   import Input from '../components/ui/Input.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { usePlaylistsStore } from '../stores/playlists'
@@ -215,10 +216,10 @@
         <h1 class="page-title">播放列表</h1>
         <p class="page-desc">{{ playlists.length }} 个列表</p>
       </div>
-      <button class="create-btn" v-if="playlists.length > 0" @click="openCreateModal">
+      <Button class="create-btn" v-if="playlists.length > 0" @click="openCreateModal">
         <Plus :size="18" />
         新建列表
-      </button>
+      </Button>
     </div>
 
     <div v-if="isLoading" class="loading-state">
@@ -316,15 +317,23 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeCreateModal">取消</button>
-          <button
+          <Button
+            class="modal-btn cancel"
+            variant="secondary"
+            type="button"
+            @click="closeCreateModal"
+          >
+            取消
+          </Button>
+          <Button
             class="modal-btn confirm"
+            variant="default"
             type="button"
             @click="createPlaylist"
             :disabled="!newPlaylistName.trim()"
           >
             创建
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -359,15 +368,23 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeEditModal">取消</button>
-          <button
+          <Button
+            class="modal-btn cancel"
+            variant="secondary"
+            type="button"
+            @click="closeEditModal"
+          >
+            取消
+          </Button>
+          <Button
             class="modal-btn confirm"
+            variant="default"
             type="button"
             @click="updatePlaylist"
             :disabled="!newPlaylistName.trim()"
           >
             保存
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -389,15 +406,23 @@
           </span>
         </p>
         <div class="modal-actions">
-          <button
+          <Button
             ref="deleteCancelButtonRef"
             class="modal-btn cancel"
+            variant="secondary"
             type="button"
             @click="closeDeleteConfirm"
           >
             取消
-          </button>
-          <button class="modal-btn delete" type="button" @click="deletePlaylist">删除</button>
+          </Button>
+          <Button
+            class="modal-btn delete"
+            variant="destructive"
+            type="button"
+            @click="deletePlaylist"
+          >
+            删除
+          </Button>
         </div>
       </div>
     </div>

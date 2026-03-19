@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, nextTick, onMounted, ref, watch, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
+  import Button from '../ui/Button.vue'
   import Input from '../ui/Input.vue'
   import { usePlaylistsStore } from '../../stores/playlists'
   import type { ExtractedVideo } from '../../../preload/preload'
@@ -280,15 +281,23 @@
             aria-label="播放列表名称"
           />
           <div class="create-actions">
-            <button class="create-btn cancel" type="button" @click="closeCreateModal">取消</button>
-            <button
+            <Button
+              class="create-btn cancel"
+              variant="secondary"
+              type="button"
+              @click="closeCreateModal"
+            >
+              取消
+            </Button>
+            <Button
               class="create-btn confirm"
+              variant="default"
               type="button"
               @click="createAndAdd"
               :disabled="!newPlaylistName.trim()"
             >
               创建并添加
-            </button>
+            </Button>
           </div>
         </div>
       </div>

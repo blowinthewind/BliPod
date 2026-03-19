@@ -1,6 +1,10 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, useAttrs } from 'vue'
   import { cn } from '@/lib/utils'
+
+  defineOptions({
+    inheritAttrs: false
+  })
 
   interface Props {
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -16,26 +20,14 @@
     loading: false
   })
 
+  const attrs = useAttrs()
+
   const variantClasses = computed(() => {
-    const variants: Record<string, string> = {
-      default: 'bg-accent text-white hover:bg-accent-hover',
-      destructive: 'bg-red-600 text-white hover:bg-red-700',
-      outline: 'border border-border bg-transparent hover:bg-bg-card',
-      secondary: 'bg-bg-card text-text-primary hover:bg-bg-secondary',
-      ghost: 'hover:bg-bg-card',
-      link: 'text-accent underline-offset-4 hover:underline'
-    }
-    return variants[props.variant]
+    return `button--${props.variant}`
   })
 
   const sizeClasses = computed(() => {
-    const sizes: Record<string, string> = {
-      default: 'h-10 px-4 py-2 btn-size-default',
-      sm: 'h-9 rounded-md px-3 btn-size-sm',
-      lg: 'h-11 rounded-md px-8 btn-size-lg',
-      icon: 'h-10 w-10 btn-size-icon'
-    }
-    return sizes[props.size]
+    return `button--${props.size}`
   })
 
   const isDisabled = computed(() => props.disabled || props.loading)
@@ -43,13 +35,8 @@
 
 <template>
   <button
-    :class="
-      cn(
-        'btn-base relative inline-flex items-center justify-center whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-        variantClasses,
-        sizeClasses
-      )
-    "
+    :class="cn('button-base', variantClasses, sizeClasses)"
+    v-bind="attrs"
     :disabled="isDisabled"
     :aria-busy="loading ? 'true' : 'false'"
   >
@@ -67,18 +54,128 @@
 </template>
 
 <style scoped>
-  .btn-base {
+  .button-base {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      border-color 0.2s,
+      opacity 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
+  }
+
+  .button-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .button-base:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .button--default {
+    background: var(--accent);
+    color: white;
+  }
+
+  .button--default:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  .button--destructive {
+    background: var(--error);
+    color: white;
+  }
+
+  .button--destructive:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--error) 82%, black);
+  }
+
+  .button--outline {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .button--outline:hover:not(:disabled) {
+    background: var(--bg-card);
+  }
+
+  .button--secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  .button--secondary:hover:not(:disabled) {
+    background: var(--bg-primary);
+  }
+
+  .button--ghost {
+    background: transparent;
+    color: var(--text-primary);
+  }
+
+  .button--ghost:hover:not(:disabled) {
+    background: var(--bg-card);
+  }
+
+  .button--link {
+    background: transparent;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .button--link:hover:not(:disabled) {
+    color: var(--accent-hover);
+  }
+
+  .button--default,
+  .button--lg,
+  .button--icon {
     font-size: var(--text-sm);
   }
 
-  .btn-size-default,
-  .btn-size-lg,
-  .btn-size-icon {
-    font-size: var(--text-sm);
-  }
-
-  .btn-size-sm {
+  .button--sm {
     font-size: var(--text-xs);
+  }
+
+  .button--default {
+    min-height: 40px;
+    padding: 10px 16px;
+  }
+
+  .button--sm {
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+
+  .button--lg {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+
+  .button--icon {
+    width: 40px;
+    height: 40px;
+    padding: 0;
   }
 
   .btn-spinner {
