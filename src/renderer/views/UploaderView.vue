@@ -203,7 +203,7 @@
           <User v-else :size="24" class="uploader-icon" />
         </div>
         <div class="uploader-text">
-          <h1 class="uploader-name">{{ uploaderInfo?.name || 'Loading...' }}</h1>
+          <h1 class="uploader-name">{{ uploaderInfo?.name || '正在加载...' }}</h1>
           <p class="uploader-id">MID: {{ mid }}</p>
         </div>
       </div>
@@ -215,8 +215,8 @@
 
     <div class="videos-container" v-if="hasResults">
       <div class="results-header">
-        <span class="results-count">{{ videos.length }} videos</span>
-        <span v-if="currentPage > 1" class="page-info">Page {{ currentPage }}</span>
+        <span class="results-count">共 {{ videos.length }} 个视频</span>
+        <span v-if="currentPage > 1" class="page-info">第 {{ currentPage }} 页</span>
       </div>
 
       <div class="videos-list">
@@ -249,7 +249,7 @@
             <div class="video-info">
               <h3 class="video-title" :title="video.title">{{ video.title }}</h3>
               <div class="video-meta">
-                <span v-if="video.playCount" class="meta-item">{{ video.playCount }} plays</span>
+                <span v-if="video.playCount" class="meta-item">播放 {{ video.playCount }}</span>
               </div>
             </div>
           </button>
@@ -304,7 +304,7 @@
         <button class="load-more-btn" @click="handleLoadMore" :disabled="isLoadingMore">
           <Loader2 v-if="isLoadingMore" :size="18" class="animate-spin" />
           <template v-else>
-            <span>Load More</span>
+            <span>加载更多</span>
           </template>
         </button>
       </div>
@@ -312,13 +312,13 @@
 
     <div class="empty-state" v-else-if="!isLoading && !error">
       <User :size="48" class="empty-icon" />
-      <h3>No Videos Found</h3>
-      <p>This uploader hasn't uploaded any videos yet</p>
+      <h3>暂无视频</h3>
+      <p>这个 UP 主还没有可播放的视频内容</p>
     </div>
 
     <div class="loading-state" v-if="isLoading">
       <Loader2 :size="32" class="animate-spin" />
-      <span>Loading videos...</span>
+      <span>正在加载视频...</span>
     </div>
 
     <AddToPlaylistDialog

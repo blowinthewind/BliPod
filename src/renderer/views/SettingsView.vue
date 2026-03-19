@@ -547,23 +547,23 @@
         <Settings :size="24" />
       </div>
       <div class="header-text">
-        <h1 class="page-title">Settings</h1>
-        <p class="page-desc">Customize your BliPod experience</p>
+        <h1 class="page-title">设置</h1>
+        <p class="page-desc">按你的听播习惯调整 BliPod</p>
       </div>
     </div>
 
     <div class="settings-sections">
       <section class="settings-section">
-        <h2 class="section-title">Account</h2>
+        <h2 class="section-title">账号</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Bilibili Account</span>
+              <span class="setting-label">哔哩哔哩账号</span>
               <span class="setting-desc" v-if="authStore.isLoggedIn && authStore.userInfo">
-                Logged in as {{ authStore.userInfo.name }}
+                当前登录：{{ authStore.userInfo.name }}
               </span>
               <span class="setting-desc" v-else>
-                Login to get personalized recommendations and full features
+                登录后即可同步账号状态并获得更完整的使用体验
               </span>
             </div>
             <div class="account-actions">
@@ -578,13 +578,13 @@
                 </div>
                 <button class="logout-btn" @click="handleLogout">
                   <LogOut :size="16" />
-                  Logout
+                  退出登录
                 </button>
               </template>
               <template v-else>
                 <button class="login-btn" @click="openLoginDialog">
                   <LogIn :size="18" />
-                  Login
+                  登录
                 </button>
               </template>
             </div>
@@ -596,11 +596,11 @@
         <div class="section-header-row">
           <h2 class="section-title">
             <Palette :size="18" />
-            Themes
+            主题
           </h2>
           <button class="add-theme-btn" @click="openCreateTheme">
             <Plus :size="16" />
-            New Theme
+            新建主题
           </button>
         </div>
 
@@ -623,27 +623,27 @@
             <div class="theme-info">
               <div class="theme-meta">
                 <span class="theme-name">{{ theme.name }}</span>
-                <span v-if="theme.isBuiltIn" class="theme-badge">Built-in</span>
+                <span v-if="theme.isBuiltIn" class="theme-badge">内置</span>
               </div>
               <div class="theme-actions" v-if="!theme.isBuiltIn">
                 <button
                   class="theme-action-btn"
                   @click.stop="openEditTheme(theme.id)"
-                  aria-label="Edit theme"
+                  aria-label="编辑主题"
                 >
                   <Palette :size="14" />
                 </button>
                 <button
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
-                  aria-label="Duplicate theme"
+                  aria-label="复制主题"
                 >
                   <Copy :size="14" />
                 </button>
                 <button
                   class="theme-action-btn danger"
                   @click.stop="deleteTheme(theme.id)"
-                  aria-label="Delete theme"
+                  aria-label="删除主题"
                 >
                   <Trash2 :size="14" />
                 </button>
@@ -652,7 +652,7 @@
                 <button
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
-                  aria-label="Duplicate theme"
+                  aria-label="复制主题"
                 >
                   <Copy :size="14" />
                 </button>
@@ -663,14 +663,12 @@
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">Playback</h2>
+        <h2 class="section-title">播放</h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span id="auto-play-label" class="setting-label">Auto Play on Startup</span>
-              <span class="setting-desc"
-                >Automatically play the last unfinished video when app starts</span
-              >
+              <span id="auto-play-label" class="setting-label">启动后自动续播</span>
+              <span class="setting-desc">应用启动后自动继续播放上次未播完的视频</span>
             </div>
             <label class="toggle" aria-labelledby="auto-play-label">
               <input type="checkbox" v-model="autoPlay" />
@@ -680,8 +678,8 @@
 
           <div class="setting-item">
             <div class="setting-info">
-              <span id="remember-position-label" class="setting-label">Remember Position</span>
-              <span class="setting-desc">Resume videos from where you left off</span>
+              <span id="remember-position-label" class="setting-label">记住播放进度</span>
+              <span class="setting-desc">下次播放时从上次停下的位置继续</span>
             </div>
             <label class="toggle" aria-labelledby="remember-position-label">
               <input type="checkbox" v-model="rememberPosition" />
@@ -694,13 +692,13 @@
       <section class="settings-section">
         <h2 class="section-title">
           <MemoryStick :size="18" />
-          Memory Management
+          内存管理
         </h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Search Page Timeout</span>
-              <span class="setting-desc">Time before search page is cleaned up to free memory</span>
+              <span class="setting-label">搜索页回收时间</span>
+              <span class="setting-desc">空闲多久后自动清理搜索页以释放内存</span>
               <div v-if="memorySettings.cleanupMessage" class="message-toast success">
                 <Check :size="14" />
                 {{ memorySettings.cleanupMessage }}
@@ -711,35 +709,35 @@
               @change="updateMemoryTimeout"
               class="timeout-select"
             >
-              <option :value="5 * 60 * 1000">5 minutes</option>
-              <option :value="10 * 60 * 1000">10 minutes (default)</option>
-              <option :value="15 * 60 * 1000">15 minutes</option>
-              <option :value="20 * 60 * 1000">20 minutes</option>
-              <option :value="30 * 60 * 1000">30 minutes</option>
+              <option :value="5 * 60 * 1000">5 分钟</option>
+              <option :value="10 * 60 * 1000">10 分钟（默认）</option>
+              <option :value="15 * 60 * 1000">15 分钟</option>
+              <option :value="20 * 60 * 1000">20 分钟</option>
+              <option :value="30 * 60 * 1000">30 分钟</option>
             </select>
           </div>
 
           <div class="setting-item">
             <div class="setting-info">
-              <span class="setting-label">Memory Status</span>
-              <span class="setting-desc">View current memory usage and active views</span>
+              <span class="setting-label">内存状态</span>
+              <span class="setting-desc">查看当前内存占用和活跃页面</span>
             </div>
             <div class="memory-actions">
-              <button class="action-btn" @click="showMemoryStats">View Stats</button>
-              <button class="action-btn" @click="cleanupMemoryNow">Cleanup Now</button>
+              <button class="action-btn" @click="showMemoryStats">查看状态</button>
+              <button class="action-btn" @click="cleanupMemoryNow">立即清理</button>
             </div>
           </div>
         </div>
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">Data</h2>
+        <h2 class="section-title">数据</h2>
         <div class="settings-card">
           <div class="setting-item data-stats">
             <div class="setting-info">
-              <span class="setting-label">Data Summary</span>
+              <span class="setting-label">数据概览</span>
               <span class="setting-desc">
-                {{ dataStats.favoritesCount }} favorites · {{ dataStats.playlistsCount }} playlists
+                {{ dataStats.favoritesCount }} 个收藏 · {{ dataStats.playlistsCount }} 个播放列表
               </span>
             </div>
           </div>
@@ -747,15 +745,13 @@
           <div class="setting-item category-selection">
             <div class="setting-info">
               <div class="category-header">
-                <span class="setting-label">Export Data</span>
+                <span class="setting-label">导出数据</span>
                 <div class="category-actions" v-if="showExportOptions">
-                  <button class="small-btn" @click="selectAllExportCategories">Select All</button>
-                  <button class="small-btn" @click="deselectAllExportCategories">
-                    Deselect All
-                  </button>
+                  <button class="small-btn" @click="selectAllExportCategories">全选</button>
+                  <button class="small-btn" @click="deselectAllExportCategories">取消全选</button>
                 </div>
               </div>
-              <span class="setting-desc">Select categories to export</span>
+              <span class="setting-desc">选择要导出的数据分类</span>
               <div v-if="exportMessage" class="message-toast" :class="exportMessage.type">
                 <Check v-if="exportMessage.type === 'success'" :size="14" />
                 <AlertCircle v-else :size="14" />
@@ -781,14 +777,14 @@
             </div>
             <button class="action-btn" :disabled="isExporting" @click="handleExportAction">
               <Download :size="18" :class="{ 'animate-spin': isExporting }" />
-              {{ isExporting ? 'Exporting...' : showExportOptions ? 'Export Selected' : 'Export' }}
+              {{ isExporting ? '正在导出...' : showExportOptions ? '导出已选内容' : '导出' }}
             </button>
           </div>
 
           <div class="setting-item category-selection">
             <div class="setting-info">
-              <span class="setting-label">Import Data</span>
-              <span class="setting-desc">Select categories to import after choosing file</span>
+              <span class="setting-label">导入数据</span>
+              <span class="setting-desc">选择文件后，再勾选需要导入的数据分类</span>
               <div v-if="importMessage" class="message-toast" :class="importMessage.type">
                 <Check v-if="importMessage.type === 'success'" :size="14" />
                 <AlertCircle v-else :size="14" />
@@ -797,8 +793,8 @@
             </div>
             <div v-if="showImportOptions" class="import-strategy">
               <select v-model="importStrategy" class="strategy-select">
-                <option value="merge">Merge (keep existing)</option>
-                <option value="overwrite">Overwrite (replace all)</option>
+                <option value="merge">合并导入（保留现有数据）</option>
+                <option value="overwrite">覆盖导入（替换全部数据）</option>
               </select>
             </div>
             <div v-if="showImportOptions" class="category-list">
@@ -819,7 +815,7 @@
             </div>
             <button class="action-btn" :disabled="isImporting" @click="handleImportAction">
               <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
-              {{ isImporting ? 'Importing...' : showImportOptions ? 'Import Selected' : 'Import' }}
+              {{ isImporting ? '正在导入...' : showImportOptions ? '导入已选内容' : '导入' }}
             </button>
           </div>
         </div>
@@ -838,12 +834,12 @@
         aria-labelledby="create-theme-title"
         @keydown="handleCreateThemeKeydown"
       >
-        <h2 id="create-theme-title" class="modal-title">Create New Theme</h2>
+        <h2 id="create-theme-title" class="modal-title">新建主题</h2>
 
         <div class="modal-content">
           <div class="form-row">
             <div class="form-group">
-              <label for="create-theme-id">Theme ID</label>
+              <label for="create-theme-id">主题 ID</label>
               <input
                 id="create-theme-id"
                 ref="createThemeIdInputRef"
@@ -853,30 +849,30 @@
               />
             </div>
             <div class="form-group">
-              <label for="create-theme-name">Theme Name</label>
+              <label for="create-theme-name">主题名称</label>
               <input
                 id="create-theme-name"
                 type="text"
                 v-model="newTheme.name"
-                placeholder="My Theme"
+                placeholder="我的主题"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label for="create-theme-description">Description</label>
+            <label for="create-theme-description">主题说明</label>
             <input
               id="create-theme-description"
               type="text"
               v-model="newTheme.description"
-              placeholder="A beautiful custom theme"
+              placeholder="描述这个主题适合什么样的听播氛围"
             />
           </div>
 
           <div class="editor-section">
             <h3 class="editor-section-title">
               <Palette :size="16" />
-              Colors
+              颜色
             </h3>
             <div class="color-grid">
               <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
@@ -917,11 +913,11 @@
           <div class="editor-section">
             <h3 class="editor-section-title">
               <Sparkles :size="16" />
-              Effects
+              效果
             </h3>
 
             <div class="effect-item">
-              <label for="create-theme-bg-gradient">Background Gradient</label>
+              <label for="create-theme-bg-gradient">背景渐变</label>
               <input
                 id="create-theme-bg-gradient"
                 type="text"
@@ -931,7 +927,7 @@
             </div>
 
             <div class="effect-item">
-              <label for="create-theme-bg-image">Background Image URL</label>
+              <label for="create-theme-bg-image">背景图地址</label>
               <input
                 id="create-theme-bg-image"
                 type="text"
@@ -942,7 +938,7 @@
 
             <div class="effect-row">
               <div class="effect-item half">
-                <label for="create-theme-image-opacity">Image Opacity (0-1)</label>
+                <label for="create-theme-image-opacity">背景图透明度（0-1）</label>
                 <input
                   id="create-theme-image-opacity"
                   type="number"
@@ -954,7 +950,7 @@
                 />
               </div>
               <div class="effect-item half">
-                <label for="create-theme-bg-blur">Background Blur</label>
+                <label for="create-theme-bg-blur">背景模糊</label>
                 <input
                   id="create-theme-bg-blur"
                   type="text"
@@ -969,12 +965,12 @@
                 <input type="checkbox" v-model="newTheme.effects!.glassEffect" />
                 <span class="toggle-slider"></span>
               </label>
-              <span>Enable Glass Effect</span>
+              <span>启用玻璃效果</span>
             </div>
 
             <div v-if="newTheme.effects?.glassEffect" class="effect-row">
               <div class="effect-item half">
-                <label for="create-theme-glass-blur">Glass Blur</label>
+                <label for="create-theme-glass-blur">玻璃模糊</label>
                 <input
                   id="create-theme-glass-blur"
                   type="text"
@@ -983,7 +979,7 @@
                 />
               </div>
               <div class="effect-item half">
-                <label for="create-theme-glass-opacity">Glass Opacity (0-1)</label>
+                <label for="create-theme-glass-opacity">玻璃透明度（0-1）</label>
                 <input
                   id="create-theme-glass-opacity"
                   type="number"
@@ -999,9 +995,9 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeCreateTheme">Cancel</button>
+          <button class="modal-btn cancel" type="button" @click="closeCreateTheme">取消</button>
           <button class="modal-btn confirm" type="button" @click="createCustomTheme">
-            Create Theme
+            创建主题
           </button>
         </div>
       </div>
@@ -1017,12 +1013,12 @@
         aria-labelledby="edit-theme-title"
         @keydown="handleEditThemeKeydown"
       >
-        <h2 id="edit-theme-title" class="modal-title">Edit Theme: {{ editingTheme.name }}</h2>
+        <h2 id="edit-theme-title" class="modal-title">编辑主题：{{ editingTheme.name }}</h2>
 
         <div class="modal-content">
           <div class="form-row">
             <div class="form-group">
-              <label for="edit-theme-name">Theme Name</label>
+              <label for="edit-theme-name">主题名称</label>
               <input
                 id="edit-theme-name"
                 ref="editThemeNameInputRef"
@@ -1033,14 +1029,14 @@
           </div>
 
           <div class="form-group">
-            <label for="edit-theme-description">Description</label>
+            <label for="edit-theme-description">主题说明</label>
             <input id="edit-theme-description" type="text" v-model="editingTheme.description" />
           </div>
 
           <div class="editor-section">
             <h3 class="editor-section-title">
               <Palette :size="16" />
-              Colors
+              颜色
             </h3>
             <div class="color-grid">
               <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
@@ -1079,11 +1075,11 @@
           <div class="editor-section">
             <h3 class="editor-section-title">
               <Sparkles :size="16" />
-              Effects
+              效果
             </h3>
 
             <div class="effect-item">
-              <label for="edit-theme-bg-gradient">Background Gradient</label>
+              <label for="edit-theme-bg-gradient">背景渐变</label>
               <input
                 id="edit-theme-bg-gradient"
                 type="text"
@@ -1093,7 +1089,7 @@
             </div>
 
             <div class="effect-item">
-              <label for="edit-theme-bg-image">Background Image URL</label>
+              <label for="edit-theme-bg-image">背景图地址</label>
               <input
                 id="edit-theme-bg-image"
                 type="text"
@@ -1104,7 +1100,7 @@
 
             <div class="effect-row">
               <div class="effect-item half">
-                <label for="edit-theme-image-opacity">Image Opacity (0-1)</label>
+                <label for="edit-theme-image-opacity">背景图透明度（0-1）</label>
                 <input
                   id="edit-theme-image-opacity"
                   type="number"
@@ -1115,7 +1111,7 @@
                 />
               </div>
               <div class="effect-item half">
-                <label for="edit-theme-bg-blur">Background Blur</label>
+                <label for="edit-theme-bg-blur">背景模糊</label>
                 <input
                   id="edit-theme-bg-blur"
                   type="text"
@@ -1130,12 +1126,12 @@
                 <input type="checkbox" v-model="editingTheme!.effects.glassEffect" />
                 <span class="toggle-slider"></span>
               </label>
-              <span>Enable Glass Effect</span>
+              <span>启用玻璃效果</span>
             </div>
 
             <div v-if="editingTheme!.effects?.glassEffect" class="effect-row">
               <div class="effect-item half">
-                <label for="edit-theme-glass-blur">Glass Blur</label>
+                <label for="edit-theme-glass-blur">玻璃模糊</label>
                 <input
                   id="edit-theme-glass-blur"
                   type="text"
@@ -1144,7 +1140,7 @@
                 />
               </div>
               <div class="effect-item half">
-                <label for="edit-theme-glass-opacity">Glass Opacity (0-1)</label>
+                <label for="edit-theme-glass-opacity">玻璃透明度（0-1）</label>
                 <input
                   id="edit-theme-glass-opacity"
                   type="number"
@@ -1159,10 +1155,8 @@
         </div>
 
         <div class="modal-actions">
-          <button class="modal-btn cancel" type="button" @click="closeEditTheme">Cancel</button>
-          <button class="modal-btn confirm" type="button" @click="saveEditedTheme">
-            Save Changes
-          </button>
+          <button class="modal-btn cancel" type="button" @click="closeEditTheme">取消</button>
+          <button class="modal-btn confirm" type="button" @click="saveEditedTheme">保存修改</button>
         </div>
       </div>
     </div>
