@@ -449,7 +449,7 @@
 
   .search-input-wrapper:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+    box-shadow: 0 0 0 3px var(--accent-muted);
   }
 
   .search-icon {
@@ -663,18 +663,18 @@
     align-items: center;
     gap: 8px;
     padding: 12px 16px;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 32%, transparent);
     border-radius: 8px;
-    color: #ef4444;
+    color: var(--error);
     font-size: var(--text-sm);
     flex-wrap: wrap;
   }
 
   .error-message.timeout-error {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
-    color: #f59e0b;
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
+    border-color: color-mix(in srgb, var(--warning) 32%, transparent);
+    color: var(--warning);
   }
 
   .retry-info {
