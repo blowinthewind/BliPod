@@ -120,7 +120,12 @@
     color: var(--text-primary);
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      opacity 0.2s ease;
     font-size: var(--text-sm);
   }
 

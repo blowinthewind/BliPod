@@ -440,7 +440,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    transition: all 0.2s;
+    transition:
+      border-color 0.2s,
+      box-shadow 0.2s,
+      background-color 0.2s,
+      color 0.2s;
   }
 
   .search-input-wrapper:focus-within {
@@ -478,7 +482,11 @@
     background: var(--bg-card);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
   }
 
   .clear-btn:hover {
@@ -500,7 +508,12 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
   }
 
   .search-btn:hover:not(:disabled) {
@@ -628,7 +641,11 @@
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .history-item:hover .remove-history-btn,
@@ -707,7 +724,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .result-item:hover,
@@ -842,7 +863,11 @@
     background: transparent;
     padding: 0;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      color 0.2s,
+      text-decoration-color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .meta-item.author.clickable:hover {
@@ -866,7 +891,11 @@
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
     flex-shrink: 0;
   }
 
@@ -896,7 +925,11 @@
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
     flex-shrink: 0;
   }
 
@@ -927,7 +960,11 @@
     color: var(--text-secondary);
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
     flex-shrink: 0;
   }
 
@@ -958,7 +995,11 @@
     color: white;
     cursor: pointer;
     opacity: 0;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
     flex-shrink: 0;
   }
 
@@ -989,7 +1030,13 @@
     font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
   }
 
   .load-more-btn:hover:not(:disabled) {

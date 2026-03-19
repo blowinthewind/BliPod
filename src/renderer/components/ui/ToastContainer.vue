@@ -45,7 +45,9 @@
   /* Transition animations */
   .toast-enter-active,
   .toast-leave-active {
-    transition: all 0.3s ease;
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease;
   }
 
   .toast-enter-from {

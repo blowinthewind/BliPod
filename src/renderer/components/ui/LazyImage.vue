@@ -187,7 +187,11 @@
     border: none;
     border-radius: 4px;
     background: transparent;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .error-text:hover {

@@ -173,7 +173,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle, transparent);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .favorite-item:hover,
@@ -316,7 +320,11 @@
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   .action-btn:hover {
