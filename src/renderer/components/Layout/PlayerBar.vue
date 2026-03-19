@@ -18,12 +18,13 @@
     X,
     Trash2
   } from 'lucide-vue-next'
-  import { computed, nextTick, onMounted, onBeforeUnmount, ref, toRaw, watch } from 'vue'
+  import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
   import { usePlayerStore } from '../../stores/player'
   import { useFavoritesStore } from '../../stores/favorites'
   import { usePlaylistsStore } from '../../stores/playlists'
   import { useAppSettingsStore } from '../../stores/appSettings'
   import AddToPlaylistDialog from '../Playlist/AddToPlaylistDialog.vue'
+  import { useDialogFocusTrap } from '../../composables/useDialogFocusTrap'
 
   const playerStore = usePlayerStore()
   const favoritesStore = useFavoritesStore()
@@ -48,7 +49,6 @@
   const queueToggleButtonRef = ref<HTMLButtonElement | null>(null)
   const queuePanelRef = ref<HTMLDivElement | null>(null)
   const closeQueueButtonRef = ref<HTMLButtonElement | null>(null)
-  const lastFocusedElementRef = ref<HTMLElement | null>(null)
 
   onMounted(async () => {
     favoritesStore.loadFavorites()
@@ -63,18 +63,6 @@
 
   onBeforeUnmount(async () => {
     await playerStore.saveCurrentPosition()
-  })
-
-  watch(showQueuePanel, async (isOpen) => {
-    if (isOpen) {
-      lastFocusedElementRef.value = document.activeElement as HTMLElement | null
-      await nextTick()
-      closeQueueButtonRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    ;(queueToggleButtonRef.value ?? lastFocusedElementRef.value)?.focus()
   })
 
   function openPlaylistDialog() {
@@ -123,47 +111,13 @@
     showQueuePanel.value = false
   }
 
-  function handleQueuePanelKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      closeQueuePanel()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const focusableSelectors = [
-      'button:not([disabled])',
-      'a[href]',
-      'input:not([disabled])',
-      'select:not([disabled])',
-      'textarea:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])'
-    ].join(', ')
-
-    const focusableElements = Array.from(
-      queuePanelRef.value?.querySelectorAll<HTMLElement>(focusableSelectors) ?? []
-    ).filter((element) => !element.hasAttribute('disabled') && element.offsetParent !== null)
-
-    if (focusableElements.length === 0) return
-
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
-    const activeElement = document.activeElement as HTMLElement | null
-
-    if (event.shiftKey) {
-      if (activeElement === firstElement || !queuePanelRef.value?.contains(activeElement)) {
-        event.preventDefault()
-        lastElement.focus()
-      }
-      return
-    }
-
-    if (activeElement === lastElement) {
-      event.preventDefault()
-      firstElement.focus()
-    }
-  }
+  const { handleKeydown: handleQueuePanelKeydown } = useDialogFocusTrap({
+    open: showQueuePanel,
+    containerRef: queuePanelRef,
+    initialFocusRef: closeQueueButtonRef,
+    restoreFocusRef: queueToggleButtonRef,
+    onClose: closeQueuePanel
+  })
 
   function playFromQueue(index: number) {
     playerStore.playFromUserQueue(index)

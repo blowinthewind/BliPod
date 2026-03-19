@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useNavigationStore, type NavItem } from '@/stores/navigation'
   import { useAuthStore } from '@/stores/auth'
+  import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
   import {
     Home,
     Search,
@@ -22,8 +23,8 @@
 
   const showLogoutConfirm = ref(false)
   const logoutButtonRef = ref<HTMLButtonElement | null>(null)
+  const logoutDialogRef = ref<HTMLDivElement | null>(null)
   const cancelLogoutButtonRef = ref<HTMLButtonElement | null>(null)
-  const confirmLogoutButtonRef = ref<HTMLButtonElement | null>(null)
 
   interface NavMenuItem {
     id: NavItem
@@ -53,17 +54,6 @@
     }
   })
 
-  watch(showLogoutConfirm, async (isOpen) => {
-    if (isOpen) {
-      await nextTick()
-      cancelLogoutButtonRef.value?.focus()
-      return
-    }
-
-    await nextTick()
-    logoutButtonRef.value?.focus()
-  })
-
   function confirmLogout() {
     authStore.logout()
     showLogoutConfirm.value = false
@@ -78,36 +68,13 @@
     navStore.closeMobileMenu()
   }
 
-  function handleLogoutDialogKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      cancelLogout()
-      return
-    }
-
-    if (event.key !== 'Tab') return
-
-    const focusableElements = [cancelLogoutButtonRef.value, confirmLogoutButtonRef.value].filter(
-      (element): element is HTMLButtonElement => element !== null
-    )
-
-    if (focusableElements.length === 0) return
-
-    const currentIndex = focusableElements.indexOf(document.activeElement as HTMLButtonElement)
-
-    if (event.shiftKey) {
-      if (currentIndex <= 0) {
-        event.preventDefault()
-        focusableElements[focusableElements.length - 1].focus()
-      }
-      return
-    }
-
-    if (currentIndex === focusableElements.length - 1) {
-      event.preventDefault()
-      focusableElements[0].focus()
-    }
-  }
+  const { handleKeydown: handleLogoutDialogKeydown } = useDialogFocusTrap({
+    open: showLogoutConfirm,
+    containerRef: logoutDialogRef,
+    initialFocusRef: cancelLogoutButtonRef,
+    restoreFocusRef: logoutButtonRef,
+    onClose: cancelLogout
+  })
 </script>
 
 <template>
@@ -193,6 +160,7 @@
 
     <div class="logout-confirm-overlay" v-if="showLogoutConfirm" @click.self="cancelLogout">
       <div
+        ref="logoutDialogRef"
         class="logout-confirm-dialog"
         role="dialog"
         aria-modal="true"
@@ -204,9 +172,7 @@
           <button ref="cancelLogoutButtonRef" class="confirm-btn cancel" @click="cancelLogout">
             Cancel
           </button>
-          <button ref="confirmLogoutButtonRef" class="confirm-btn logout" @click="confirmLogout">
-            Logout
-          </button>
+          <button class="confirm-btn logout" @click="confirmLogout">Logout</button>
         </div>
       </div>
     </div>

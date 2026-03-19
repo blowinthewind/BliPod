@@ -6,6 +6,7 @@ interface UseDialogFocusTrapOptions {
   open: Ref<boolean>
   containerRef: Ref<MaybeHTMLElement>
   initialFocusRef?: Ref<MaybeHTMLElement>
+  restoreFocusRef?: Ref<MaybeHTMLElement>
   onClose: () => void
   restoreFocusWhen?: () => boolean
 }
@@ -52,6 +53,11 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
     if (options.restoreFocusWhen && !options.restoreFocusWhen()) return
 
     await nextTick()
+
+    if (options.restoreFocusRef?.value?.isConnected) {
+      options.restoreFocusRef.value.focus()
+      return
+    }
 
     if (lastFocusedElement.value?.isConnected) {
       lastFocusedElement.value.focus()
