@@ -134,7 +134,7 @@
 
   async function handleExport() {
     if (selectedExportCategories.value.length === 0) {
-      exportMessage.value = { type: 'error', text: 'Please select at least one category' }
+      exportMessage.value = { type: 'error', text: '请至少选择一个数据分类' }
       setTimeout(() => {
         exportMessage.value = null
       }, 3000)
@@ -152,18 +152,18 @@
       if (result.success) {
         exportMessage.value = {
           type: 'success',
-          text: `Exported to ${result.filePath?.split('/').pop()}`
+          text: `已导出到 ${result.filePath?.split('/').pop()}`
         }
         showExportOptions.value = false
       } else if (result.error === 'Export cancelled') {
         showExportOptions.value = false
       } else {
-        exportMessage.value = { type: 'error', text: result.error || 'Export failed' }
+        exportMessage.value = { type: 'error', text: result.error || '导出失败' }
       }
     } catch (error) {
       exportMessage.value = {
         type: 'error',
-        text: error instanceof Error ? error.message : 'Export failed'
+        text: error instanceof Error ? error.message : '导出失败'
       }
     } finally {
       isExporting.value = false
@@ -175,7 +175,7 @@
 
   async function handleImport() {
     if (selectedImportCategories.value.length === 0) {
-      importMessage.value = { type: 'error', text: 'Please select at least one category' }
+      importMessage.value = { type: 'error', text: '请至少选择一个数据分类' }
       setTimeout(() => {
         importMessage.value = null
       }, 3000)
@@ -201,7 +201,7 @@
 
         importMessage.value = {
           type: 'success',
-          text: statsText || 'Import completed'
+          text: statsText || '导入完成'
         }
         showImportOptions.value = false
         await loadCategoryStats()
@@ -213,12 +213,12 @@
       } else if (result.error === 'Import cancelled') {
         showImportOptions.value = false
       } else {
-        importMessage.value = { type: 'error', text: result.error || 'Import failed' }
+        importMessage.value = { type: 'error', text: result.error || '导入失败' }
       }
     } catch (error) {
       importMessage.value = {
         type: 'error',
-        text: error instanceof Error ? error.message : 'Import failed'
+        text: error instanceof Error ? error.message : '导入失败'
       }
     } finally {
       isImporting.value = false
@@ -278,26 +278,26 @@
   const editingTheme = ref<(Theme & { effects: ThemeEffects }) | null>(null)
 
   const colorLabels: Record<keyof ThemeColors, string> = {
-    bgPrimary: 'Background',
-    bgSecondary: 'Sidebar',
-    bgCard: 'Cards',
-    bgElevated: 'Elevated',
-    bgOverlay: 'Overlay',
-    textPrimary: 'Text Primary',
-    textSecondary: 'Text Secondary',
-    textSecondaryStrong: 'Text Secondary Strong',
-    textTertiary: 'Text Tertiary',
-    accent: 'Accent',
-    accentHover: 'Accent Hover',
-    accentMuted: 'Accent Muted',
-    border: 'Border',
-    borderSubtle: 'Border Subtle',
-    success: 'Success',
-    warning: 'Warning',
-    error: 'Error',
-    glow: 'Glow',
-    glassBg: 'Glass Background',
-    glassBorder: 'Glass Border'
+    bgPrimary: '主背景',
+    bgSecondary: '侧边背景',
+    bgCard: '卡片背景',
+    bgElevated: '浮层背景',
+    bgOverlay: '遮罩背景',
+    textPrimary: '主文字',
+    textSecondary: '次级文字',
+    textSecondaryStrong: '强调次级文字',
+    textTertiary: '弱化文字',
+    accent: '主强调色',
+    accentHover: '强调悬浮色',
+    accentMuted: '强调弱化色',
+    border: '主边框',
+    borderSubtle: '弱化边框',
+    success: '成功色',
+    warning: '警告色',
+    error: '错误色',
+    glow: '辉光色',
+    glassBg: '玻璃背景',
+    glassBorder: '玻璃边框'
   }
 
   function setTheme(themeId: string) {
@@ -325,7 +325,7 @@
     themeStore.addCustomTheme({
       id: newTheme.value.id,
       name: newTheme.value.name,
-      description: newTheme.value.description || 'Custom theme',
+      description: newTheme.value.description || '自定义主题',
       colors: newTheme.value.colors as ThemeColors,
       effects:
         Object.keys(newTheme.value.effects || {}).length > 0 ? newTheme.value.effects : undefined
