@@ -677,7 +677,7 @@
 
   .action-btn.remove:hover {
     background: var(--bg-primary);
-    color: #ff5252;
+    color: var(--error);
   }
 
   .empty-state,

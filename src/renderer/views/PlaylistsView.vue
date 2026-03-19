@@ -634,7 +634,7 @@
   }
 
   .action-btn.delete:hover {
-    color: #ff5252;
+    color: var(--error);
   }
 
   .empty-state {
@@ -772,12 +772,12 @@
   }
 
   .modal-btn.delete {
-    background: #ff5252;
+    background: var(--error);
     color: white;
   }
 
   .modal-btn.delete:hover {
-    background: #ff1744;
+    background: color-mix(in srgb, var(--error) 82%, black);
   }
 
   .confirm-modal .confirm-text {
