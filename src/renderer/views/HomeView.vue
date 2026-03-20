@@ -244,7 +244,7 @@
               v-if="video.cover"
               :src="video.cover"
               :alt="video.title"
-              :width="320"
+              :width="640"
               aspect-ratio="16/9"
               placeholder-icon="play"
             />
