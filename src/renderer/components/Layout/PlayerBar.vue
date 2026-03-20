@@ -475,7 +475,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    width: clamp(220px, 24vw, 280px);
+    width: clamp(240px, 28vw, 340px);
     min-width: 0;
   }
 
@@ -551,9 +551,11 @@
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--text-primary);
-    white-space: nowrap;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .track-artist {
