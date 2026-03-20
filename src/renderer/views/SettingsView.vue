@@ -19,7 +19,8 @@
     Upload,
     AlertCircle,
     Check,
-    MemoryStick
+    MemoryStick,
+    X
   } from 'lucide-vue-next'
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
   import Button from '@/components/ui/Button.vue'
@@ -69,6 +70,27 @@
   const memorySettings = ref({
     searchViewTimeout: 10 * 60 * 1000,
     cleanupMessage: '' as string | null
+  })
+
+  const showMemoryStatsDialog = ref(false)
+  const memoryStatsViewBtnRef = ref<HTMLButtonElement | null>(null)
+  const memoryStatsDialogRef = ref<HTMLDivElement | null>(null)
+  const memoryStatsCloseBtnRef = ref<HTMLButtonElement | null>(null)
+  const memoryStatsData = ref<{
+    heapUsed: number
+    heapTotal: number
+    rss: number
+    searchViewActive: boolean
+    playerViewActive: boolean
+  } | null>(null)
+  const memoryStatsError = ref<string | null>(null)
+
+  const { handleKeydown: handleMemoryStatsDialogKeydown } = useDialogFocusTrap({
+    open: showMemoryStatsDialog,
+    containerRef: memoryStatsDialogRef,
+    initialFocusRef: memoryStatsCloseBtnRef,
+    restoreFocusRef: memoryStatsViewBtnRef,
+    onClose: () => { showMemoryStatsDialog.value = false }
   })
 
   let unsubscribe: (() => void) | null = null
@@ -465,13 +487,14 @@
 
   // 显示内存状态
   async function showMemoryStats() {
+    memoryStatsData.value = null
+    memoryStatsError.value = null
+    showMemoryStatsDialog.value = true
     try {
       const stats = await window.electronAPI.memory.getStats()
-      alert(
-        `内存使用: ${stats.heapUsed}MB / ${stats.heapTotal}MB\nRSS: ${stats.rss}MB\nSearchView: ${stats.searchViewActive ? '活跃' : '未创建'}\nPlayerView: ${stats.playerViewActive ? '活跃' : '未创建'}`
-      )
-    } catch (error) {
-      alert('获取内存状态失败')
+      memoryStatsData.value = stats
+    } catch {
+      memoryStatsError.value = '获取内存状态失败'
     }
   }
 </script>
@@ -659,7 +682,7 @@
               <span class="setting-desc">查看当前内存占用和活跃页面</span>
             </div>
             <div class="memory-actions">
-              <Button class="action-btn" variant="secondary" @click="showMemoryStats"
+              <Button ref="memoryStatsViewBtnRef" class="action-btn" variant="secondary" @click="showMemoryStats"
                 >查看状态</Button
               >
               <Button class="action-btn" variant="secondary" @click="cleanupMemoryNow"
@@ -1136,6 +1159,50 @@
           >
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="memory-stats-overlay" v-if="showMemoryStatsDialog" @click.self="showMemoryStatsDialog = false">
+    <div
+      ref="memoryStatsDialogRef"
+      class="memory-stats-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="memory-stats-title"
+      @keydown="handleMemoryStatsDialogKeydown"
+    >
+      <div class="memory-stats-header">
+        <h2 id="memory-stats-title" class="memory-stats-title">内存状态</h2>
+        <button
+          ref="memoryStatsCloseBtnRef"
+          class="memory-stats-close-btn"
+          type="button"
+          aria-label="关闭内存状态弹窗"
+          @click="showMemoryStatsDialog = false"
+        >
+          <X :size="18" />
+        </button>
+      </div>
+      <div v-if="memoryStatsData" class="memory-stats-content">
+        <div class="stats-row">
+          <span class="stats-label">堆内存</span>
+          <span class="stats-value">{{ memoryStatsData.heapUsed }}MB / {{ memoryStatsData.heapTotal }}MB</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">RSS</span>
+          <span class="stats-value">{{ memoryStatsData.rss }}MB</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">SearchView</span>
+          <span class="stats-value">{{ memoryStatsData.searchViewActive ? '活跃' : '未创建' }}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">PlayerView</span>
+          <span class="stats-value">{{ memoryStatsData.playerViewActive ? '活跃' : '未创建' }}</span>
+        </div>
+      </div>
+      <p v-else-if="memoryStatsError" class="memory-stats-message">{{ memoryStatsError }}</p>
+      <p v-else class="memory-stats-message">加载中…</p>
     </div>
   </div>
 </template>
@@ -2075,5 +2142,97 @@
       width: 100%;
       height: 40px;
     }
+  }
+
+  .memory-stats-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-overlay);
+    z-index: 1000;
+  }
+
+  .memory-stats-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(320px, calc(100% - 32px));
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+  }
+
+  .memory-stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .memory-stats-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .memory-stats-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+
+  .memory-stats-close-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  .memory-stats-content {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 20px 20px;
+    gap: 4px;
+  }
+
+  .memory-stats-message {
+    padding: 20px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stats-row:last-child {
+    border-bottom: none;
+  }
+
+  .stats-label {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+
+  .stats-value {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-primary);
   }
 </style>
