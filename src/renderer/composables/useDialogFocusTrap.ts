@@ -94,20 +94,36 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
     }
   }
 
+  function handleFocusIn(event: FocusEvent) {
+    if (!options.containerRef.value) return
+    const target = event.target as Node | null
+    if (target && !options.containerRef.value.contains(target)) {
+      const focusableElements = getFocusableElements()
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus()
+      } else {
+        options.containerRef.value.focus()
+      }
+    }
+  }
+
   watch(
     () => options.open.value,
     async (isOpen) => {
       if (isOpen) {
         lastFocusedElement.value = document.activeElement as HTMLElement | null
         await focusInitialElement()
+        document.addEventListener('focusin', handleFocusIn)
         return
       }
 
+      document.removeEventListener('focusin', handleFocusIn)
       await restoreFocus()
     }
   )
 
   onBeforeUnmount(() => {
+    document.removeEventListener('focusin', handleFocusIn)
     if (!options.open.value) return
     void restoreFocus()
   })
