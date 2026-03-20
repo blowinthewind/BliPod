@@ -198,17 +198,17 @@
       </button>
       <div class="track-info">
         <span class="track-title" :title="playerStore.currentVideo?.title">
-          {{ playerStore.currentVideo?.title || 'Waiting to play...' }}
+          {{ playerStore.currentVideo?.title || '等待播放' }}
         </span>
         <span class="track-artist">
-          {{ playerStore.currentVideo?.author || 'Select a video to play' }}
+          {{ playerStore.currentVideo?.author || '选择一个视频开始播放' }}
         </span>
       </div>
       <button
         class="like-btn"
         v-if="playerStore.hasVideo"
         @click="toggleFavorite"
-        :aria-label="isCurrentFavorite ? 'Remove from favorites' : 'Add to favorites'"
+        :aria-label="isCurrentFavorite ? '从收藏中移除' : '添加到收藏'"
         :aria-pressed="isCurrentFavorite"
         :class="{ active: isCurrentFavorite }"
       >
@@ -222,14 +222,14 @@
           class="control-btn small"
           :class="{ active: playerStore.isShuffle }"
           @click="playerStore.toggleShuffle"
-          :aria-label="playerStore.isShuffle ? 'Disable shuffle' : 'Enable shuffle'"
+          :aria-label="playerStore.isShuffle ? '关闭随机播放' : '开启随机播放'"
           :aria-pressed="playerStore.isShuffle"
         >
           <Shuffle :size="16" />
         </button>
         <button
           class="control-btn small seek-btn"
-          aria-label="Seek back 15 seconds"
+          aria-label="后退 15 秒"
           @click="playerStore.seekBackward(15)"
           :disabled="!playerStore.hasVideo"
         >
@@ -238,7 +238,7 @@
         </button>
         <button
           class="control-btn"
-          aria-label="Previous track"
+          aria-label="上一首"
           @click="playerStore.previous"
           :disabled="!playerStore.hasPrevious"
         >
@@ -247,7 +247,7 @@
         <button
           class="control-btn play-btn"
           @click="playerStore.togglePlay"
-          :aria-label="playerStore.isPlaying ? 'Pause' : 'Play'"
+          :aria-label="playerStore.isPlaying ? '暂停播放' : '开始播放'"
           :disabled="!playerStore.hasVideo"
         >
           <Loader2 v-if="playerStore.isLoading" :size="22" class="animate-spin" />
@@ -256,7 +256,7 @@
         </button>
         <button
           class="control-btn"
-          aria-label="Next track"
+          aria-label="下一首"
           @click="playerStore.next"
           :disabled="!playerStore.hasNext"
         >
@@ -264,7 +264,7 @@
         </button>
         <button
           class="control-btn small seek-btn"
-          aria-label="Seek forward 30 seconds"
+          aria-label="前进 30 秒"
           @click="playerStore.seekForward(30)"
           :disabled="!playerStore.hasVideo"
         >
@@ -275,7 +275,7 @@
           class="control-btn small"
           :class="{ active: playerStore.isRepeat }"
           @click="playerStore.toggleRepeat"
-          :aria-label="playerStore.isRepeat ? 'Disable repeat' : 'Enable repeat'"
+          :aria-label="playerStore.isRepeat ? '关闭循环播放' : '开启循环播放'"
           :aria-pressed="playerStore.isRepeat"
         >
           <Repeat :size="16" />
@@ -283,13 +283,13 @@
       </div>
 
       <div class="progress-container">
-        <span class="time" aria-label="Current time">{{ formattedCurrentTime }}</span>
+        <span class="time" aria-label="当前时间">{{ formattedCurrentTime }}</span>
         <div
           class="progress-bar"
           :class="{ disabled: !playerStore.hasVideo }"
           @click="seekTo"
           role="slider"
-          :aria-label="'Seek: ' + formattedCurrentTime + ' of ' + formattedDuration"
+          :aria-label="'播放进度：' + formattedCurrentTime + ' / ' + formattedDuration"
           :aria-valuemin="0"
           :aria-valuemax="playerStore.duration"
           :aria-valuenow="playerStore.currentTime"
@@ -303,7 +303,7 @@
             </div>
           </div>
         </div>
-        <span class="time" aria-label="Duration">{{ formattedDuration || '0:00' }}</span>
+        <span class="time" aria-label="总时长">{{ formattedDuration || '0:00' }}</span>
       </div>
     </div>
 
@@ -313,7 +313,7 @@
         class="control-btn small queue-btn"
         :class="{ active: showQueuePanel || isCurrentInQueue }"
         @click="toggleQueuePanel"
-        :aria-label="'Queue (' + queueCount + ' tracks)'"
+        :aria-label="'播放队列（' + queueCount + ' 首）'"
         :aria-expanded="showQueuePanel"
         aria-controls="player-queue-panel"
       >
@@ -326,8 +326,8 @@
         @click="openPlaylistDialog"
         :aria-label="
           playlistsStore.isVideoInAnyPlaylist(playerStore.currentVideo!.bvid)
-            ? 'Added to playlist'
-            : 'Add to playlist'
+            ? '已添加到播放列表'
+            : '添加到播放列表'
         "
       >
         <ListCheck
@@ -340,7 +340,7 @@
         <button
           class="control-btn small"
           @click="playerStore.toggleMute"
-          :aria-label="playerStore.isMuted ? 'Unmute' : 'Mute'"
+          :aria-label="playerStore.isMuted ? '取消静音' : '静音'"
         >
           <VolumeX v-if="playerStore.isMuted" :size="18" />
           <Volume2 v-else :size="18" />
@@ -352,11 +352,11 @@
             max="100"
             :value="playerStore.isMuted ? 0 : playerStore.volume"
             @input="handleVolumeChange"
-            aria-label="Volume"
+            aria-label="音量"
           />
         </div>
       </div>
-      <button class="control-btn small" aria-label="Fullscreen">
+      <button class="control-btn small" aria-label="全屏">
         <Maximize2 :size="18" />
       </button>
     </div>
