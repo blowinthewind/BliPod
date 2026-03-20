@@ -1,12 +1,20 @@
-import { nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch, type ComponentPublicInstance, type Ref } from 'vue'
 
 type MaybeHTMLElement = HTMLElement | null
+type MaybeContainer = HTMLElement | ComponentPublicInstance | null
+
+function toEl(val: MaybeContainer | undefined): HTMLElement | null {
+  if (!val) return null
+  if (val instanceof HTMLElement) return val
+  return (val as ComponentPublicInstance).$el ?? null
+}
 
 interface UseDialogFocusTrapOptions {
   open: Ref<boolean>
-  containerRef: Ref<MaybeHTMLElement>
+  containerRef: Ref<MaybeContainer>
   initialFocusRef?: Ref<MaybeHTMLElement>
   restoreFocusRef?: Ref<MaybeHTMLElement>
+  excludeRef?: Ref<MaybeContainer>
   onClose: () => void
   restoreFocusWhen?: () => boolean
 }
@@ -15,7 +23,8 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
   const lastFocusedElement = ref<MaybeHTMLElement>(null)
 
   function getFocusableElements() {
-    if (!options.containerRef.value) return [] as HTMLElement[]
+    const containerEl = toEl(options.containerRef.value)
+    if (!containerEl) return [] as HTMLElement[]
 
     const selectors = [
       'button:not([disabled])',
@@ -26,8 +35,13 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
       '[tabindex]:not([tabindex="-1"])'
     ].join(', ')
 
-    return Array.from(options.containerRef.value.querySelectorAll<HTMLElement>(selectors)).filter(
-      (element) => !element.hasAttribute('disabled') && element.offsetParent !== null
+    const excludeEl = toEl(options.excludeRef?.value)
+
+    return Array.from(containerEl.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) =>
+        !element.hasAttribute('disabled') &&
+        element.offsetParent !== null &&
+        !(excludeEl && excludeEl.contains(element))
     )
   }
 
@@ -46,7 +60,7 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
       return
     }
 
-    options.containerRef.value?.focus()
+    toEl(options.containerRef.value)?.focus()
   }
 
   async function restoreFocus() {
@@ -79,9 +93,10 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
     const firstElement = focusableElements[0]
     const lastElement = focusableElements[focusableElements.length - 1]
     const activeElement = document.activeElement as HTMLElement | null
+    const containerEl = toEl(options.containerRef.value)
 
     if (event.shiftKey) {
-      if (activeElement === firstElement || !options.containerRef.value?.contains(activeElement)) {
+      if (activeElement === firstElement || !containerEl?.contains(activeElement)) {
         event.preventDefault()
         lastElement.focus()
       }
@@ -95,14 +110,16 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
   }
 
   function handleFocusIn(event: FocusEvent) {
-    if (!options.containerRef.value) return
+    const containerEl = toEl(options.containerRef.value)
+    if (!containerEl) return
     const target = event.target as Node | null
-    if (target && !options.containerRef.value.contains(target)) {
+    if (target && toEl(options.excludeRef?.value)?.contains(target)) return
+    if (target && !containerEl.contains(target)) {
       const focusableElements = getFocusableElements()
       if (focusableElements.length > 0) {
         focusableElements[0].focus()
       } else {
-        options.containerRef.value.focus()
+        containerEl.focus()
       }
     }
   }

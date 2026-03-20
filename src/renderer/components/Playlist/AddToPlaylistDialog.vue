@@ -111,6 +111,7 @@
     open: computed(() => props.visible),
     containerRef: dialogRef,
     initialFocusRef: closeButtonRef,
+    excludeRef: createModalRef,
     onClose: close,
     restoreFocusWhen: () => !showCreateModal.value
   })
