@@ -18,7 +18,7 @@
     X,
     Trash2
   } from 'lucide-vue-next'
-  import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+  import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
   import { usePlayerStore } from '../../stores/player'
   import { useFavoritesStore } from '../../stores/favorites'
   import { usePlaylistsStore } from '../../stores/playlists'
@@ -46,11 +46,19 @@
 
   const showPlaylistDialog = ref(false)
   const showQueuePanel = ref(false)
+  const showVolumePopover = ref(false)
+  const isCompactVolumeMode = ref(false)
   const queueToggleButtonRef = ref<HTMLButtonElement | null>(null)
   const queuePanelRef = ref<HTMLDivElement | null>(null)
   const closeQueueButtonRef = ref<HTMLButtonElement | null>(null)
+  const volumeToggleButtonRef = ref<HTMLButtonElement | null>(null)
+  const volumePopoverRef = ref<HTMLDivElement | null>(null)
+  const volumePopoverSliderRef = ref<HTMLInputElement | null>(null)
+  const volumePopoverMuteButtonRef = ref<HTMLButtonElement | null>(null)
 
   onMounted(async () => {
+    syncCompactVolumeMode()
+    window.addEventListener('resize', handleViewportChange)
     favoritesStore.loadFavorites()
     playlistsStore.loadPlaylists()
     await appSettingsStore.loadSettings()
@@ -62,6 +70,8 @@
   })
 
   onBeforeUnmount(async () => {
+    window.removeEventListener('resize', handleViewportChange)
+    document.removeEventListener('pointerdown', handleVolumePopoverPointerDown)
     await playerStore.saveCurrentPosition()
   })
 
@@ -91,6 +101,117 @@
   function handleVolumeChange(event: Event) {
     const target = event.target as HTMLInputElement
     playerStore.setVolume(parseInt(target.value))
+  }
+
+  function syncCompactVolumeMode() {
+    isCompactVolumeMode.value = window.matchMedia('(max-width: 640px)').matches
+  }
+
+  function getVolumePopoverFocusableElements(): Array<HTMLButtonElement | HTMLInputElement> {
+    return [volumePopoverMuteButtonRef.value, volumePopoverSliderRef.value].filter(
+      (element): element is HTMLButtonElement | HTMLInputElement => element !== null
+    )
+  }
+
+  function openVolumePopover() {
+    if (!isCompactVolumeMode.value) return
+
+    showVolumePopover.value = true
+    document.addEventListener('pointerdown', handleVolumePopoverPointerDown)
+
+    void nextTick(() => {
+      volumePopoverSliderRef.value?.focus()
+    })
+  }
+
+  function closeVolumePopover() {
+    showVolumePopover.value = false
+    document.removeEventListener('pointerdown', handleVolumePopoverPointerDown)
+  }
+
+  function handleVolumeButtonClick() {
+    if (isCompactVolumeMode.value) {
+      if (showVolumePopover.value) {
+        closeVolumePopover()
+      } else {
+        openVolumePopover()
+      }
+      return
+    }
+
+    playerStore.toggleMute()
+  }
+
+  function handleVolumeButtonKeydown(event: KeyboardEvent) {
+    if (!isCompactVolumeMode.value) return
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+
+    event.preventDefault()
+    if (!showVolumePopover.value) {
+      openVolumePopover()
+      return
+    }
+
+    volumePopoverSliderRef.value?.focus()
+  }
+
+  function getVolumeButtonLabel() {
+    if (isCompactVolumeMode.value) {
+      return showVolumePopover.value ? '收起音量控制' : '打开音量控制'
+    }
+
+    return playerStore.isMuted ? '取消静音' : '静音'
+  }
+
+  function handleViewportChange() {
+    syncCompactVolumeMode()
+
+    if (!isCompactVolumeMode.value) {
+      closeVolumePopover()
+    }
+  }
+
+  function handleVolumePopoverPointerDown(event: PointerEvent) {
+    const target = event.target as Node | null
+    if (!target) return
+
+    if (volumePopoverRef.value?.contains(target)) return
+    if (volumeToggleButtonRef.value?.contains(target)) return
+
+    closeVolumePopover()
+  }
+
+  function handleVolumePopoverKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeVolumePopover()
+      volumeToggleButtonRef.value?.focus()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const focusableElements = getVolumePopoverFocusableElements()
+    if (focusableElements.length === 0) return
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    if (!firstElement || !lastElement) return
+
+    const activeElement = document.activeElement as HTMLElement | null
+
+    if (event.shiftKey) {
+      if (activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      }
+      return
+    }
+
+    if (activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
   }
 
   async function toggleFavorite() {
@@ -337,10 +458,45 @@
         <ListPlus v-else :size="18" />
       </button>
       <div class="volume-container">
+        <div
+          v-if="showVolumePopover"
+          id="player-volume-popover"
+          ref="volumePopoverRef"
+          class="volume-popover"
+          role="dialog"
+          aria-label="音量控制"
+          @keydown="handleVolumePopoverKeydown"
+        >
+          <button
+            ref="volumePopoverMuteButtonRef"
+            class="volume-popover-mute"
+            type="button"
+            @click="playerStore.toggleMute"
+            :aria-label="playerStore.isMuted ? '取消静音' : '静音'"
+          >
+            <VolumeX v-if="playerStore.isMuted" :size="16" />
+            <Volume2 v-else :size="16" />
+          </button>
+          <span class="volume-popover-value">{{ playerStore.isMuted ? 0 : playerStore.volume }}%</span>
+          <input
+            ref="volumePopoverSliderRef"
+            class="volume-slider-vertical"
+            type="range"
+            min="0"
+            max="100"
+            :value="playerStore.isMuted ? 0 : playerStore.volume"
+            @input="handleVolumeChange"
+            aria-label="音量"
+          />
+        </div>
         <button
+          ref="volumeToggleButtonRef"
           class="control-btn small"
-          @click="playerStore.toggleMute"
-          :aria-label="playerStore.isMuted ? '取消静音' : '静音'"
+          @click="handleVolumeButtonClick"
+          @keydown="handleVolumeButtonKeydown"
+          :aria-label="getVolumeButtonLabel()"
+          :aria-expanded="isCompactVolumeMode ? showVolumePopover : undefined"
+          :aria-controls="isCompactVolumeMode ? 'player-volume-popover' : undefined"
         >
           <VolumeX v-if="playerStore.isMuted" :size="18" />
           <Volume2 v-else :size="18" />
@@ -776,6 +932,7 @@
   }
 
   .volume-container {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -790,7 +947,7 @@
     width: 100%;
     height: 4px;
     background: var(--bg-card);
-    border-radius: 2px;
+    border-radius: 999px;
     outline: none;
   }
 
@@ -800,6 +957,61 @@
     height: 12px;
     background: var(--text-primary);
     border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .volume-popover {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 8px);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+    z-index: 20;
+    min-width: 52px;
+  }
+
+  .volume-popover-mute {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
+  }
+
+  .volume-popover-mute:hover {
+    color: var(--text-primary);
+    background: var(--bg-card);
+  }
+
+  .volume-popover-value {
+    display: none;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .volume-slider-vertical {
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    width: 28px;
+    height: 112px;
+    writing-mode: bt-lr;
+    accent-color: var(--accent);
     cursor: pointer;
   }
 
@@ -1157,6 +1369,18 @@
 
     .volume-slider {
       display: none;
+    }
+
+    .volume-popover {
+      display: flex;
+    }
+
+    .volume-popover-mute {
+      display: inline-flex;
+    }
+
+    .volume-popover-value {
+      display: block;
     }
   }
 </style>
