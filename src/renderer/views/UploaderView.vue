@@ -290,14 +290,6 @@
             <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(video.bvid)" :size="16" />
             <ListPlus v-else :size="16" />
           </button>
-          <button
-            class="play-btn"
-            type="button"
-            :aria-label="`播放 ${video.title}`"
-            @click.stop="handlePlay(video.bvid)"
-          >
-            <Play :size="18" />
-          </button>
         </div>
       </div>
 
@@ -606,35 +598,6 @@
     line-height: 1.4;
   }
 
-  .play-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    cursor: pointer;
-    opacity: 0;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      opacity 0.2s;
-    flex-shrink: 0;
-  }
-
-  .video-item:hover .play-btn,
-  .video-item:focus-within .play-btn {
-    opacity: 1;
-  }
-
-  .play-btn:hover {
-    transform: scale(1.1);
-  }
-
   .favorite-btn {
     display: flex;
     align-items: center;
@@ -722,11 +685,6 @@
   .video-item:hover .playlist-btn,
   .video-item:focus-within .playlist-btn {
     opacity: 1;
-  }
-
-  .queue-btn:hover {
-    color: var(--accent);
-    background: var(--bg-primary);
   }
 
   .queue-btn:has(.lucide-check) {
@@ -858,7 +816,6 @@
       width: 96px;
     }
 
-    .play-btn,
     .favorite-btn,
     .queue-btn,
     .playlist-btn {
