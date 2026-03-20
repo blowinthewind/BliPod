@@ -13,6 +13,8 @@ export const useAuthStore = defineStore('auth', () => {
   const qrCodeUrl = ref<string | null>(null)
   const qrCodeDataUrl = ref<string | null>(null)
   const loginError = ref<string | null>(null)
+  let removeLoginListeners: (() => void) | null = null
+  let loginListenerConsumers = 0
 
   const userName = computed(() => userInfo.value?.name || 'Guest')
   const userAvatar = computed(() => userInfo.value?.face || '')
@@ -110,9 +112,9 @@ export const useAuthStore = defineStore('auth', () => {
     loginError.value = null
   }
 
-  function setLoginListener() {
-    const unsubscribeQr = window.electronAPI.auth.onQrCode(async (url: string) => {
-      await setQrCode(url)
+  function createLoginListeners() {
+    const unsubscribeQr = window.electronAPI.auth.onQrCode((url: string) => {
+      void setQrCode(url)
     })
 
     const unsubscribeSuccess = window.electronAPI.auth.onLoginSuccess((user: UserInfo) => {
@@ -127,6 +129,27 @@ export const useAuthStore = defineStore('auth', () => {
       unsubscribeQr()
       unsubscribeSuccess()
       unsubscribeError()
+      removeLoginListeners = null
+    }
+  }
+
+  function setLoginListener() {
+    loginListenerConsumers += 1
+
+    if (!removeLoginListeners) {
+      removeLoginListeners = createLoginListeners()
+    }
+
+    let disposed = false
+
+    return () => {
+      if (disposed) return
+      disposed = true
+      loginListenerConsumers = Math.max(0, loginListenerConsumers - 1)
+
+      if (loginListenerConsumers === 0 && removeLoginListeners) {
+        removeLoginListeners()
+      }
     }
   }
 
