@@ -1,15 +1,38 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
   import { History, Play, Trash2, Clock } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
+  import { useDialogFocusTrap } from '../composables/useDialogFocusTrap'
   import { usePlayerStore } from '../stores/player'
   import type { HistoryVideo } from '../stores/player'
 
   const playerStore = usePlayerStore()
 
   const history = computed(() => playerStore.playHistory)
+
+  const showClearConfirm = ref(false)
+  const clearBtnRef = ref<HTMLButtonElement | null>(null)
+  const clearDialogRef = ref<HTMLDivElement | null>(null)
+  const cancelClearBtnRef = ref<HTMLButtonElement | null>(null)
+
+  const { handleKeydown: handleClearDialogKeydown } = useDialogFocusTrap({
+    open: showClearConfirm,
+    containerRef: clearDialogRef,
+    initialFocusRef: cancelClearBtnRef,
+    restoreFocusRef: clearBtnRef,
+    onClose: cancelClearHistory
+  })
+
+  function cancelClearHistory() {
+    showClearConfirm.value = false
+  }
+
+  function confirmClearHistory() {
+    playerStore.clearHistory()
+    showClearConfirm.value = false
+  }
 
   function formatDate(timestamp: number): string {
     const date = new Date(timestamp)
@@ -53,9 +76,7 @@
   }
 
   function clearAllHistory() {
-    if (confirm('确定要清空所有播放历史吗？')) {
-      playerStore.clearHistory()
-    }
+    showClearConfirm.value = true
   }
 </script>
 
@@ -69,7 +90,7 @@
         <h1 class="page-title">播放历史</h1>
         <p class="page-desc">{{ history.length }} 个视频</p>
       </div>
-      <button v-if="history.length > 0" class="clear-btn" @click="clearAllHistory">
+      <button v-if="history.length > 0" ref="clearBtnRef" class="clear-btn" @click="clearAllHistory">
         <Trash2 :size="16" />
         清空历史
       </button>
@@ -141,6 +162,29 @@
     />
 
     <ScrollToButtons v-if="history.length > 5" scroll-container=".content-area" :threshold="5" />
+
+    <div class="clear-confirm-overlay" v-if="showClearConfirm" @click.self="cancelClearHistory">
+      <div
+        ref="clearDialogRef"
+        class="clear-confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clear-history-title"
+        aria-describedby="clear-history-description"
+        @keydown="handleClearDialogKeydown"
+      >
+        <p id="clear-history-title" class="confirm-text">清空历史</p>
+        <p id="clear-history-description" class="confirm-description">
+          确定要清空所有播放历史吗？此操作不可撤销。
+        </p>
+        <div class="confirm-actions">
+          <button ref="cancelClearBtnRef" class="confirm-btn cancel" @click="cancelClearHistory">
+            取消
+          </button>
+          <button class="confirm-btn clear" @click="confirmClearHistory">清空</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -405,5 +449,77 @@
 
   .action-btn.remove:hover {
     color: var(--error);
+  }
+
+  .clear-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-overlay);
+    z-index: 1000;
+  }
+
+  .clear-confirm-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(320px, calc(100% - 32px));
+    padding: 20px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .confirm-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+  }
+
+  .confirm-description {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .confirm-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      opacity 0.2s;
+  }
+
+  .confirm-btn.cancel {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  .confirm-btn.cancel:hover {
+    background: var(--bg-primary);
+  }
+
+  .confirm-btn.clear {
+    background: var(--error);
+    color: white;
+  }
+
+  .confirm-btn.clear:hover {
+    opacity: 0.9;
   }
 </style>
