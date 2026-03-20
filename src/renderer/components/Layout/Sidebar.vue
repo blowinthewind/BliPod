@@ -33,12 +33,12 @@
   }
 
   const menuItems: NavMenuItem[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'search', label: 'Search', icon: Search },
-    { id: 'favorites', label: 'Favorites', icon: Heart },
-    { id: 'playlists', label: 'Playlists', icon: ListMusic },
-    { id: 'history', label: 'History', icon: History },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'home', label: '首页', icon: Home },
+    { id: 'search', label: '搜索', icon: Search },
+    { id: 'favorites', label: '我的收藏', icon: Heart },
+    { id: 'playlists', label: '播放列表', icon: ListMusic },
+    { id: 'history', label: '播放历史', icon: History },
+    { id: 'settings', label: '设置', icon: Settings }
   ]
 
   let unsubscribe: (() => void) | null = null
@@ -100,12 +100,12 @@
       <button
         class="collapse-btn"
         @click="navStore.toggleSidebar"
-        :aria-label="navStore.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-label="navStore.sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
       >
         <ChevronLeft v-if="!navStore.sidebarCollapsed" :size="18" />
         <ChevronRight v-else :size="18" />
       </button>
-      <button class="mobile-close-btn" @click="navStore.closeMobileMenu" aria-label="Close menu">
+      <button class="mobile-close-btn" @click="navStore.closeMobileMenu" aria-label="关闭菜单">
         <X :size="20" />
       </button>
     </div>
