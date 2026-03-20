@@ -1046,7 +1046,8 @@
       transform 0.2s;
   }
 
-  .queue-item:hover .queue-item-remove {
+  .queue-item:hover .queue-item-remove,
+  .queue-item:focus-within .queue-item-remove {
     opacity: 1;
   }
 
