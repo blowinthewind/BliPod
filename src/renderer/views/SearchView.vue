@@ -345,14 +345,6 @@
             <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(result.bvid)" :size="16" />
             <ListPlus v-else :size="16" />
           </button>
-          <button
-            class="play-btn"
-            type="button"
-            :aria-label="`播放 ${result.title}`"
-            @click.stop="handlePlay(result.bvid)"
-          >
-            <Play :size="18" />
-          </button>
         </div>
       </div>
 
@@ -996,35 +988,6 @@
   .playlist-btn:has(.lucide-list-check) {
     color: var(--accent);
     opacity: 1;
-  }
-
-  .play-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    cursor: pointer;
-    opacity: 0;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s,
-      transform 0.2s;
-    flex-shrink: 0;
-  }
-
-  .result-item:hover .play-btn,
-  .result-item:focus-within .play-btn {
-    opacity: 1;
-  }
-
-  .play-btn:hover {
-    transform: scale(1.1);
   }
 
   .load-more-container {

@@ -207,14 +207,6 @@
           </button>
           <div class="item-actions">
             <button
-              class="action-btn play"
-              type="button"
-              :aria-label="`播放 ${video.title}`"
-              @click.stop="playVideo(video)"
-            >
-              <Play :size="18" />
-            </button>
-            <button
               class="action-btn remove"
               type="button"
               :aria-label="`从播放列表中移除 ${video.title}`"
@@ -630,7 +622,6 @@
     opacity: 1;
   }
 
-  .action-btn.play,
   .action-btn.remove {
     width: 36px;
     height: 36px;
@@ -638,11 +629,6 @@
     border-radius: 50%;
     background: transparent;
     color: var(--text-secondary);
-  }
-
-  .action-btn.play:hover {
-    background: var(--bg-primary);
-    color: var(--accent);
   }
 
   .action-btn.remove:hover {

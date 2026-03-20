@@ -87,14 +87,6 @@
         </button>
         <div class="item-actions">
           <button
-            class="action-btn play"
-            type="button"
-            :aria-label="`播放 ${item.title}`"
-            @click.stop="playVideo(item)"
-          >
-            <Play :size="18" />
-          </button>
-          <button
             class="action-btn remove"
             type="button"
             :aria-label="`从收藏中移除 ${item.title}`"
@@ -327,10 +319,6 @@
   .action-btn:hover {
     background: var(--bg-primary);
     color: var(--text-primary);
-  }
-
-  .action-btn.play:hover {
-    color: var(--accent);
   }
 
   .action-btn.remove:hover {
