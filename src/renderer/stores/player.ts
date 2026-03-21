@@ -124,6 +124,17 @@ export const usePlayerStore = defineStore('player', () => {
   let sessionLastProgressAt: number | null = null
   let sessionLastCountedAt: number | null = null
 
+  function syncNativePlaybackState() {
+    window.electronAPI.nativePlayer.updateState({
+      hasVideo: hasVideo.value,
+      title: currentVideo.value?.title || '',
+      author: currentVideo.value?.author || '',
+      isPlaying: isPlaying.value,
+      isMuted: isMuted.value,
+      volume: volume.value
+    })
+  }
+
   // ========== 辅助函数 ==========
 
   function findPreviousHistoryIndex(startIndex: number): number {
@@ -324,10 +335,7 @@ export const usePlayerStore = defineStore('player', () => {
         isPlaying.value = true
       }
 
-      logger.info(
-        `Restored last played video (${shouldAutoPlay ? 'auto-play' : 'paused'}):`,
-        lastPlayed.title
-      )
+      syncNativePlaybackState()
       return true
     } catch (e) {
       logger.warn('Failed to restore last played video:', e)
@@ -378,6 +386,7 @@ export const usePlayerStore = defineStore('player', () => {
     // 添加到播放历史记录
     addToHistory(video)
 
+    syncNativePlaybackState()
     window.electronAPI.search.playVideo(video.bvid)
   }
 
@@ -386,6 +395,7 @@ export const usePlayerStore = defineStore('player', () => {
       window.electronAPI.search.resumeVideo()
       isPlaying.value = true
       startAutoSave()
+      syncNativePlaybackState()
     }
   }
 
@@ -393,6 +403,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (isPlaying.value) {
       window.electronAPI.search.pauseVideo()
       isPlaying.value = false
+      syncNativePlaybackState()
       await saveCurrentPosition()
     }
   }
@@ -418,6 +429,7 @@ export const usePlayerStore = defineStore('player', () => {
     currentIndex.value = -1
     historyNavigationIndex.value = -1
     resetPlaySession()
+    syncNativePlaybackState()
   }
 
   function seek(time: number) {
@@ -444,16 +456,19 @@ export const usePlayerStore = defineStore('player', () => {
       isMuted.value = false
     }
     appSettings.setLastVolume(volume.value)
+    syncNativePlaybackState()
   }
 
   function initVolume() {
     volume.value = appSettings.lastVolume
     window.electronAPI.search.setVolume(volume.value)
+    syncNativePlaybackState()
   }
 
   function toggleMute() {
     isMuted.value = !isMuted.value
     window.electronAPI.search.setVolume(isMuted.value ? 0 : volume.value)
+    syncNativePlaybackState()
   }
 
   function setPlaybackRate(rate: number) {
@@ -544,6 +559,7 @@ export const usePlayerStore = defineStore('player', () => {
     // 添加到播放历史
     addToHistory(video)
 
+    syncNativePlaybackState()
     window.electronAPI.search.playVideo(video.bvid)
   }
 
@@ -578,6 +594,7 @@ export const usePlayerStore = defineStore('player', () => {
     await restorePlayPosition(video)
 
     // 注意：从历史播放时，不添加到历史，避免重复
+    syncNativePlaybackState()
     window.electronAPI.search.playVideo(video.bvid)
   }
 
@@ -846,6 +863,7 @@ export const usePlayerStore = defineStore('player', () => {
       isLoading.value = false
       isPlaying.value = true
       window.electronAPI.search.setVolume(volume.value)
+      syncNativePlaybackState()
 
       // 恢复播放位置
       if (pendingResumeTime !== null) {
@@ -871,6 +889,7 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value = progress.currentTime
       duration.value = progress.duration || 0
       isPlaying.value = !progress.paused
+      syncNativePlaybackState()
 
       if (progress.duration > 0) {
         updateVideoDuration(currentVideo.value.bvid, progress.duration)
@@ -1015,6 +1034,7 @@ export const usePlayerStore = defineStore('player', () => {
     restoreLastPlayedVideo,
 
     // 初始化
-    initVolume
+    initVolume,
+    syncNativePlaybackState
   }
 })

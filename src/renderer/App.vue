@@ -27,6 +27,7 @@
     window.addEventListener('beforeunload', handleBeforeUnload)
     // 加载持久化的用户播放队列
     await playerStore.loadUserQueue()
+    playerStore.syncNativePlaybackState()
   })
 
   onUnmounted(() => {

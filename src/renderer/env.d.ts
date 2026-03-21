@@ -230,6 +230,19 @@ interface AuthAPI {
   onLoginError: (callback: (error: string) => void) => () => void
 }
 
+interface NativePlaybackState {
+  hasVideo: boolean
+  title: string
+  author: string
+  isPlaying: boolean
+  isMuted: boolean
+  volume: number
+}
+
+interface NativePlayerAPI {
+  updateState: (state: NativePlaybackState) => void
+}
+
 interface Window {
   electronAPI: {
     platform: NodeJS.Platform
@@ -237,5 +250,6 @@ interface Window {
     auth: AuthAPI
     store: StoreAPI
     memory: MemoryAPI
+    nativePlayer: NativePlayerAPI
   }
 }

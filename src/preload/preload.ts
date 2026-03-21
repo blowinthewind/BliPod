@@ -147,11 +147,24 @@ export interface MemoryStats {
   viewIdleTimeout: number
 }
 
+export interface NativePlaybackState {
+  hasVideo: boolean
+  title: string
+  author: string
+  isPlaying: boolean
+  isMuted: boolean
+  volume: number
+}
+
 export interface MemoryAPI {
   getStats: () => Promise<MemoryStats>
   cleanup: () => Promise<boolean>
   clearCache: () => Promise<boolean>
   setIdleTimeout: (timeoutMs: number) => Promise<boolean>
+}
+
+export interface NativePlayerAPI {
+  updateState: (state: NativePlaybackState) => void
 }
 
 export interface StoreAPI {
@@ -425,10 +438,17 @@ const memoryAPI: MemoryAPI = {
   }
 }
 
+const nativePlayerAPI: NativePlayerAPI = {
+  updateState: (state: NativePlaybackState) => {
+    ipcRenderer.send('native-player:updateState', state)
+  }
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   search: searchAPI,
   auth: authAPI,
   store: storeAPI,
-  memory: memoryAPI
+  memory: memoryAPI,
+  nativePlayer: nativePlayerAPI
 })

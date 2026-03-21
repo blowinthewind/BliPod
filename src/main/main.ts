@@ -7,7 +7,8 @@ import type {
   BiliAuthStatus,
   ExtractedVideo,
   AppSettings,
-  AppStore
+  AppStore,
+  NativePlaybackState
 } from '../preload/preload'
 import {
   getFavorites,
@@ -61,12 +62,34 @@ let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = 10 * 60 * 1000
 let lastSearchQuery: string = ''
+let nativePlaybackState: NativePlaybackState = {
+  hasVideo: false,
+  title: '',
+  author: '',
+  isPlaying: false,
+  isMuted: false,
+  volume: 80
+}
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
+}
+
+function updateNativePlaybackState(nextState: NativePlaybackState) {
+  const hasChanged =
+    nativePlaybackState.hasVideo !== nextState.hasVideo ||
+    nativePlaybackState.title !== nextState.title ||
+    nativePlaybackState.author !== nextState.author ||
+    nativePlaybackState.isPlaying !== nextState.isPlaying ||
+    nativePlaybackState.isMuted !== nextState.isMuted ||
+    nativePlaybackState.volume !== nextState.volume
+
+  if (!hasChanged) return
+
+  nativePlaybackState = nextState
 }
 
 function getExtractorScript(): string {
@@ -933,6 +956,10 @@ function setupIPC() {
         )
         .catch(() => {})
     }
+  })
+
+  ipcMain.on('native-player:updateState', (_event, state: NativePlaybackState) => {
+    updateNativePlaybackState(state)
   })
 
   ipcMain.handle('auth:checkLogin', async (): Promise<BiliAuthStatus> => {
