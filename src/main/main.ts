@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView, Menu } from 'electron'
+import { app, BrowserWindow, session, ipcMain, BrowserView, Menu, Tray, nativeImage } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
@@ -54,6 +54,7 @@ import type { ExportOptions, ImportOptionsV2 } from './dataImportExport'
 import { logger } from './utils/logger'
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
 let extractorScript: string | null = null
@@ -104,13 +105,8 @@ function sendNativePlayerCommand(command: NativePlayerCommand) {
   mainWindow.webContents.send('native-player:command', command)
 }
 
-function buildApplicationMenu() {
-  if (!isMac) return null
-
-  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
-  const hasVideo = hasWindow && nativePlaybackState.hasVideo
-
-  const playbackSubmenu: MenuItemConstructorOptions[] = [
+function buildPlaybackControlMenuItems(hasVideo: boolean): MenuItemConstructorOptions[] {
+  return [
     {
       label: nativePlaybackState.isPlaying ? '暂停' : '播放',
       enabled: hasVideo,
@@ -130,7 +126,18 @@ function buildApplicationMenu() {
       label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
       enabled: hasVideo,
       click: () => sendNativePlayerCommand('toggleMute')
-    },
+    }
+  ]
+}
+
+function buildApplicationMenu() {
+  if (!isMac) return null
+
+  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
+  const hasVideo = hasWindow && nativePlaybackState.hasVideo
+
+  const playbackSubmenu: MenuItemConstructorOptions[] = [
+    ...buildPlaybackControlMenuItems(hasVideo),
     { type: 'separator' },
     {
       label: '显示主窗口',
@@ -158,6 +165,81 @@ function refreshApplicationMenu() {
   Menu.setApplicationMenu(buildApplicationMenu())
 }
 
+function createTrayIcon() {
+  const icon = nativeImage.createFromNamedImage('music.note')
+  const fallbackIcon = icon.isEmpty() ? nativeImage.createFromNamedImage('NSStatusAvailable') : icon
+  fallbackIcon.setTemplateImage(true)
+  return fallbackIcon
+}
+
+function buildTrayMenu() {
+  if (!isMac) return null
+
+  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
+  const canControl = hasWindow && nativePlaybackState.hasVideo
+  const trayMenuItems: MenuItemConstructorOptions[] = [
+    {
+      label: nativePlaybackState.hasVideo ? `当前播放：${nativePlaybackState.title}` : '未在播放',
+      enabled: false
+    }
+  ]
+
+  if (nativePlaybackState.author) {
+    trayMenuItems.push({
+      label: `UP 主：${nativePlaybackState.author}`,
+      enabled: false
+    })
+  }
+
+  trayMenuItems.push(
+    { type: 'separator' },
+    ...buildPlaybackControlMenuItems(canControl),
+    { type: 'separator' },
+    {
+      label: '显示主窗口',
+      click: () => showMainWindow()
+    },
+    {
+      label: '退出',
+      click: () => app.quit()
+    }
+  )
+
+  return Menu.buildFromTemplate(trayMenuItems)
+}
+
+function refreshTray() {
+  if (!isMac || !tray) return
+
+  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
+  const tooltip = hasWindow && nativePlaybackState.hasVideo
+    ? `${nativePlaybackState.isPlaying ? '正在播放' : '已暂停'}：${nativePlaybackState.title}`
+    : 'BliPod'
+
+  tray.setToolTip(tooltip)
+
+  const menu = buildTrayMenu()
+  if (menu) {
+    tray.setContextMenu(menu)
+  }
+}
+
+function createTray() {
+  if (!isMac || tray) return
+
+  tray = new Tray(createTrayIcon())
+  tray.on('click', () => {
+    if (!tray) return
+
+    const menu = buildTrayMenu()
+    if (menu) {
+      tray.popUpContextMenu(menu)
+    }
+  })
+
+  refreshTray()
+}
+
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
 }
@@ -177,6 +259,7 @@ function updateNativePlaybackState(nextState: NativePlaybackState) {
 
   nativePlaybackState = nextState
   refreshApplicationMenu()
+  refreshTray()
 }
 
 function getExtractorScript(): string {
@@ -387,6 +470,7 @@ function createWindow() {
   }
 
   refreshApplicationMenu()
+  refreshTray()
 
   mainWindow.on('closed', () => {
     destroySearchView()
@@ -396,6 +480,7 @@ function createWindow() {
     stopMemoryManagement()
     mainWindow = null
     refreshApplicationMenu()
+    refreshTray()
   })
 }
 
@@ -1324,6 +1409,7 @@ app.whenReady().then(() => {
   startMemoryManagement()
   refreshApplicationMenu()
   createWindow()
+  createTray()
 })
 
 app.on('window-all-closed', () => {
