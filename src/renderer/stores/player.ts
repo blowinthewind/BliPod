@@ -127,6 +127,8 @@ export const usePlayerStore = defineStore('player', () => {
   function syncNativePlaybackState() {
     window.electronAPI.nativePlayer.updateState({
       hasVideo: hasVideo.value,
+      hasNext: hasNext.value,
+      hasPrevious: hasPrevious.value,
       title: currentVideo.value?.title || '',
       author: currentVideo.value?.author || '',
       isPlaying: isPlaying.value,
@@ -644,16 +646,19 @@ export const usePlayerStore = defineStore('player', () => {
     if (index > -1) {
       playHistory.value.splice(index, 1)
       saveHistoryToStorage(playHistory.value)
+      syncNativePlaybackState()
     }
   }
 
   function clearHistory() {
     playHistory.value = []
     saveHistoryToStorage(playHistory.value)
+    syncNativePlaybackState()
   }
 
   function loadHistory() {
     playHistory.value = loadHistoryFromStorage()
+    syncNativePlaybackState()
   }
 
   function updateVideoDuration(bvid: string, durationSeconds: number) {
@@ -696,6 +701,7 @@ export const usePlayerStore = defineStore('player', () => {
       }
     }
 
+    syncNativePlaybackState()
     return true
   }
 
@@ -720,6 +726,8 @@ export const usePlayerStore = defineStore('player', () => {
           currentIndex.value--
         }
       }
+
+      syncNativePlaybackState()
     }
   }
 
@@ -743,6 +751,8 @@ export const usePlayerStore = defineStore('player', () => {
     } else {
       currentIndex.value = -1
     }
+
+    syncNativePlaybackState()
   }
 
   async function moveUserQueueItem(fromIndex: number, toIndex: number) {
@@ -788,6 +798,8 @@ export const usePlayerStore = defineStore('player', () => {
         }
       }
     }
+
+    syncNativePlaybackState()
   }
 
   // 加载用户队列
@@ -801,6 +813,8 @@ export const usePlayerStore = defineStore('player', () => {
       logger.warn('Failed to load user queue:', e)
       userQueue.value = []
     }
+
+    syncNativePlaybackState()
   }
 
   // 从用户队列播放指定视频
@@ -828,6 +842,7 @@ export const usePlayerStore = defineStore('player', () => {
     actualQueue.value = queue
     currentIndex.value = 0
     historyNavigationIndex.value = -1
+    syncNativePlaybackState()
 
     playVideoFromQueue(queue[0])
   }
@@ -844,6 +859,8 @@ export const usePlayerStore = defineStore('player', () => {
         } catch (e) {
           logger.warn('Failed to save user queue:', e)
         }
+
+        syncNativePlaybackState()
       }
     }
 

@@ -232,6 +232,8 @@ interface AuthAPI {
 
 interface NativePlaybackState {
   hasVideo: boolean
+  hasNext: boolean
+  hasPrevious: boolean
   title: string
   author: string
   isPlaying: boolean
@@ -239,8 +241,11 @@ interface NativePlaybackState {
   volume: number
 }
 
+type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+
 interface NativePlayerAPI {
   updateState: (state: NativePlaybackState) => void
+  onCommand: (callback: (command: NativePlayerCommand) => void) => () => void
 }
 
 interface Window {

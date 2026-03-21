@@ -149,6 +149,8 @@ export interface MemoryStats {
 
 export interface NativePlaybackState {
   hasVideo: boolean
+  hasNext: boolean
+  hasPrevious: boolean
   title: string
   author: string
   isPlaying: boolean
@@ -163,8 +165,11 @@ export interface MemoryAPI {
   setIdleTimeout: (timeoutMs: number) => Promise<boolean>
 }
 
+export type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+
 export interface NativePlayerAPI {
   updateState: (state: NativePlaybackState) => void
+  onCommand: (callback: (command: NativePlayerCommand) => void) => () => void
 }
 
 export interface StoreAPI {
@@ -441,6 +446,11 @@ const memoryAPI: MemoryAPI = {
 const nativePlayerAPI: NativePlayerAPI = {
   updateState: (state: NativePlaybackState) => {
     ipcRenderer.send('native-player:updateState', state)
+  },
+  onCommand: (callback) => {
+    const handler = (_event: unknown, command: NativePlayerCommand) => callback(command)
+    ipcRenderer.on('native-player:command', handler)
+    return () => ipcRenderer.removeListener('native-player:command', handler)
   }
 }
 

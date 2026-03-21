@@ -5,9 +5,27 @@
   import { usePlayerStore } from '@/stores/player'
 
   const playerStore = usePlayerStore()
+  let removeNativePlayerCommandListener: (() => void) | null = null
 
   async function handleBeforeUnload() {
     await playerStore.saveCurrentPosition()
+  }
+
+  function handleNativePlayerCommand(command: NativePlayerCommand) {
+    switch (command) {
+      case 'togglePlay':
+        playerStore.togglePlay()
+        break
+      case 'previous':
+        playerStore.previous()
+        break
+      case 'next':
+        playerStore.next()
+        break
+      case 'toggleMute':
+        playerStore.toggleMute()
+        break
+    }
   }
 
   function focusMainContent() {
@@ -25,6 +43,9 @@
 
   onMounted(async () => {
     window.addEventListener('beforeunload', handleBeforeUnload)
+    removeNativePlayerCommandListener = window.electronAPI.nativePlayer.onCommand(
+      handleNativePlayerCommand
+    )
     // 加载持久化的用户播放队列
     await playerStore.loadUserQueue()
     playerStore.syncNativePlaybackState()
@@ -32,6 +53,8 @@
 
   onUnmounted(() => {
     window.removeEventListener('beforeunload', handleBeforeUnload)
+    removeNativePlayerCommandListener?.()
+    removeNativePlayerCommandListener = null
   })
 </script>
 

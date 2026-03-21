@@ -1,4 +1,5 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
+import { app, BrowserWindow, session, ipcMain, BrowserView, Menu } from 'electron'
+import type { MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
@@ -8,7 +9,8 @@ import type {
   ExtractedVideo,
   AppSettings,
   AppStore,
-  NativePlaybackState
+  NativePlaybackState,
+  NativePlayerCommand
 } from '../preload/preload'
 import {
   getFavorites,
@@ -64,6 +66,8 @@ let viewIdleTimeout: number = 10 * 60 * 1000
 let lastSearchQuery: string = ''
 let nativePlaybackState: NativePlaybackState = {
   hasVideo: false,
+  hasNext: false,
+  hasPrevious: false,
   title: '',
   author: '',
   isPlaying: false,
@@ -73,6 +77,71 @@ let nativePlaybackState: NativePlaybackState = {
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
+const isMac = process.platform === 'darwin'
+
+function sendNativePlayerCommand(command: NativePlayerCommand) {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.webContents.send('native-player:command', command)
+}
+
+function buildApplicationMenu() {
+  if (!isMac) return null
+
+  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
+  const hasVideo = hasWindow && nativePlaybackState.hasVideo
+
+  const playbackSubmenu: MenuItemConstructorOptions[] = [
+    {
+      label: hasVideo ? `当前：${nativePlaybackState.title}` : '当前：暂无播放内容',
+      enabled: false
+    },
+    {
+      label: hasVideo && nativePlaybackState.author ? `UP 主：${nativePlaybackState.author}` : 'UP 主：--',
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: nativePlaybackState.isPlaying ? '暂停' : '播放',
+      enabled: hasVideo,
+      click: () => sendNativePlayerCommand('togglePlay')
+    },
+    {
+      label: '上一首',
+      enabled: hasVideo && nativePlaybackState.hasPrevious,
+      click: () => sendNativePlayerCommand('previous')
+    },
+    {
+      label: '下一首',
+      enabled: hasVideo && nativePlaybackState.hasNext,
+      click: () => sendNativePlayerCommand('next')
+    },
+    { type: 'separator' },
+    {
+      label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
+      enabled: hasVideo,
+      click: () => sendNativePlayerCommand('toggleMute')
+    }
+  ]
+
+  const template: MenuItemConstructorOptions[] = [
+    { role: 'appMenu' },
+    { role: 'fileMenu' },
+    { role: 'editMenu' },
+    {
+      label: '播放',
+      submenu: playbackSubmenu
+    },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' }
+  ]
+
+  return Menu.buildFromTemplate(template)
+}
+
+function refreshApplicationMenu() {
+  if (!isMac) return
+  Menu.setApplicationMenu(buildApplicationMenu())
+}
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
@@ -81,6 +150,8 @@ function getBilibiliSession() {
 function updateNativePlaybackState(nextState: NativePlaybackState) {
   const hasChanged =
     nativePlaybackState.hasVideo !== nextState.hasVideo ||
+    nativePlaybackState.hasNext !== nextState.hasNext ||
+    nativePlaybackState.hasPrevious !== nextState.hasPrevious ||
     nativePlaybackState.title !== nextState.title ||
     nativePlaybackState.author !== nextState.author ||
     nativePlaybackState.isPlaying !== nextState.isPlaying ||
@@ -90,6 +161,7 @@ function updateNativePlaybackState(nextState: NativePlaybackState) {
   if (!hasChanged) return
 
   nativePlaybackState = nextState
+  refreshApplicationMenu()
 }
 
 function getExtractorScript(): string {
@@ -299,6 +371,8 @@ function createWindow() {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
+  refreshApplicationMenu()
+
   mainWindow.on('closed', () => {
     destroySearchView()
     destroyPlayerView()
@@ -306,6 +380,7 @@ function createWindow() {
     stopQrPoll()
     stopMemoryManagement()
     mainWindow = null
+    refreshApplicationMenu()
   })
 }
 
@@ -1209,6 +1284,7 @@ app.whenReady().then(() => {
   setupBilibiliImageReferer()
   setupIPC()
   startMemoryManagement()
+  refreshApplicationMenu()
   createWindow()
 })
 
