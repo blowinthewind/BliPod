@@ -1,5 +1,4 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView, Menu, Tray, nativeImage } from 'electron'
-import type { MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
@@ -52,9 +51,9 @@ import {
 } from './dataImportExport'
 import type { ExportOptions, ImportOptionsV2 } from './dataImportExport'
 import { logger } from './utils/logger'
+import { createMacOSPlaybackControls } from './macosPlaybackControls'
 
 let mainWindow: BrowserWindow | null = null
-let tray: Tray | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
 let extractorScript: string | null = null
@@ -65,16 +64,6 @@ let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = 10 * 60 * 1000
 let lastSearchQuery: string = ''
-let nativePlaybackState: NativePlaybackState = {
-  hasVideo: false,
-  hasNext: false,
-  hasPrevious: false,
-  title: '',
-  author: '',
-  isPlaying: false,
-  isMuted: false,
-  volume: 80
-}
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -105,161 +94,25 @@ function sendNativePlayerCommand(command: NativePlayerCommand) {
   mainWindow.webContents.send('native-player:command', command)
 }
 
-function buildPlaybackControlMenuItems(hasVideo: boolean): MenuItemConstructorOptions[] {
-  return [
-    {
-      label: nativePlaybackState.isPlaying ? '暂停' : '播放',
-      enabled: hasVideo,
-      click: () => sendNativePlayerCommand('togglePlay')
-    },
-    {
-      label: '上一首',
-      enabled: hasVideo && nativePlaybackState.hasPrevious,
-      click: () => sendNativePlayerCommand('previous')
-    },
-    {
-      label: '下一首',
-      enabled: hasVideo && nativePlaybackState.hasNext,
-      click: () => sendNativePlayerCommand('next')
-    },
-    {
-      label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
-      enabled: hasVideo,
-      click: () => sendNativePlayerCommand('toggleMute')
-    }
-  ]
-}
+const macOSPlaybackControls = createMacOSPlaybackControls({
+  isMac,
+  getMainWindow: () => mainWindow,
+  showMainWindow,
+  sendNativePlayerCommand
+})
 
-function buildApplicationMenu() {
-  if (!isMac) return null
+const {
+  refreshApplicationMenu,
+  refreshTray,
+  createTray,
+  updateNativePlaybackState
+} = macOSPlaybackControls
 
-  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
-  const hasVideo = hasWindow && nativePlaybackState.hasVideo
-
-  const playbackSubmenu: MenuItemConstructorOptions[] = [
-    ...buildPlaybackControlMenuItems(hasVideo),
-    { type: 'separator' },
-    {
-      label: '显示主窗口',
-      click: () => showMainWindow()
-    }
-  ]
-
-  const template: MenuItemConstructorOptions[] = [
-    { role: 'appMenu' },
-    { role: 'fileMenu' },
-    { role: 'editMenu' },
-    {
-      label: '播放',
-      submenu: playbackSubmenu
-    },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' }
-  ]
-
-  return Menu.buildFromTemplate(template)
-}
-
-function refreshApplicationMenu() {
-  if (!isMac) return
-  Menu.setApplicationMenu(buildApplicationMenu())
-}
-
-function createTrayIcon() {
-  const icon = nativeImage.createFromNamedImage('music.note')
-  const fallbackIcon = icon.isEmpty() ? nativeImage.createFromNamedImage('NSStatusAvailable') : icon
-  fallbackIcon.setTemplateImage(true)
-  return fallbackIcon
-}
-
-function buildTrayMenu() {
-  if (!isMac) return null
-
-  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
-  const canControl = hasWindow && nativePlaybackState.hasVideo
-  const trayMenuItems: MenuItemConstructorOptions[] = [
-    {
-      label: nativePlaybackState.hasVideo ? `当前播放：${nativePlaybackState.title}` : '未在播放',
-      enabled: false
-    }
-  ]
-
-  if (nativePlaybackState.author) {
-    trayMenuItems.push({
-      label: `UP 主：${nativePlaybackState.author}`,
-      enabled: false
-    })
-  }
-
-  trayMenuItems.push(
-    { type: 'separator' },
-    ...buildPlaybackControlMenuItems(canControl),
-    { type: 'separator' },
-    {
-      label: '显示主窗口',
-      click: () => showMainWindow()
-    },
-    {
-      label: '退出',
-      click: () => app.quit()
-    }
-  )
-
-  return Menu.buildFromTemplate(trayMenuItems)
-}
-
-function refreshTray() {
-  if (!isMac || !tray) return
-
-  const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
-  const tooltip = hasWindow && nativePlaybackState.hasVideo
-    ? `${nativePlaybackState.isPlaying ? '正在播放' : '已暂停'}：${nativePlaybackState.title}`
-    : 'BliPod'
-
-  tray.setToolTip(tooltip)
-
-  const menu = buildTrayMenu()
-  if (menu) {
-    tray.setContextMenu(menu)
-  }
-}
-
-function createTray() {
-  if (!isMac || tray) return
-
-  tray = new Tray(createTrayIcon())
-  tray.on('click', () => {
-    if (!tray) return
-
-    const menu = buildTrayMenu()
-    if (menu) {
-      tray.popUpContextMenu(menu)
-    }
-  })
-
-  refreshTray()
-}
+// 保留 Tray 原型实现，当前版本默认不启用。
+void createTray
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
-}
-
-function updateNativePlaybackState(nextState: NativePlaybackState) {
-  const hasChanged =
-    nativePlaybackState.hasVideo !== nextState.hasVideo ||
-    nativePlaybackState.hasNext !== nextState.hasNext ||
-    nativePlaybackState.hasPrevious !== nextState.hasPrevious ||
-    nativePlaybackState.title !== nextState.title ||
-    nativePlaybackState.author !== nextState.author ||
-    nativePlaybackState.isPlaying !== nextState.isPlaying ||
-    nativePlaybackState.isMuted !== nextState.isMuted ||
-    nativePlaybackState.volume !== nextState.volume
-
-  if (!hasChanged) return
-
-  nativePlaybackState = nextState
-  refreshApplicationMenu()
-  refreshTray()
 }
 
 function getExtractorScript(): string {
@@ -1409,7 +1262,6 @@ app.whenReady().then(() => {
   startMemoryManagement()
   refreshApplicationMenu()
   createWindow()
-  createTray()
 })
 
 app.on('window-all-closed', () => {
