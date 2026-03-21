@@ -10,13 +10,13 @@
     ListMusic,
     Settings,
     ChevronLeft,
-    ChevronRight,
     LogIn,
     LogOut,
     History,
-    X,
-    Music
+    Menu,
+    X
   } from 'lucide-vue-next'
+  import appLogoWordmarkRaw from '@/assets/branding/app-logo-wordmark.svg?raw'
 
   const navStore = useNavigationStore()
   const authStore = useAuthStore()
@@ -86,24 +86,25 @@
     }"
   >
     <div class="sidebar-header">
-      <div class="logo" v-if="!navStore.sidebarCollapsed">
-        <div class="logo-icon">
-          <Music :size="20" />
-        </div>
-        <span class="logo-text">BliPod</span>
-      </div>
-      <div class="logo-mini" v-else>
-        <div class="logo-icon-mini">
-          <Music :size="20" />
-        </div>
+      <div class="logo" v-if="!navStore.sidebarCollapsed" role="img" aria-label="BliPod">
+        <span class="logo-wordmark logo-asset" aria-hidden="true" v-html="appLogoWordmarkRaw"></span>
       </div>
       <button
+        v-else
+        class="logo-mini-btn"
+        type="button"
+        aria-label="展开侧边栏"
+        @click="navStore.toggleSidebar"
+      >
+        <Menu :size="28" class="logo-mini-icon" />
+      </button>
+      <button
+        v-if="!navStore.sidebarCollapsed"
         class="collapse-btn"
         @click="navStore.toggleSidebar"
-        :aria-label="navStore.sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        aria-label="收起侧边栏"
       >
-        <ChevronLeft v-if="!navStore.sidebarCollapsed" :size="18" />
-        <ChevronRight v-else :size="18" />
+        <ChevronLeft :size="18" />
       </button>
       <button class="mobile-close-btn" @click="navStore.closeMobileMenu" aria-label="关闭菜单">
         <X :size="20" />
@@ -219,42 +220,61 @@
   .logo {
     display: flex;
     align-items: center;
-    gap: 10px;
-  }
-
-  .logo-icon {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    border-radius: var(--radius-md);
-    color: white;
+    min-width: 0;
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
   }
 
-  .logo-text {
-    font-size: var(--text-lg);
-    font-weight: 700;
+  .logo-wordmark,
+  .logo-mark {
+    display: block;
+  }
+
+  .logo-asset {
+    display: block;
     color: var(--text-primary);
-    letter-spacing: -0.5px;
+    line-height: 0;
+    flex-shrink: 0;
   }
 
-  .logo-mini {
+  .logo-asset :deep(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .logo-wordmark {
+    width: 112px;
+    height: 40px;
+    max-width: 100%;
+  }
+
+  .logo-mini-btn {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
   }
 
-  .logo-icon-mini {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-    border-radius: var(--radius-md);
-    color: white;
+  .logo-mini-btn:hover {
+    background: var(--bg-card);
+  }
+
+  .logo-mini-icon {
+    flex-shrink: 0;
   }
 
   .collapse-btn {
