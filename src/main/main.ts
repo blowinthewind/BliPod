@@ -78,6 +78,26 @@ let nativePlaybackState: NativePlaybackState = {
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
 const isMac = process.platform === 'darwin'
+const DISABLED_CHROMIUM_FEATURES = ['HardwareMediaKeyHandling']
+
+app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  }
+
+  mainWindow.focus()
+}
 
 function sendNativePlayerCommand(command: NativePlayerCommand) {
   if (!mainWindow || mainWindow.isDestroyed()) return
@@ -91,15 +111,6 @@ function buildApplicationMenu() {
   const hasVideo = hasWindow && nativePlaybackState.hasVideo
 
   const playbackSubmenu: MenuItemConstructorOptions[] = [
-    {
-      label: hasVideo ? `当前：${nativePlaybackState.title}` : '当前：暂无播放内容',
-      enabled: false
-    },
-    {
-      label: hasVideo && nativePlaybackState.author ? `UP 主：${nativePlaybackState.author}` : 'UP 主：--',
-      enabled: false
-    },
-    { type: 'separator' },
     {
       label: nativePlaybackState.isPlaying ? '暂停' : '播放',
       enabled: hasVideo,
@@ -115,11 +126,15 @@ function buildApplicationMenu() {
       enabled: hasVideo && nativePlaybackState.hasNext,
       click: () => sendNativePlayerCommand('next')
     },
-    { type: 'separator' },
     {
       label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
       enabled: hasVideo,
       click: () => sendNativePlayerCommand('toggleMute')
+    },
+    { type: 'separator' },
+    {
+      label: '显示主窗口',
+      click: () => showMainWindow()
     }
   ]
 
@@ -535,6 +550,29 @@ async function createPlayerView(): Promise<BrowserView> {
           .bilibili-player-video { display: none !important; }
         \`;
         document.head.appendChild(style);
+
+        const mediaSession = navigator.mediaSession;
+        if (mediaSession) {
+          mediaSession.metadata = null;
+          mediaSession.playbackState = 'none';
+          const actions = [
+            'play',
+            'pause',
+            'previoustrack',
+            'nexttrack',
+            'seekbackward',
+            'seekforward',
+            'seekto',
+            'stop'
+          ];
+          actions.forEach((action) => {
+            try {
+              mediaSession.setActionHandler(action, null);
+            } catch (_error) {
+              // ignore unsupported action handlers
+            }
+          });
+        }
       })();
     `
       )
@@ -1295,7 +1333,5 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
+  showMainWindow()
 })
