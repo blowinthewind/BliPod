@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import VueLazyload from 'vue-lazyload'
 import router from './router'
 import { useThemeStore } from './stores/theme'
+import { useAppSettingsStore } from './stores/appSettings'
 import { lazyloadOptions } from './composables/useImageLazyload'
 import { logger } from './utils/logger'
 import App from './App.vue'
@@ -63,7 +64,11 @@ app.use(VueLazyload, lazyloadOptions)
 setupGlobalErrorHandlers()
 
 const themeStore = useThemeStore()
-themeStore.initTheme()
+const appSettingsStore = useAppSettingsStore()
+
+void appSettingsStore.loadSettings().finally(() => {
+  themeStore.initTheme(appSettingsStore.currentThemeId)
+})
 
 app.mount('#app')
 

@@ -322,8 +322,9 @@
     glassBorder: '玻璃边框'
   }
 
-  function setTheme(themeId: string) {
+  async function setTheme(themeId: string) {
     themeStore.setTheme(themeId)
+    await appSettingsStore.setCurrentThemeId(themeId)
   }
 
   function openCreateTheme() {
