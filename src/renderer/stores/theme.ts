@@ -191,7 +191,9 @@ const builtInThemes: Theme[] = [
       success: 'oklch(68% 0.12 160)',
       warning: 'oklch(75% 0.12 80)',
       error: 'oklch(62% 0.19 25)',
-      glow: 'color-mix(in oklch, oklch(68% 0.18 35) 30%, transparent)'
+      glow: 'color-mix(in oklch, oklch(68% 0.18 35) 30%, transparent)',
+      glassBg: 'color-mix(in oklch, oklch(24% 0.03 30) 88%, transparent)',
+      glassBorder: 'color-mix(in oklch, oklch(96% 0.01 30) 10%, transparent)'
     },
     effects: {
       bgGradient:
@@ -228,7 +230,9 @@ const builtInThemes: Theme[] = [
       success: 'oklch(66% 0.11 170)',
       warning: 'oklch(76% 0.12 85)',
       error: 'oklch(62% 0.18 25)',
-      glow: 'color-mix(in oklch, oklch(64% 0.12 190) 30%, transparent)'
+      glow: 'color-mix(in oklch, oklch(64% 0.12 190) 30%, transparent)',
+      glassBg: 'color-mix(in oklch, oklch(23% 0.028 220) 88%, transparent)',
+      glassBorder: 'color-mix(in oklch, oklch(94% 0.01 220) 10%, transparent)'
     },
     effects: {
       bgGradient:
