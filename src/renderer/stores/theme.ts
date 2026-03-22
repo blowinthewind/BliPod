@@ -299,7 +299,7 @@ export const useThemeStore = defineStore('theme', () => {
   function applyTheme(theme: Theme) {
     const root = document.documentElement
 
-    root.setAttribute('data-theme', theme.id === 'light' ? 'light' : 'dark')
+    root.setAttribute('data-theme', theme.id)
 
     Object.entries(theme.colors).forEach(([key, value]) => {
       if (value && CSS_VAR_MAP[key as keyof ThemeColors]) {
