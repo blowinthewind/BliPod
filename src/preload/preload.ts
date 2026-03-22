@@ -166,10 +166,11 @@ export interface MemoryAPI {
 }
 
 export type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+export type NativeMenuCommand = NativePlayerCommand | 'openSettings'
 
 export interface NativePlayerAPI {
   updateState: (state: NativePlaybackState) => void
-  onCommand: (callback: (command: NativePlayerCommand) => void) => () => void
+  onCommand: (callback: (command: NativeMenuCommand) => void) => () => void
 }
 
 export interface StoreAPI {
@@ -448,7 +449,7 @@ const nativePlayerAPI: NativePlayerAPI = {
     ipcRenderer.send('native-player:updateState', state)
   },
   onCommand: (callback) => {
-    const handler = (_event: unknown, command: NativePlayerCommand) => callback(command)
+    const handler = (_event: unknown, command: NativeMenuCommand) => callback(command)
     ipcRenderer.on('native-player:command', handler)
     return () => ipcRenderer.removeListener('native-player:command', handler)
   }

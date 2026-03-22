@@ -242,10 +242,11 @@ interface NativePlaybackState {
 }
 
 type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+type NativeMenuCommand = NativePlayerCommand | 'openSettings'
 
 interface NativePlayerAPI {
   updateState: (state: NativePlaybackState) => void
-  onCommand: (callback: (command: NativePlayerCommand) => void) => () => void
+  onCommand: (callback: (command: NativeMenuCommand) => void) => () => void
 }
 
 interface Window {

@@ -1,9 +1,13 @@
 <script setup lang="ts">
   import { onMounted, onUnmounted } from 'vue'
+  import { useRouter } from 'vue-router'
   import MainLayout from '@/components/Layout/MainLayout.vue'
   import ToastContainer from '@/components/ui/ToastContainer.vue'
   import { usePlayerStore } from '@/stores/player'
+  import { useNavigationStore } from '@/stores/navigation'
 
+  const router = useRouter()
+  const navStore = useNavigationStore()
   const playerStore = usePlayerStore()
   let removeNativePlayerCommandListener: (() => void) | null = null
 
@@ -11,7 +15,7 @@
     await playerStore.saveCurrentPosition()
   }
 
-  function handleNativePlayerCommand(command: NativePlayerCommand) {
+  function handleNativePlayerCommand(command: NativeMenuCommand) {
     switch (command) {
       case 'togglePlay':
         playerStore.togglePlay()
@@ -24,6 +28,10 @@
         break
       case 'toggleMute':
         playerStore.toggleMute()
+        break
+      case 'openSettings':
+        navStore.setActiveItem('settings')
+        void router.push('/settings')
         break
     }
   }

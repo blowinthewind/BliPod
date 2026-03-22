@@ -9,7 +9,7 @@ import type {
   AppSettings,
   AppStore,
   NativePlaybackState,
-  NativePlayerCommand
+  NativeMenuCommand
 } from '../preload/preload'
 import {
   getFavorites,
@@ -71,6 +71,7 @@ const isMac = process.platform === 'darwin'
 const DISABLED_CHROMIUM_FEATURES = ['HardwareMediaKeyHandling']
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
+app.setName('BliPod')
 
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -89,7 +90,7 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
-function sendNativePlayerCommand(command: NativePlayerCommand) {
+function sendNativeMenuCommand(command: NativeMenuCommand) {
   if (!mainWindow || mainWindow.isDestroyed()) return
   mainWindow.webContents.send('native-player:command', command)
 }
@@ -98,7 +99,7 @@ const macOSPlaybackControls = createMacOSPlaybackControls({
   isMac,
   getMainWindow: () => mainWindow,
   showMainWindow,
-  sendNativePlayerCommand
+  sendNativeMenuCommand
 })
 
 const {

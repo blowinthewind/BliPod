@@ -1,12 +1,12 @@
 import { Menu, Tray, nativeImage, app } from 'electron'
 import type { BrowserWindow, MenuItemConstructorOptions } from 'electron'
-import type { NativePlaybackState, NativePlayerCommand } from '../preload/preload'
+import type { NativePlaybackState, NativeMenuCommand } from '../preload/preload'
 
 interface MacOSPlaybackControlsOptions {
   isMac: boolean
   getMainWindow: () => BrowserWindow | null
   showMainWindow: () => void
-  sendNativePlayerCommand: (command: NativePlayerCommand) => void
+  sendNativeMenuCommand: (command: NativeMenuCommand) => void
 }
 
 function createInitialNativePlaybackState(): NativePlaybackState {
@@ -31,24 +31,44 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
       {
         label: nativePlaybackState.isPlaying ? '暂停' : '播放',
         enabled: hasVideo,
-        click: () => options.sendNativePlayerCommand('togglePlay')
+        click: () => options.sendNativeMenuCommand('togglePlay')
       },
       {
         label: '上一首',
         enabled: hasVideo && nativePlaybackState.hasPrevious,
-        click: () => options.sendNativePlayerCommand('previous')
+        click: () => options.sendNativeMenuCommand('previous')
       },
       {
         label: '下一首',
         enabled: hasVideo && nativePlaybackState.hasNext,
-        click: () => options.sendNativePlayerCommand('next')
+        click: () => options.sendNativeMenuCommand('next')
       },
       {
         label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
         enabled: hasVideo,
-        click: () => options.sendNativePlayerCommand('toggleMute')
+        click: () => options.sendNativeMenuCommand('toggleMute')
       }
     ]
+  }
+
+  function buildBliPodMenu(): MenuItemConstructorOptions {
+    return {
+      label: 'BliPod',
+      submenu: [
+        { role: 'about', label: '关于 BliPod' },
+        {
+          label: '设置…',
+          accelerator: 'Command+,',
+          click: () => options.sendNativeMenuCommand('openSettings')
+        },
+        { type: 'separator' },
+        { role: 'hide', label: '隐藏 BliPod' },
+        { role: 'hideOthers', label: '隐藏其他' },
+        { role: 'unhide', label: '显示全部' },
+        { type: 'separator' },
+        { role: 'quit', label: '退出 BliPod' }
+      ]
+    }
   }
 
   function buildApplicationMenu() {
@@ -68,8 +88,7 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
     ]
 
     const template: MenuItemConstructorOptions[] = [
-      { role: 'appMenu' },
-      { role: 'fileMenu' },
+      buildBliPodMenu(),
       { role: 'editMenu' },
       {
         label: '播放',
@@ -81,6 +100,7 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
 
     return Menu.buildFromTemplate(template)
   }
+
 
   function refreshApplicationMenu() {
     if (!options.isMac) return
