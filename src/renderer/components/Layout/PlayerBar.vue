@@ -258,6 +258,14 @@
   function handleProgressKeydown(event: KeyboardEvent) {
     if (!playerStore.hasVideo) return
 
+    // 统一使用浏览器标准 KeyboardEvent.key，便于跨平台适配：
+    // - ArrowLeft / ArrowRight：方向键左右
+    // - Home / End：跳到开头 / 结尾
+    //   - macOS 笔记本常见为 fn+← / fn+→
+    //   - Windows / Linux 常见为 Home / End
+    // - PageUp / PageDown：大步快进 / 快退
+    //   - macOS 笔记本常见为 fn+↑ / fn+↓
+    //   - Windows / Linux 常见为 PageUp / PageDown
     switch (event.key) {
       case 'ArrowLeft':
         event.preventDefault()
