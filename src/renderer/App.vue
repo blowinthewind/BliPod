@@ -9,6 +9,7 @@
   const router = useRouter()
   const navStore = useNavigationStore()
   const playerStore = usePlayerStore()
+  const PLAYBACK_VOLUME_STEP = 5
   let removeNativePlayerCommandListener: (() => void) | null = null
 
   async function handleBeforeUnload() {
@@ -62,38 +63,54 @@
     if (event.defaultPrevented || event.repeat || event.isComposing) return
     if (!document.hasFocus()) return
     if (isPlaybackShortcutBlocked(event.target)) return
-    if (event.metaKey || event.ctrlKey || event.altKey) return
+
+    const hasNoModifiers = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+    const isCommandShortcut = event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey
+
+    if (event.code === 'Space') {
+      if (!hasNoModifiers || !playerStore.hasVideo) return
+      event.preventDefault()
+      playerStore.togglePlay()
+      return
+    }
+
+    if (!isCommandShortcut) return
 
     switch (event.code) {
-      case 'Space':
-        if (!playerStore.hasVideo) return
+      case 'ArrowLeft':
+        if (!playerStore.hasPrevious) return
         event.preventDefault()
-        playerStore.togglePlay()
+        playerStore.previous()
+        return
+      case 'ArrowRight':
+        if (!playerStore.hasNext) return
+        event.preventDefault()
+        playerStore.next()
         return
       case 'KeyJ':
-        if (!playerStore.hasVideo || event.shiftKey) return
+        if (!playerStore.hasVideo) return
         event.preventDefault()
         playerStore.seekBackward(15)
         return
       case 'KeyL':
-        if (!playerStore.hasVideo || event.shiftKey) return
+        if (!playerStore.hasVideo) return
         event.preventDefault()
         playerStore.seekForward(30)
         return
       case 'KeyM':
-        if (!playerStore.hasVideo || event.shiftKey) return
+        if (!playerStore.hasVideo) return
         event.preventDefault()
         playerStore.toggleMute()
         return
-      case 'KeyP':
-        if (!event.shiftKey || !playerStore.hasPrevious) return
+      case 'ArrowUp':
+        if (!playerStore.hasVideo) return
         event.preventDefault()
-        playerStore.previous()
+        playerStore.setVolume(playerStore.volume + PLAYBACK_VOLUME_STEP)
         return
-      case 'KeyN':
-        if (!event.shiftKey || !playerStore.hasNext) return
+      case 'ArrowDown':
+        if (!playerStore.hasVideo) return
         event.preventDefault()
-        playerStore.next()
+        playerStore.setVolume(playerStore.volume - PLAYBACK_VOLUME_STEP)
         return
     }
   }
