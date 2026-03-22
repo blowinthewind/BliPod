@@ -307,16 +307,6 @@ export const useThemeStore = defineStore('theme', () => {
       }
     })
 
-    if (theme.id === 'dark') {
-      root.style.setProperty('--accent-rose', '#ed7478')
-      root.style.setProperty('--accent-blush', '#f2a1a4')
-      root.style.setProperty('--accent-lilac', '#ca91a1')
-      root.style.setProperty('--accent-violet', '#b8758b')
-      root.style.setProperty('--accent-sky', '#8da6c6')
-      root.style.setProperty('--accent-amber', '#efa347')
-      root.style.setProperty('--accent-mint', '#52b89a')
-    }
-
     if (theme.effects) {
       Object.entries(theme.effects).forEach(([key, value]) => {
         if (value !== undefined && EFFECTS_VAR_MAP[key as keyof ThemeEffects]) {
