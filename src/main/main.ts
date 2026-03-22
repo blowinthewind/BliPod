@@ -68,6 +68,7 @@ let lastSearchQuery: string = ''
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
 const isMac = process.platform === 'darwin'
+const isDevelopment = Boolean(process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL)
 const DISABLED_CHROMIUM_FEATURES = ['HardwareMediaKeyHandling']
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
@@ -97,6 +98,7 @@ function sendNativeMenuCommand(command: NativeMenuCommand) {
 
 const macOSPlaybackControls = createMacOSPlaybackControls({
   isMac,
+  isDevelopment,
   getMainWindow: () => mainWindow,
   showMainWindow,
   sendNativeMenuCommand

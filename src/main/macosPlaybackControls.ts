@@ -4,6 +4,7 @@ import type { NativePlaybackState, NativeMenuCommand } from '../preload/preload'
 
 interface MacOSPlaybackControlsOptions {
   isMac: boolean
+  isDevelopment: boolean
   getMainWindow: () => BrowserWindow | null
   showMainWindow: () => void
   sendNativeMenuCommand: (command: NativeMenuCommand) => void
@@ -71,6 +72,64 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
     }
   }
 
+  function buildEditMenu(): MenuItemConstructorOptions {
+    return {
+      label: '编辑',
+      submenu: [
+        { role: 'undo', label: '撤销' },
+        { role: 'redo', label: '重做' },
+        { type: 'separator' },
+        { role: 'cut', label: '剪切' },
+        { role: 'copy', label: '复制' },
+        { role: 'paste', label: '粘贴' },
+        { role: 'selectAll', label: '全选' }
+      ]
+    }
+  }
+
+  function buildWindowMenu(): MenuItemConstructorOptions {
+    return {
+      label: '窗口',
+      submenu: [
+        { role: 'minimize', label: '最小化' },
+        { role: 'zoom', label: '缩放' },
+        { type: 'separator' },
+        { role: 'front', label: '前置全部窗口' },
+        { role: 'window', label: '窗口列表' }
+      ]
+    }
+  }
+
+  function buildViewMenu(): MenuItemConstructorOptions {
+    if (options.isDevelopment) {
+      return {
+        label: '视图',
+        submenu: [
+          { role: 'reload', label: '重新加载' },
+          { role: 'forceReload', label: '强制重新加载' },
+          { role: 'toggleDevTools', label: '开发者工具' },
+          { type: 'separator' },
+          { role: 'zoomIn', label: '放大' },
+          { role: 'zoomOut', label: '缩小' },
+          { role: 'resetZoom', label: '实际大小' },
+          { type: 'separator' },
+          { role: 'togglefullscreen', label: '切换全屏' }
+        ]
+      }
+    }
+
+    return {
+      label: '视图',
+      submenu: [
+        { role: 'zoomIn', label: '放大' },
+        { role: 'zoomOut', label: '缩小' },
+        { role: 'resetZoom', label: '实际大小' },
+        { type: 'separator' },
+        { role: 'togglefullscreen', label: '切换全屏' }
+      ]
+    }
+  }
+
   function buildApplicationMenu() {
     if (!options.isMac) return null
 
@@ -89,13 +148,13 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
 
     const template: MenuItemConstructorOptions[] = [
       buildBliPodMenu(),
-      { role: 'editMenu' },
+      buildEditMenu(),
       {
         label: '播放',
         submenu: playbackSubmenu
       },
-      { role: 'viewMenu' },
-      { role: 'windowMenu' }
+      buildViewMenu(),
+      buildWindowMenu()
     ]
 
     return Menu.buildFromTemplate(template)
