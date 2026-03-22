@@ -30,6 +30,24 @@
       case 'toggleMute':
         playerStore.toggleMute()
         break
+      case 'seekBackward':
+        playerStore.seekBackward(15)
+        break
+      case 'seekForward':
+        playerStore.seekForward(30)
+        break
+      case 'volumeUp':
+        playerStore.setVolume(playerStore.volume + PLAYBACK_VOLUME_STEP)
+        break
+      case 'volumeDown':
+        playerStore.setVolume(playerStore.volume - PLAYBACK_VOLUME_STEP)
+        break
+      case 'toggleShuffle':
+        playerStore.toggleShuffle()
+        break
+      case 'toggleRepeat':
+        playerStore.toggleRepeat()
+        break
       case 'openSettings':
         navStore.setActiveItem('settings')
         void router.push('/settings')

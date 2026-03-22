@@ -239,9 +239,21 @@ interface NativePlaybackState {
   isPlaying: boolean
   isMuted: boolean
   volume: number
+  isShuffle: boolean
+  isRepeat: boolean
 }
 
-type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+type NativePlayerCommand =
+  | 'togglePlay'
+  | 'previous'
+  | 'next'
+  | 'toggleMute'
+  | 'seekBackward'
+  | 'seekForward'
+  | 'volumeUp'
+  | 'volumeDown'
+  | 'toggleShuffle'
+  | 'toggleRepeat'
 type NativeMenuCommand = NativePlayerCommand | 'openSettings'
 
 interface NativePlayerAPI {

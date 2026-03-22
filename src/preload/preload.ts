@@ -156,6 +156,8 @@ export interface NativePlaybackState {
   isPlaying: boolean
   isMuted: boolean
   volume: number
+  isShuffle: boolean
+  isRepeat: boolean
 }
 
 export interface MemoryAPI {
@@ -165,7 +167,17 @@ export interface MemoryAPI {
   setIdleTimeout: (timeoutMs: number) => Promise<boolean>
 }
 
-export type NativePlayerCommand = 'togglePlay' | 'previous' | 'next' | 'toggleMute'
+export type NativePlayerCommand =
+  | 'togglePlay'
+  | 'previous'
+  | 'next'
+  | 'toggleMute'
+  | 'seekBackward'
+  | 'seekForward'
+  | 'volumeUp'
+  | 'volumeDown'
+  | 'toggleShuffle'
+  | 'toggleRepeat'
 export type NativeMenuCommand = NativePlayerCommand | 'openSettings'
 
 export interface NativePlayerAPI {

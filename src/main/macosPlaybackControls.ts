@@ -19,7 +19,9 @@ function createInitialNativePlaybackState(): NativePlaybackState {
     author: '',
     isPlaying: false,
     isMuted: false,
-    volume: 80
+    volume: 80,
+    isShuffle: false,
+    isRepeat: false
   }
 }
 
@@ -27,7 +29,65 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
   let tray: Tray | null = null
   let nativePlaybackState = createInitialNativePlaybackState()
 
-  function buildPlaybackControlMenuItems(hasVideo: boolean): MenuItemConstructorOptions[] {
+  function buildApplicationPlaybackMenuItems(hasVideo: boolean): MenuItemConstructorOptions[] {
+    return [
+      {
+        label: nativePlaybackState.isPlaying ? '暂停' : '播放',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('togglePlay')
+      },
+      {
+        label: '上一首',
+        enabled: hasVideo && nativePlaybackState.hasPrevious,
+        click: () => options.sendNativeMenuCommand('previous')
+      },
+      {
+        label: '下一首',
+        enabled: hasVideo && nativePlaybackState.hasNext,
+        click: () => options.sendNativeMenuCommand('next')
+      },
+      {
+        label: '后退 15 秒',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('seekBackward')
+      },
+      {
+        label: '前进 30 秒',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('seekForward')
+      },
+      {
+        label: nativePlaybackState.isMuted || nativePlaybackState.volume === 0 ? '取消静音' : '静音',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('toggleMute')
+      },
+      {
+        label: '音量增加',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('volumeUp')
+      },
+      {
+        label: '音量减少',
+        enabled: hasVideo,
+        click: () => options.sendNativeMenuCommand('volumeDown')
+      },
+      { type: 'separator' },
+      {
+        label: '随机播放',
+        type: 'checkbox',
+        checked: nativePlaybackState.isShuffle,
+        click: () => options.sendNativeMenuCommand('toggleShuffle')
+      },
+      {
+        label: '单曲循环',
+        type: 'checkbox',
+        checked: nativePlaybackState.isRepeat,
+        click: () => options.sendNativeMenuCommand('toggleRepeat')
+      }
+    ]
+  }
+
+  function buildTrayPlaybackMenuItems(hasVideo: boolean): MenuItemConstructorOptions[] {
     return [
       {
         label: nativePlaybackState.isPlaying ? '暂停' : '播放',
@@ -137,21 +197,12 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
     const hasWindow = Boolean(mainWindow && !mainWindow.isDestroyed())
     const hasVideo = hasWindow && nativePlaybackState.hasVideo
 
-    const playbackSubmenu: MenuItemConstructorOptions[] = [
-      ...buildPlaybackControlMenuItems(hasVideo),
-      { type: 'separator' },
-      {
-        label: '显示主窗口',
-        click: () => options.showMainWindow()
-      }
-    ]
-
     const template: MenuItemConstructorOptions[] = [
       buildBliPodMenu(),
       buildEditMenu(),
       {
         label: '播放',
-        submenu: playbackSubmenu
+        submenu: buildApplicationPlaybackMenuItems(hasVideo)
       },
       buildViewMenu(),
       buildWindowMenu()
@@ -159,7 +210,6 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
 
     return Menu.buildFromTemplate(template)
   }
-
 
   function refreshApplicationMenu() {
     if (!options.isMac) return
@@ -195,7 +245,7 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
 
     trayMenuItems.push(
       { type: 'separator' },
-      ...buildPlaybackControlMenuItems(canControl),
+      ...buildTrayPlaybackMenuItems(canControl),
       { type: 'separator' },
       {
         label: '显示主窗口',
@@ -253,7 +303,9 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
       nativePlaybackState.author !== nextState.author ||
       nativePlaybackState.isPlaying !== nextState.isPlaying ||
       nativePlaybackState.isMuted !== nextState.isMuted ||
-      nativePlaybackState.volume !== nextState.volume
+      nativePlaybackState.volume !== nextState.volume ||
+      nativePlaybackState.isShuffle !== nextState.isShuffle ||
+      nativePlaybackState.isRepeat !== nextState.isRepeat
 
     if (!hasChanged) return
 

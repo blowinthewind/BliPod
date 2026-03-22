@@ -133,7 +133,9 @@ export const usePlayerStore = defineStore('player', () => {
       author: currentVideo.value?.author || '',
       isPlaying: isPlaying.value,
       isMuted: isMuted.value,
-      volume: volume.value
+      volume: volume.value,
+      isShuffle: isShuffle.value,
+      isRepeat: isRepeat.value
     })
   }
 
@@ -601,11 +603,21 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function toggleRepeat() {
-    isRepeat.value = !isRepeat.value
+    const nextRepeat = !isRepeat.value
+    isRepeat.value = nextRepeat
+    if (nextRepeat) {
+      isShuffle.value = false
+    }
+    syncNativePlaybackState()
   }
 
   function toggleShuffle() {
-    isShuffle.value = !isShuffle.value
+    const nextShuffle = !isShuffle.value
+    isShuffle.value = nextShuffle
+    if (nextShuffle) {
+      isRepeat.value = false
+    }
+    syncNativePlaybackState()
   }
 
   // ========== 播放历史记录 ==========
