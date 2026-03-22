@@ -279,6 +279,13 @@
     accent: '#f43f5e',
     accentHover: '#fb7185',
     accentMuted: 'rgba(244, 63, 94, 0.15)',
+    accentRose: '#fb7185',
+    accentBlush: '#fda4af',
+    accentLilac: '#c084fc',
+    accentViolet: '#a855f7',
+    accentSky: '#38bdf8',
+    accentAmber: '#f59e0b',
+    accentMint: '#34d399',
     border: '#27272a',
     borderSubtle: '#1f1f23',
     success: '#10b981',
@@ -288,6 +295,7 @@
     glassBg: 'rgba(17, 17, 19, 0.85)',
     glassBorder: 'rgba(255, 255, 255, 0.08)'
   }
+
 
   const newTheme = ref<Partial<Theme>>({
     id: '',
@@ -312,6 +320,13 @@
     accent: '主强调色',
     accentHover: '强调悬浮色',
     accentMuted: '强调弱化色',
+    accentRose: '玫瑰强调色',
+    accentBlush: '腮红强调色',
+    accentLilac: '淡紫强调色',
+    accentViolet: '紫罗兰强调色',
+    accentSky: '天青强调色',
+    accentAmber: '琥珀强调色',
+    accentMint: '薄荷强调色',
     border: '主边框',
     borderSubtle: '弱化边框',
     success: '成功色',
@@ -321,6 +336,7 @@
     glassBg: '玻璃背景',
     glassBorder: '玻璃边框'
   }
+
 
   async function setTheme(themeId: string) {
     themeStore.setTheme(themeId)

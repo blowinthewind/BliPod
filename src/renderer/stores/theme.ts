@@ -14,6 +14,13 @@ export interface ThemeColors {
   accent: string
   accentHover: string
   accentMuted?: string
+  accentRose?: string
+  accentBlush?: string
+  accentLilac?: string
+  accentViolet?: string
+  accentSky?: string
+  accentAmber?: string
+  accentMint?: string
   border: string
   borderSubtle?: string
   success?: string
@@ -56,6 +63,13 @@ const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
   accent: '--accent',
   accentHover: '--accent-hover',
   accentMuted: '--accent-muted',
+  accentRose: '--accent-rose',
+  accentBlush: '--accent-blush',
+  accentLilac: '--accent-lilac',
+  accentViolet: '--accent-violet',
+  accentSky: '--accent-sky',
+  accentAmber: '--accent-amber',
+  accentMint: '--accent-mint',
   border: '--border',
   borderSubtle: '--border-subtle',
   success: '--success',
@@ -95,6 +109,13 @@ const builtInThemes: Theme[] = [
       accent: '#e05a5f',
       accentHover: '#ef6c71',
       accentMuted: 'rgba(224, 90, 95, 0.16)',
+      accentRose: '#ed7478',
+      accentBlush: '#f2a1a4',
+      accentLilac: '#ca91a1',
+      accentViolet: '#b8758b',
+      accentSky: '#8da6c6',
+      accentAmber: '#efa347',
+      accentMint: '#52b89a',
       border: '#232633',
       borderSubtle: '#1b1e29',
       success: '#2aa784',
@@ -123,6 +144,13 @@ const builtInThemes: Theme[] = [
       accent: '#cc3944',
       accentHover: '#b8323d',
       accentMuted: 'rgba(204, 57, 68, 0.12)',
+      accentRose: '#be7257',
+      accentBlush: '#d7ac97',
+      accentLilac: '#b5978a',
+      accentViolet: '#a47d6d',
+      accentSky: '#8f8177',
+      accentAmber: '#b27a4a',
+      accentMint: '#79917f',
       border: '#d9d6cf',
       borderSubtle: '#efede8',
       success: '#1f9a78',
@@ -151,6 +179,13 @@ const builtInThemes: Theme[] = [
       accent: 'oklch(68% 0.18 35)',
       accentHover: 'oklch(74% 0.17 35)',
       accentMuted: 'color-mix(in oklch, oklch(68% 0.18 35) 18%, transparent)',
+      accentRose: 'color-mix(in oklch, oklch(68% 0.18 35) 82%, oklch(72% 0.12 28) 18%)',
+      accentBlush: 'color-mix(in oklch, oklch(68% 0.18 35) 56%, oklch(84% 0.045 40) 44%)',
+      accentLilac: 'color-mix(in oklch, oklch(68% 0.18 35) 58%, oklch(64% 0.05 22) 42%)',
+      accentViolet: 'color-mix(in oklch, oklch(68% 0.18 35) 72%, oklch(58% 0.07 18) 28%)',
+      accentSky: 'color-mix(in oklch, oklch(68% 0.18 35) 36%, oklch(62% 0.02 230) 64%)',
+      accentAmber: 'color-mix(in oklch, oklch(68% 0.18 35) 80%, oklch(72% 0.09 70) 20%)',
+      accentMint: 'color-mix(in oklch, oklch(68% 0.18 35) 34%, oklch(70% 0.05 160) 66%)',
       border: 'oklch(30% 0.02 30)',
       borderSubtle: 'oklch(24% 0.02 30)',
       success: 'oklch(68% 0.12 160)',
@@ -181,6 +216,13 @@ const builtInThemes: Theme[] = [
       accent: 'oklch(64% 0.12 190)',
       accentHover: 'oklch(70% 0.12 190)',
       accentMuted: 'color-mix(in oklch, oklch(64% 0.12 190) 18%, transparent)',
+      accentRose: 'color-mix(in oklch, oklch(64% 0.12 190) 82%, oklch(67% 0.08 40) 18%)',
+      accentBlush: 'color-mix(in oklch, oklch(64% 0.12 190) 56%, oklch(82% 0.04 45) 44%)',
+      accentLilac: 'color-mix(in oklch, oklch(64% 0.12 190) 58%, oklch(64% 0.04 250) 42%)',
+      accentViolet: 'color-mix(in oklch, oklch(64% 0.12 190) 72%, oklch(58% 0.06 220) 28%)',
+      accentSky: 'color-mix(in oklch, oklch(64% 0.12 190) 36%, oklch(72% 0.03 220) 64%)',
+      accentAmber: 'color-mix(in oklch, oklch(64% 0.12 190) 80%, oklch(72% 0.09 70) 20%)',
+      accentMint: 'color-mix(in oklch, oklch(64% 0.12 190) 34%, oklch(70% 0.05 160) 66%)',
       border: 'oklch(30% 0.02 220)',
       borderSubtle: 'oklch(24% 0.02 220)',
       success: 'oklch(66% 0.11 170)',
@@ -211,6 +253,13 @@ const builtInThemes: Theme[] = [
       accent: 'oklch(64% 0.16 25)',
       accentHover: 'oklch(70% 0.16 25)',
       accentMuted: 'color-mix(in oklch, oklch(64% 0.16 25) 18%, transparent)',
+      accentRose: 'color-mix(in oklch, oklch(64% 0.16 25) 82%, oklch(67% 0.08 40) 18%)',
+      accentBlush: 'color-mix(in oklch, oklch(64% 0.16 25) 46%, oklch(84% 0.035 45) 54%)',
+      accentLilac: 'color-mix(in oklch, oklch(64% 0.16 25) 54%, oklch(72% 0.025 35) 46%)',
+      accentViolet: 'color-mix(in oklch, oklch(64% 0.16 25) 68%, oklch(61% 0.05 35) 32%)',
+      accentSky: 'color-mix(in oklch, oklch(64% 0.16 25) 28%, oklch(74% 0.015 230) 72%)',
+      accentAmber: 'color-mix(in oklch, oklch(64% 0.16 25) 78%, oklch(71% 0.08 70) 22%)',
+      accentMint: 'color-mix(in oklch, oklch(64% 0.16 25) 28%, oklch(72% 0.04 160) 72%)',
       border: 'color-mix(in oklch, oklch(92% 0.01 250) 12%, transparent)',
       borderSubtle: 'color-mix(in oklch, oklch(92% 0.01 250) 8%, transparent)',
       success: 'oklch(68% 0.12 160)',
