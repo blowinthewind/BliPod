@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView } from 'electron'
+import { app, BrowserWindow, session, ipcMain, BrowserView, dialog } from 'electron'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
@@ -91,6 +91,43 @@ function showMainWindow() {
   mainWindow.focus()
 }
 
+function showShortcutHelp() {
+  const options = {
+    type: 'info' as const,
+    buttons: ['知道了'],
+    defaultId: 0,
+    title: '快捷键',
+    message: '应用快捷键',
+    detail: [
+      '前台播放控制',
+      '• 播放 / 暂停：Space',
+      '• 上一首：⌘←',
+      '• 下一首：⌘→',
+      '• 后退 15 秒：⌘J',
+      '• 前进 30 秒：⌘L',
+      '• 静音 / 取消静音：⌘M',
+      '• 音量增加：⌘↑',
+      '• 音量减少：⌘↓',
+      '',
+      '进度条聚焦时',
+      '• 后退 5 秒：←',
+      '• 前进 5 秒：→',
+      '• 跳到开头：Home',
+      '• 跳到结尾：End',
+      '• 后退 15 秒：PageDown',
+      '• 前进 15 秒：PageUp'
+    ].join('\n')
+  }
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    void dialog.showMessageBox(mainWindow, options)
+    return
+  }
+
+  void dialog.showMessageBox(options)
+}
+
+
 function sendNativeMenuCommand(command: NativeMenuCommand) {
   if (!mainWindow || mainWindow.isDestroyed()) return
   mainWindow.webContents.send('native-player:command', command)
@@ -101,7 +138,8 @@ const macOSPlaybackControls = createMacOSPlaybackControls({
   isDevelopment,
   getMainWindow: () => mainWindow,
   showMainWindow,
-  sendNativeMenuCommand
+  sendNativeMenuCommand,
+  showShortcutHelp
 })
 
 const {

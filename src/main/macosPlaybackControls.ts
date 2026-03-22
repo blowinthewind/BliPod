@@ -8,6 +8,7 @@ interface MacOSPlaybackControlsOptions {
   getMainWindow: () => BrowserWindow | null
   showMainWindow: () => void
   sendNativeMenuCommand: (command: NativeMenuCommand) => void
+  showShortcutHelp: () => void
 }
 
 function createInitialNativePlaybackState(): NativePlaybackState {
@@ -190,6 +191,17 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
     }
   }
 
+  function buildHelpMenu(): MenuItemConstructorOptions {
+    return {
+      label: '帮助',
+      submenu: [
+        {
+          label: '快捷键',
+          click: () => options.showShortcutHelp()
+        }
+      ]
+    }
+  }
   function buildApplicationMenu() {
     if (!options.isMac) return null
 
@@ -205,7 +217,8 @@ export function createMacOSPlaybackControls(options: MacOSPlaybackControlsOption
         submenu: buildApplicationPlaybackMenuItems(hasVideo)
       },
       buildViewMenu(),
-      buildWindowMenu()
+      buildWindowMenu(),
+      buildHelpMenu()
     ]
 
     return Menu.buildFromTemplate(template)
