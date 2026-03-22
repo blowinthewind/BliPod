@@ -1,5 +1,5 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView, dialog } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, session, ipcMain, BrowserView, dialog, nativeImage } from 'electron'
+import { join, resolve } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
 import type {
@@ -1295,8 +1295,25 @@ function setupGlobalErrorHandlers(): void {
   })
 }
 
+function setMacOSDockIcon() {
+  if (!isMac) return
+
+  const dockIconPath = app.isPackaged
+    ? join(process.resourcesPath, 'icons', 'macos', 'app-icon.icns')
+    : resolve(__dirname, '../../resources/icons/macos/app-icon.icns')
+
+  const dockIcon = nativeImage.createFromPath(dockIconPath)
+  if (dockIcon.isEmpty()) {
+    logger.warn('Failed to load macOS dock icon:', dockIconPath)
+    return
+  }
+
+  app.dock?.setIcon(dockIcon)
+}
+
 app.whenReady().then(() => {
   setupGlobalErrorHandlers()
+  setMacOSDockIcon()
   setupCSP()
   setupBilibiliImageReferer()
   setupIPC()

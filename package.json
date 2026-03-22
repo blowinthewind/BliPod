@@ -13,7 +13,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "app:dir": "npm run build && electron-builder --dir",
+    "app:dist": "npm run build && electron-builder"
   },
   "keywords": [
     "bilibili",
@@ -29,6 +31,7 @@
     "@unocss/reset": "^66.6.6",
     "@vitejs/plugin-vue": "^6.0.4",
     "electron": "^28.0.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -42,6 +45,32 @@
     "vite": "^7.3.1",
     "vite-plugin-electron": "^0.29.0",
     "vue-tsc": "^3.2.5"
+  },
+  "build": {
+    "appId": "com.shrike.blipod",
+    "productName": "BliPod",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icons",
+        "to": "icons"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "resources/icons/macos/app-icon.icns"
+    }
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
