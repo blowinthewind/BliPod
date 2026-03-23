@@ -1,5 +1,6 @@
 import Store from 'electron-store'
-import type { ExtractedVideo, Theme } from '../preload/preload'
+import { BUILT_IN_THEME_IDS, DEFAULT_THEME_ID, type Theme } from '../shared/theme'
+import type { ExtractedVideo } from '../preload/preload'
 
 export interface FavoriteVideo extends ExtractedVideo {
   addedAt: number
@@ -59,7 +60,7 @@ const defaults: AppStore = {
   settings: {
     autoPlay: true,
     rememberPosition: true,
-    currentThemeId: 'dark',
+    currentThemeId: DEFAULT_THEME_ID,
     customThemes: []
   },
   playPositions: [],
@@ -68,7 +69,7 @@ const defaults: AppStore = {
   playStats: {}
 }
 
-const BUILT_IN_THEME_IDS = new Set(['dark', 'light', 'sunset', 'ocean', 'glass'])
+const BUILT_IN_THEME_ID_SET = new Set<string>(BUILT_IN_THEME_IDS)
 
 export function normalizeAppSettings(settings?: Partial<AppSettings>): AppSettings {
   const normalizedSettings: AppSettings = {
@@ -77,7 +78,7 @@ export function normalizeAppSettings(settings?: Partial<AppSettings>): AppSettin
     customThemes: Array.isArray(settings?.customThemes) ? safeClone(settings.customThemes) : []
   }
 
-  const availableThemeIds = new Set(BUILT_IN_THEME_IDS)
+  const availableThemeIds = new Set(BUILT_IN_THEME_ID_SET)
   normalizedSettings.customThemes.forEach((theme) => {
     if (theme?.id) {
       availableThemeIds.add(theme.id)

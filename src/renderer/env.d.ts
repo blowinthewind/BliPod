@@ -1,11 +1,14 @@
 /// <reference types="vite/client" />
 
+import type { Theme } from '../shared/theme'
+
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<{}, {}, any>
   export default component
 }
 
+declare global {
 interface SearchResult {
   success: boolean
   videos: ExtractedVideo[]
@@ -71,55 +74,6 @@ interface Playlist {
   videos: PlaylistVideo[]
   createdAt: number
   updatedAt: number
-}
-
-interface ThemeColors {
-  bgPrimary: string
-  bgSecondary: string
-  bgCard: string
-  bgElevated: string
-  bgOverlay?: string
-  textPrimary: string
-  textSecondary: string
-  textSecondaryStrong?: string
-  textTertiary?: string
-  accent: string
-  accentHover: string
-  accentMuted?: string
-  accentRose?: string
-  accentBlush?: string
-  accentLilac?: string
-  accentViolet?: string
-  accentSky?: string
-  accentAmber?: string
-  accentMint?: string
-  border: string
-  borderSubtle?: string
-  success?: string
-  warning?: string
-  error?: string
-  glow?: string
-  glassBg?: string
-  glassBorder?: string
-}
-
-interface ThemeEffects {
-  bgGradient?: string
-  bgImage?: string
-  bgImageOpacity?: number
-  bgBlur?: string
-  glassEffect?: boolean
-  glassBlur?: string
-  glassOpacity?: number
-}
-
-interface Theme {
-  id: string
-  name: string
-  description?: string
-  colors: ThemeColors
-  effects?: ThemeEffects
-  isBuiltIn?: boolean
 }
 
 interface AppSettings {
@@ -320,4 +274,5 @@ interface Window {
     memory: MemoryAPI
     nativePlayer: NativePlayerAPI
   }
+}
 }

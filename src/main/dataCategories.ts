@@ -1,5 +1,6 @@
 import type { FavoriteVideo, Playlist, AppSettings } from './store'
-import type { ExtractedVideo, Theme } from '../preload/preload'
+import type { Theme } from '../shared/theme'
+import type { ExtractedVideo } from '../preload/preload'
 import { getSettings, normalizeAppSettings, store } from './store'
 
 export interface DataCategory<T> {

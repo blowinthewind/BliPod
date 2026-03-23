@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppSettings, AppStore, Theme } from '../../preload/preload'
-import { builtInThemes } from './theme'
+import type { AppSettings, AppStore } from '../../preload/preload'
+import { DEFAULT_THEME_ID, builtInThemes, type Theme } from '../../shared/theme'
 
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
     autoPlay: true,
     rememberPosition: true,
-    currentThemeId: 'dark',
+    currentThemeId: DEFAULT_THEME_ID,
     customThemes: []
   })
   const lastVolume = ref(80)
@@ -43,7 +43,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   }
 
   function resolveThemeId(themeId: string, customThemeList: Theme[] = settings.value.customThemes): string {
-    return findTheme(themeId, customThemeList) ? themeId : 'dark'
+    return findTheme(themeId, customThemeList) ? themeId : DEFAULT_THEME_ID
   }
 
   async function loadSettings() {
@@ -156,7 +156,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
 
   async function resetThemeSettings() {
     return updateSettings({
-      currentThemeId: 'dark',
+      currentThemeId: DEFAULT_THEME_ID,
       customThemes: []
     })
   }

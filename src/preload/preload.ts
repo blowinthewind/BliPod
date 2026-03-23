@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { Theme } from '../shared/theme'
 
 export interface PlayerProgress {
   currentTime: number
@@ -65,55 +66,6 @@ export interface Playlist {
   videos: PlaylistVideo[]
   createdAt: number
   updatedAt: number
-}
-
-export interface ThemeColors {
-  bgPrimary: string
-  bgSecondary: string
-  bgCard: string
-  bgElevated: string
-  bgOverlay?: string
-  textPrimary: string
-  textSecondary: string
-  textSecondaryStrong?: string
-  textTertiary?: string
-  accent: string
-  accentHover: string
-  accentMuted?: string
-  accentRose?: string
-  accentBlush?: string
-  accentLilac?: string
-  accentViolet?: string
-  accentSky?: string
-  accentAmber?: string
-  accentMint?: string
-  border: string
-  borderSubtle?: string
-  success?: string
-  warning?: string
-  error?: string
-  glow?: string
-  glassBg?: string
-  glassBorder?: string
-}
-
-export interface ThemeEffects {
-  bgGradient?: string
-  bgImage?: string
-  bgImageOpacity?: number
-  bgBlur?: string
-  glassEffect?: boolean
-  glassBlur?: string
-  glassOpacity?: number
-}
-
-export interface Theme {
-  id: string
-  name: string
-  description?: string
-  colors: ThemeColors
-  effects?: ThemeEffects
-  isBuiltIn?: boolean
 }
 
 export interface AppSettings {

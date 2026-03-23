@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
-  import { useThemeStore, type Theme, type ThemeColors, type ThemeEffects } from '@/stores/theme'
+  import { useThemeStore } from '@/stores/theme'
+  import type { Theme, ThemeColors, ThemeEffects } from '../../shared/theme'
   import { useAuthStore } from '@/stores/auth'
   import { useFavoritesStore } from '@/stores/favorites'
   import { usePlaylistsStore } from '@/stores/playlists'
