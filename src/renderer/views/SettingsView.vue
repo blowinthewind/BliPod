@@ -339,7 +339,6 @@
 
 
   async function setTheme(themeId: string) {
-    themeStore.setTheme(themeId)
     await appSettingsStore.setCurrentThemeId(themeId)
   }
 
@@ -358,10 +357,10 @@
     showCreateTheme.value = false
   }
 
-  function createCustomTheme() {
+  async function createCustomTheme() {
     if (!newTheme.value.id || !newTheme.value.name) return
 
-    themeStore.addCustomTheme({
+    const success = await appSettingsStore.addCustomTheme({
       id: newTheme.value.id,
       name: newTheme.value.name,
       description: newTheme.value.description || '自定义主题',
@@ -370,7 +369,9 @@
         Object.keys(newTheme.value.effects || {}).length > 0 ? newTheme.value.effects : undefined
     })
 
-    showCreateTheme.value = false
+    if (success) {
+      showCreateTheme.value = false
+    }
   }
 
   function openEditTheme(themeId: string) {
@@ -393,17 +394,20 @@
     editingThemeId.value = null
   }
 
-  function saveEditedTheme() {
+  async function saveEditedTheme() {
     if (editingTheme.value && editingThemeId.value) {
-      themeStore.updateCustomTheme(editingThemeId.value, {
+      const success = await appSettingsStore.updateCustomTheme(editingThemeId.value, {
         name: editingTheme.value.name,
         description: editingTheme.value.description,
         colors: editingTheme.value.colors,
         effects: editingTheme.value.effects
       })
-      showEditTheme.value = false
-      editingTheme.value = null
-      editingThemeId.value = null
+
+      if (success) {
+        showEditTheme.value = false
+        editingTheme.value = null
+        editingThemeId.value = null
+      }
     }
   }
 
@@ -421,15 +425,15 @@
     onClose: closeEditTheme
   })
 
-  function deleteTheme(themeId: string) {
-    themeStore.removeCustomTheme(themeId)
+  async function deleteTheme(themeId: string) {
+    await appSettingsStore.removeCustomTheme(themeId)
   }
 
-  function duplicateTheme(themeId: string) {
+  async function duplicateTheme(themeId: string) {
     const newId = `${themeId}-copy-${Date.now()}`
     const source = themeStore.allThemes.find((t) => t.id === themeId)
     if (source) {
-      themeStore.duplicateTheme(themeId, newId, `${source.name} Copy`)
+      await appSettingsStore.duplicateTheme(themeId, newId, `${source.name} Copy`)
     }
   }
 
@@ -585,7 +589,7 @@
             v-for="theme in themeStore.allThemes"
             :key="theme.id"
             class="theme-card"
-            :class="{ active: themeStore.currentThemeId === theme.id }"
+            :class="{ active: appSettingsStore.currentThemeId === theme.id }"
             @click="setTheme(theme.id)"
           >
             <div class="theme-preview" :style="getThemePreviewStyle(theme)">

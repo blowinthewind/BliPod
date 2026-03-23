@@ -90,7 +90,7 @@ const EFFECTS_VAR_MAP: Record<keyof ThemeEffects, string> = {
   glassOpacity: '--glass-opacity'
 }
 
-const builtInThemes: Theme[] = [
+export const builtInThemes: Theme[] = [
   {
     id: 'dark',
     name: 'Dark',

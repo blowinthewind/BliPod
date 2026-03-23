@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import VueLazyload from 'vue-lazyload'
 import router from './router'
@@ -66,12 +66,18 @@ setupGlobalErrorHandlers()
 const themeStore = useThemeStore()
 const appSettingsStore = useAppSettingsStore()
 
-void appSettingsStore.loadSettings().finally(() => {
-  themeStore.initTheme({
-    currentThemeId: appSettingsStore.settings.currentThemeId,
-    customThemes: appSettingsStore.settings.customThemes
-  })
-})
+watch(
+  () => appSettingsStore.settings,
+  (settings) => {
+    themeStore.syncFromSettings({
+      currentThemeId: settings.currentThemeId,
+      customThemes: settings.customThemes
+    })
+  },
+  { deep: true, immediate: true }
+)
+
+void appSettingsStore.loadSettings()
 
 app.mount('#app')
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AppSettings, AppStore, Theme } from '../../preload/preload'
+import { builtInThemes } from './theme'
 
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
@@ -17,6 +18,33 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   const rememberPosition = computed(() => settings.value.rememberPosition)
   const currentThemeId = computed(() => settings.value.currentThemeId)
   const customThemes = computed(() => settings.value.customThemes)
+
+  function cloneTheme(theme: Theme): Theme {
+    return {
+      ...theme,
+      colors: { ...theme.colors },
+      effects: theme.effects ? { ...theme.effects } : undefined
+    }
+  }
+
+  function normalizeTheme(theme: Theme): Theme {
+    return {
+      ...cloneTheme(theme),
+      isBuiltIn: false
+    }
+  }
+
+  function getAllThemes(customThemeList: Theme[] = settings.value.customThemes): Theme[] {
+    return [...builtInThemes, ...customThemeList]
+  }
+
+  function findTheme(themeId: string, customThemeList: Theme[] = settings.value.customThemes): Theme | undefined {
+    return getAllThemes(customThemeList).find((theme) => theme.id === themeId)
+  }
+
+  function resolveThemeId(themeId: string, customThemeList: Theme[] = settings.value.customThemes): string {
+    return findTheme(themeId, customThemeList) ? themeId : 'dark'
+  }
 
   async function loadSettings() {
     isLoading.value = true
@@ -50,11 +78,87 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   }
 
   async function setCurrentThemeId(themeId: string) {
-    await updateSettings({ currentThemeId: themeId })
+    await updateSettings({ currentThemeId: resolveThemeId(themeId) })
   }
 
   async function setCustomThemes(themes: Theme[]) {
-    await updateSettings({ customThemes: themes })
+    const nextThemes = themes.map(normalizeTheme)
+    await updateSettings({
+      customThemes: nextThemes,
+      currentThemeId: resolveThemeId(settings.value.currentThemeId, nextThemes)
+    })
+  }
+
+  async function addCustomTheme(theme: Theme) {
+    if (findTheme(theme.id)) {
+      return false
+    }
+
+    const nextThemes = [...settings.value.customThemes, normalizeTheme(theme)]
+    return updateSettings({ customThemes: nextThemes })
+  }
+
+  async function updateCustomTheme(themeId: string, updates: Partial<Theme>) {
+    const index = settings.value.customThemes.findIndex((theme) => theme.id === themeId)
+    if (index === -1) {
+      return false
+    }
+
+    const current = settings.value.customThemes[index]
+    const nextTheme = normalizeTheme({
+      ...current,
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.description !== undefined ? { description: updates.description } : {}),
+      colors: updates.colors ? { ...current.colors, ...updates.colors } : current.colors,
+      effects: updates.effects !== undefined ? { ...(current.effects ?? {}), ...updates.effects } : current.effects
+    })
+
+    const nextThemes = [...settings.value.customThemes]
+    nextThemes[index] = nextTheme
+
+    return updateSettings({
+      customThemes: nextThemes,
+      currentThemeId: resolveThemeId(settings.value.currentThemeId, nextThemes)
+    })
+  }
+
+  async function removeCustomTheme(themeId: string) {
+    const nextThemes = settings.value.customThemes.filter((theme) => theme.id !== themeId)
+    if (nextThemes.length === settings.value.customThemes.length) {
+      return false
+    }
+
+    return updateSettings({
+      customThemes: nextThemes,
+      currentThemeId: resolveThemeId(settings.value.currentThemeId, nextThemes)
+    })
+  }
+
+  async function duplicateTheme(themeId: string, newId: string, newName: string) {
+    const source = findTheme(themeId)
+    if (!source || findTheme(newId)) {
+      return false
+    }
+
+    const nextThemes = [
+      ...settings.value.customThemes,
+      normalizeTheme({
+        id: newId,
+        name: newName,
+        description: `Copy of ${source.name}`,
+        colors: { ...source.colors },
+        effects: source.effects ? { ...source.effects } : undefined
+      })
+    ]
+
+    return updateSettings({ customThemes: nextThemes })
+  }
+
+  async function resetThemeSettings() {
+    return updateSettings({
+      currentThemeId: 'dark',
+      customThemes: []
+    })
   }
 
   async function setLastVolume(value: number) {
@@ -98,8 +202,14 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     setRememberPosition,
     setCurrentThemeId,
     setCustomThemes,
+    addCustomTheme,
+    updateCustomTheme,
+    removeCustomTheme,
+    duplicateTheme,
+    resetThemeSettings,
     setLastVolume,
     exportData,
     importData
   }
 })
+
