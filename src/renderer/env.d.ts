@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { Theme } from '../shared/theme'
+import type { RuntimeConfig } from '../shared/runtimeConfig'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -164,6 +165,10 @@ interface MemoryAPI {
   setIdleTimeout: (timeoutMs: number) => Promise<boolean>
 }
 
+interface ConfigAPI {
+  getRuntimeConfig: () => Promise<RuntimeConfig>
+}
+
 interface StoreAPI {
   getFavorites: () => Promise<FavoriteVideo[]>
   addFavorite: (video: ExtractedVideo) => Promise<boolean>
@@ -272,7 +277,10 @@ interface Window {
     auth: AuthAPI
     store: StoreAPI
     memory: MemoryAPI
+    config: ConfigAPI
     nativePlayer: NativePlayerAPI
   }
 }
 }
+
+export {}

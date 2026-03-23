@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { Theme } from '../shared/theme'
+import type { RuntimeConfig } from '../shared/runtimeConfig'
 
 export interface PlayerProgress {
   currentTime: number
@@ -147,6 +148,10 @@ export interface MemoryStats {
   searchViewIdleTime: number
   playerViewIdleTime: number
   viewIdleTimeout: number
+}
+
+export interface ConfigAPI {
+  getRuntimeConfig: () => Promise<RuntimeConfig>
 }
 
 export interface NativePlaybackState {
@@ -458,6 +463,12 @@ const memoryAPI: MemoryAPI = {
   }
 }
 
+const configAPI: ConfigAPI = {
+  getRuntimeConfig: () => {
+    return ipcRenderer.invoke('config:getRuntimeConfig')
+  }
+}
+
 const nativePlayerAPI: NativePlayerAPI = {
   updateState: (state: NativePlaybackState) => {
     ipcRenderer.send('native-player:updateState', state)
@@ -475,5 +486,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   auth: authAPI,
   store: storeAPI,
   memory: memoryAPI,
+  config: configAPI,
   nativePlayer: nativePlayerAPI
 })
