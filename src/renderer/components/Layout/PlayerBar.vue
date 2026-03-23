@@ -1057,7 +1057,7 @@
     height: 16px;
     padding: 0 4px;
     background: var(--accent);
-    color: white;
+    color: var(--bg-primary);
     font-size: var(--text-xs);
     font-weight: 600;
     border-radius: 8px;
@@ -1185,7 +1185,7 @@
   }
 
   .queue-item.active {
-    background: rgba(233, 69, 96, 0.1);
+    background: var(--accent-muted);
   }
 
   .queue-item-index {

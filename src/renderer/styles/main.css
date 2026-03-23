@@ -9,13 +9,28 @@
 
   --text-primary: #f2f3f5;
   --text-secondary: #a1a7b3;
+  --text-secondary-strong: #c3c7d1;
+  --text-tertiary: #6a6f7b;
 
   --accent: #e05a5f;
   --accent-hover: #ef6c71;
   --accent-muted: rgba(224, 90, 95, 0.16);
+  --accent-rose: #ed7478;
+  --accent-blush: #f2a1a4;
+  --accent-lilac: #ca91a1;
+  --accent-violet: #b8758b;
+  --accent-sky: #8da6c6;
+  --accent-amber: #efa347;
+  --accent-mint: #52b89a;
 
   --border: #232633;
+  --border-subtle: #1b1e29;
+  --success: #2aa784;
+  --warning: #d48a2e;
+  --error: #de4c4c;
   --glow: rgba(224, 90, 95, 0.25);
+  --glass-bg: rgba(18, 19, 24, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   --font-sans: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;
   --font-display: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;

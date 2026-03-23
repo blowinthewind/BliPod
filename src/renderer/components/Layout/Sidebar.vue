@@ -410,7 +410,7 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: white;
+    color: var(--bg-primary);
   }
 
   .user-details {
@@ -538,7 +538,7 @@
 
   .confirm-btn.logout {
     background: var(--error);
-    color: white;
+    color: var(--bg-primary);
   }
 
   .confirm-btn.logout:hover {

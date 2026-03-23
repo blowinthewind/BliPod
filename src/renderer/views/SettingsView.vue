@@ -449,15 +449,44 @@
   }
 
   function getThemePreviewStyle(theme: Theme) {
-    const style: Record<string, string> = {}
+    if (theme.effects?.bgImage) {
+      const opacity = theme.effects.bgImageOpacity ?? 1
+      return {
+        background: `linear-gradient(rgba(0, 0, 0, ${1 - opacity}), rgba(0, 0, 0, ${1 - opacity})), url('${theme.effects.bgImage}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }
+    }
 
     if (theme.effects?.bgGradient) {
-      style.background = theme.effects.bgGradient
-    } else {
-      style.background = theme.colors.bgPrimary
+      return { background: theme.effects.bgGradient }
+    }
+
+    return { background: theme.colors.bgPrimary }
+  }
+
+  function getThemePreviewSurfaceStyle(theme: Theme, fallbackColor: string) {
+    const style: Record<string, string> = {
+      background: theme.effects?.glassEffect ? (theme.colors.glassBg ?? fallbackColor) : fallbackColor
+    }
+
+    if (theme.effects?.glassEffect && theme.colors.glassBorder) {
+      style.border = `1px solid ${theme.colors.glassBorder}`
+    }
+
+    if (theme.effects?.glassEffect && theme.effects.glassBlur) {
+      style.backdropFilter = `blur(${theme.effects.glassBlur})`
+      style.webkitBackdropFilter = `blur(${theme.effects.glassBlur})`
     }
 
     return style
+  }
+
+  function getThemePreviewGlassStyle(theme: Theme) {
+    return {
+      color: theme.colors.textPrimary,
+      opacity: '0.72'
+    }
   }
 
   function openLoginDialog() {
@@ -604,10 +633,13 @@
             @click="setTheme(theme.id)"
           >
             <div class="theme-preview" :style="getThemePreviewStyle(theme)">
-              <div class="preview-sidebar" :style="{ background: theme.colors.bgSecondary }"></div>
-              <div class="preview-card" :style="{ background: theme.colors.bgCard }"></div>
+              <div
+                class="preview-sidebar"
+                :style="getThemePreviewSurfaceStyle(theme, theme.colors.bgSecondary)"
+              ></div>
+              <div class="preview-card" :style="getThemePreviewSurfaceStyle(theme, theme.colors.bgCard)"></div>
               <div class="preview-accent" :style="{ background: theme.colors.accent }"></div>
-              <div v-if="theme.effects?.glassEffect" class="preview-glass">
+              <div v-if="theme.effects?.glassEffect" class="preview-glass" :style="getThemePreviewGlassStyle(theme)">
                 <Sparkles :size="12" />
               </div>
             </div>
