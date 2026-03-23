@@ -301,3 +301,38 @@ export const builtInThemes: Theme[] = [
     }
   }
 ]
+
+export function cloneTheme(theme: Theme): Theme {
+  return {
+    ...theme,
+    colors: { ...theme.colors },
+    effects: theme.effects ? { ...theme.effects } : undefined
+  }
+}
+
+export function normalizeCustomTheme(theme: Theme): Theme {
+  return {
+    ...cloneTheme(theme),
+    isBuiltIn: false
+  }
+}
+
+export function getAllThemes(customThemes: Theme[] = []): Theme[] {
+  return [...builtInThemes, ...customThemes]
+}
+
+export function findTheme(themeId: string, customThemes: Theme[] = []): Theme | undefined {
+  return getAllThemes(customThemes).find((theme) => theme.id === themeId)
+}
+
+export function getFallbackTheme(): Theme {
+  return builtInThemes.find((theme) => theme.id === DEFAULT_THEME_ID) ?? builtInThemes[0]
+}
+
+export function resolveTheme(themeId?: string, customThemes: Theme[] = []): Theme {
+  return (themeId && findTheme(themeId, customThemes)) || getFallbackTheme()
+}
+
+export function resolveThemeId(themeId: string, customThemes: Theme[] = []): string {
+  return findTheme(themeId, customThemes)?.id ?? DEFAULT_THEME_ID
+}

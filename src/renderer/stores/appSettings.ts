@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { AppSettings, AppStore } from '../../preload/preload'
-import { DEFAULT_THEME_ID, builtInThemes, type Theme } from '../../shared/theme'
+import { DEFAULT_THEME_ID, cloneTheme, findTheme, normalizeCustomTheme, resolveThemeId, type Theme } from '../../shared/theme'
 
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
@@ -18,33 +18,6 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   const rememberPosition = computed(() => settings.value.rememberPosition)
   const currentThemeId = computed(() => settings.value.currentThemeId)
   const customThemes = computed(() => settings.value.customThemes)
-
-  function cloneTheme(theme: Theme): Theme {
-    return {
-      ...theme,
-      colors: { ...theme.colors },
-      effects: theme.effects ? { ...theme.effects } : undefined
-    }
-  }
-
-  function normalizeTheme(theme: Theme): Theme {
-    return {
-      ...cloneTheme(theme),
-      isBuiltIn: false
-    }
-  }
-
-  function getAllThemes(customThemeList: Theme[] = settings.value.customThemes): Theme[] {
-    return [...builtInThemes, ...customThemeList]
-  }
-
-  function findTheme(themeId: string, customThemeList: Theme[] = settings.value.customThemes): Theme | undefined {
-    return getAllThemes(customThemeList).find((theme) => theme.id === themeId)
-  }
-
-  function resolveThemeId(themeId: string, customThemeList: Theme[] = settings.value.customThemes): string {
-    return findTheme(themeId, customThemeList) ? themeId : DEFAULT_THEME_ID
-  }
 
   async function loadSettings() {
     isLoading.value = true
@@ -78,11 +51,11 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   }
 
   async function setCurrentThemeId(themeId: string) {
-    await updateSettings({ currentThemeId: resolveThemeId(themeId) })
+    await updateSettings({ currentThemeId: resolveThemeId(themeId, settings.value.customThemes) })
   }
 
   async function setCustomThemes(themes: Theme[]) {
-    const nextThemes = themes.map(normalizeTheme)
+    const nextThemes = themes.map(normalizeCustomTheme)
     await updateSettings({
       customThemes: nextThemes,
       currentThemeId: resolveThemeId(settings.value.currentThemeId, nextThemes)
@@ -90,11 +63,11 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   }
 
   async function addCustomTheme(theme: Theme) {
-    if (findTheme(theme.id)) {
+    if (findTheme(theme.id, settings.value.customThemes)) {
       return false
     }
 
-    const nextThemes = [...settings.value.customThemes, normalizeTheme(theme)]
+    const nextThemes = [...settings.value.customThemes, normalizeCustomTheme(theme)]
     return updateSettings({ customThemes: nextThemes })
   }
 
@@ -105,7 +78,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     }
 
     const current = settings.value.customThemes[index]
-    const nextTheme = normalizeTheme({
+    const nextTheme = normalizeCustomTheme({
       ...current,
       ...(updates.name !== undefined ? { name: updates.name } : {}),
       ...(updates.description !== undefined ? { description: updates.description } : {}),
@@ -135,19 +108,18 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   }
 
   async function duplicateTheme(themeId: string, newId: string, newName: string) {
-    const source = findTheme(themeId)
-    if (!source || findTheme(newId)) {
+    const source = findTheme(themeId, settings.value.customThemes)
+    if (!source || findTheme(newId, settings.value.customThemes)) {
       return false
     }
 
     const nextThemes = [
       ...settings.value.customThemes,
-      normalizeTheme({
+      normalizeCustomTheme({
+        ...cloneTheme(source),
         id: newId,
         name: newName,
-        description: `Copy of ${source.name}`,
-        colors: { ...source.colors },
-        effects: source.effects ? { ...source.effects } : undefined
+        description: `Copy of ${source.name}`
       })
     ]
 
