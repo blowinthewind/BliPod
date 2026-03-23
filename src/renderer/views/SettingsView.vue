@@ -16,6 +16,7 @@
   import { usePlaylistsStore } from '@/stores/playlists'
   import { usePlayerStore } from '@/stores/player'
   import { useAppSettingsStore } from '@/stores/appSettings'
+  import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
   import {
     Settings,
     Download,
@@ -42,6 +43,7 @@
   const playlistsStore = usePlaylistsStore()
   const playerStore = usePlayerStore()
   const appSettingsStore = useAppSettingsStore()
+  const runtimeConfigStore = useRuntimeConfigStore()
 
   const autoPlay = computed({
     get: () => appSettingsStore.autoPlay,
@@ -51,6 +53,11 @@
     get: () => appSettingsStore.rememberPosition,
     set: (value) => appSettingsStore.setRememberPosition(value)
   })
+  const showLoginEntry = computed(() => runtimeConfigStore.ui.auth.showLoginEntry)
+  const showMemoryStatusEntry = computed(() => runtimeConfigStore.ui.memory.showStatus)
+  const showSearchViewTimeoutControl = computed(() => runtimeConfigStore.ui.memory.showSearchViewTimeoutControl)
+  const showCreateThemeEntry = computed(() => runtimeConfigStore.ui.theme.showCreate)
+  const showDuplicateThemeEntry = computed(() => runtimeConfigStore.ui.theme.showDuplicate)
   const showCreateTheme = ref(false)
   const showEditTheme = ref(false)
   const showLoginDialog = ref(false)
@@ -573,7 +580,7 @@
     </div>
 
     <div class="settings-sections">
-      <section class="settings-section">
+      <section v-if="showLoginEntry" class="settings-section">
         <h2 class="section-title">账号</h2>
         <div class="settings-card">
           <div class="setting-item">
@@ -618,7 +625,7 @@
             <Palette :size="18" />
             主题
           </h2>
-          <Button class="add-theme-btn" @click="openCreateTheme">
+          <Button v-if="showCreateThemeEntry" class="add-theme-btn" @click="openCreateTheme">
             <Plus :size="16" />
             新建主题
           </Button>
@@ -657,6 +664,7 @@
                   <Palette :size="14" />
                 </button>
                 <button
+                  v-if="showDuplicateThemeEntry"
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
                   aria-label="复制主题"
@@ -671,8 +679,9 @@
                   <Trash2 :size="14" />
                 </button>
               </div>
-              <div class="theme-actions" v-else>
+              <div class="theme-actions" v-else-if="showDuplicateThemeEntry">
                 <button
+                  v-if="showDuplicateThemeEntry"
                   class="theme-action-btn"
                   @click.stop="duplicateTheme(theme.id)"
                   aria-label="复制主题"
@@ -718,7 +727,7 @@
           内存管理
         </h2>
         <div class="settings-card">
-          <div class="setting-item">
+          <div v-if="showSearchViewTimeoutControl" class="setting-item">
             <div class="setting-info">
               <span class="setting-label">搜索页回收时间</span>
               <span class="setting-desc">空闲多久后自动清理搜索页以释放内存</span>
@@ -744,9 +753,18 @@
             <div class="setting-info">
               <span class="setting-label">内存状态</span>
               <span class="setting-desc">查看当前内存占用和活跃页面</span>
+              <div v-if="memorySettings.cleanupMessage && !showSearchViewTimeoutControl" class="message-toast success">
+                <Check :size="14" />
+                {{ memorySettings.cleanupMessage }}
+              </div>
             </div>
             <div class="memory-actions">
-              <Button ref="memoryStatsViewBtnRef" class="action-btn" variant="secondary" @click="showMemoryStats"
+              <Button
+                v-if="showMemoryStatusEntry"
+                ref="memoryStatsViewBtnRef"
+                class="action-btn"
+                variant="secondary"
+                @click="showMemoryStats"
                 >查看状态</Button
               >
               <Button class="action-btn" variant="secondary" @click="cleanupMemoryNow"
