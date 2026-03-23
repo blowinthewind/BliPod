@@ -17,13 +17,6 @@ Desktop.ini
 .settings/
 *.sublime-workspace
 *.sublime-project
-.trae
-.agents
-.opencode
-.impeccable.md
-AGENTS.md
-CLAUDE*.md
-.claude
 
 # Database
 *.db
