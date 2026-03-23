@@ -83,9 +83,19 @@
   const importMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
   const showExportOptions = ref(false)
   const showImportOptions = ref(false)
+  const defaultSearchViewTimeoutMinutes = computed(
+    () => runtimeConfigStore.behavior.memory.searchViewIdleTimeoutMinutes
+  )
+  const defaultSearchViewTimeoutMs = computed(() => defaultSearchViewTimeoutMinutes.value * 60 * 1000)
+  const memoryTimeoutOptions = computed(() => {
+    const options = [5, 10, 15, 20, 30]
+    return options.includes(defaultSearchViewTimeoutMinutes.value)
+      ? options
+      : [...options, defaultSearchViewTimeoutMinutes.value].sort((a, b) => a - b)
+  })
 
   const memorySettings = ref({
-    searchViewTimeout: 10 * 60 * 1000,
+    searchViewTimeout: defaultSearchViewTimeoutMs.value,
     cleanupMessage: '' as string | null
   })
 
@@ -508,16 +518,26 @@
     authStore.logout()
   }
 
+  function getMemoryTimeoutOptionLabel(minutes: number) {
+    return minutes === defaultSearchViewTimeoutMinutes.value ? `${minutes} 分钟（默认）` : `${minutes} 分钟`
+  }
+
   // 加载内存管理设置
   function loadMemorySettings() {
     try {
       const stored = localStorage.getItem('blipod_memory_settings')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        memorySettings.value.searchViewTimeout = parsed.searchViewTimeout || 10 * 60 * 1000
+      if (!stored) {
+        memorySettings.value.searchViewTimeout = defaultSearchViewTimeoutMs.value
+        return
       }
+
+      const parsed = JSON.parse(stored)
+      memorySettings.value.searchViewTimeout =
+        typeof parsed.searchViewTimeout === 'number' && parsed.searchViewTimeout > 0
+          ? parsed.searchViewTimeout
+          : defaultSearchViewTimeoutMs.value
     } catch {
-      // ignore
+      memorySettings.value.searchViewTimeout = defaultSearchViewTimeoutMs.value
     }
   }
 
@@ -741,11 +761,9 @@
               @change="updateMemoryTimeout"
               class="timeout-select"
             >
-              <option :value="5 * 60 * 1000">5 分钟</option>
-              <option :value="10 * 60 * 1000">10 分钟（默认）</option>
-              <option :value="15 * 60 * 1000">15 分钟</option>
-              <option :value="20 * 60 * 1000">20 分钟</option>
-              <option :value="30 * 60 * 1000">30 分钟</option>
+              <option v-for="minutes in memoryTimeoutOptions" :key="minutes" :value="minutes * 60 * 1000">
+                {{ getMemoryTimeoutOptionLabel(minutes) }}
+              </option>
             </select>
           </div>
 
