@@ -281,6 +281,11 @@ const builtInThemes: Theme[] = [
   }
 ]
 
+export interface ThemeStateSnapshot {
+  currentThemeId: string
+  customThemes: Theme[]
+}
+
 export const useThemeStore = defineStore('theme', () => {
   const currentThemeId = ref<string>('dark')
   const customThemes = ref<Theme[]>([])
@@ -291,13 +296,52 @@ export const useThemeStore = defineStore('theme', () => {
     allThemes.value.find((t) => t.id === currentThemeId.value)
   )
 
-  function setTheme(themeId: string) {
-    const theme = allThemes.value.find((t) => t.id === themeId)
-    if (theme) {
-      currentThemeId.value = themeId
-      applyTheme(theme)
-      saveThemeToStorage(themeId)
+  function cloneTheme(theme: Theme): Theme {
+    return {
+      ...theme,
+      colors: { ...theme.colors },
+      effects: theme.effects ? { ...theme.effects } : undefined
     }
+  }
+
+  function normalizeCustomTheme(theme: Theme): Theme {
+    return {
+      ...cloneTheme(theme),
+      isBuiltIn: false
+    }
+  }
+
+  function getThemeState(): ThemeStateSnapshot {
+    return {
+      currentThemeId: currentThemeId.value,
+      customThemes: customThemes.value.map(normalizeCustomTheme)
+    }
+  }
+
+  function findTheme(themeId: string): Theme | undefined {
+    return allThemes.value.find((t) => t.id === themeId)
+  }
+
+  function getFallbackTheme(): Theme {
+    return builtInThemes.find((t) => t.id === 'dark') ?? builtInThemes[0]
+  }
+
+  function applyResolvedTheme(preferredThemeId?: string): Theme {
+    const theme = (preferredThemeId && findTheme(preferredThemeId)) || getFallbackTheme()
+    currentThemeId.value = theme.id
+    applyTheme(theme)
+    return theme
+  }
+
+  function setTheme(themeId: string): ThemeStateSnapshot | null {
+    const theme = findTheme(themeId)
+    if (!theme) {
+      return null
+    }
+
+    currentThemeId.value = theme.id
+    applyTheme(theme)
+    return getThemeState()
   }
 
   function applyTheme(theme: Theme) {
@@ -305,24 +349,25 @@ export const useThemeStore = defineStore('theme', () => {
 
     root.setAttribute('data-theme', theme.id)
 
-    Object.entries(theme.colors).forEach(([key, value]) => {
-      if (value && CSS_VAR_MAP[key as keyof ThemeColors]) {
-        root.style.setProperty(CSS_VAR_MAP[key as keyof ThemeColors], value)
+    Object.entries(CSS_VAR_MAP).forEach(([key, cssVar]) => {
+      const value = theme.colors[key as keyof ThemeColors]
+      if (value !== undefined) {
+        root.style.setProperty(cssVar, value)
+      } else {
+        root.style.removeProperty(cssVar)
       }
     })
 
-    if (theme.effects) {
-      Object.entries(theme.effects).forEach(([key, value]) => {
-        if (value !== undefined && EFFECTS_VAR_MAP[key as keyof ThemeEffects]) {
-          const cssVar = EFFECTS_VAR_MAP[key as keyof ThemeEffects]
-          if (typeof value === 'boolean') {
-            root.style.setProperty(cssVar, value ? '1' : '0')
-          } else {
-            root.style.setProperty(cssVar, String(value))
-          }
-        }
-      })
-    }
+    Object.entries(EFFECTS_VAR_MAP).forEach(([key, cssVar]) => {
+      const value = theme.effects?.[key as keyof ThemeEffects]
+      if (value === undefined) {
+        root.style.removeProperty(cssVar)
+      } else if (typeof value === 'boolean') {
+        root.style.setProperty(cssVar, value ? '1' : '0')
+      } else {
+        root.style.setProperty(cssVar, String(value))
+      }
+    })
 
     applyBodyStyles(theme)
   }
@@ -332,6 +377,8 @@ export const useThemeStore = defineStore('theme', () => {
 
     if (theme.effects?.bgGradient) {
       body.style.background = theme.effects.bgGradient
+      body.style.backgroundSize = ''
+      body.style.backgroundAttachment = ''
     } else if (theme.effects?.bgImage) {
       const opacity = theme.effects.bgImageOpacity ?? 1
       body.style.background = `
@@ -342,6 +389,8 @@ export const useThemeStore = defineStore('theme', () => {
       body.style.backgroundAttachment = 'fixed'
     } else {
       body.style.background = theme.colors.bgPrimary
+      body.style.backgroundSize = ''
+      body.style.backgroundAttachment = ''
     }
 
     if (theme.effects?.bgBlur) {
@@ -351,109 +400,90 @@ export const useThemeStore = defineStore('theme', () => {
     }
   }
 
-  function addCustomTheme(theme: Theme) {
-    const existing = allThemes.value.find((t) => t.id === theme.id)
+  function syncFromSettings(settings: ThemeStateSnapshot): ThemeStateSnapshot {
+    customThemes.value = settings.customThemes.map(normalizeCustomTheme)
+    applyResolvedTheme(settings.currentThemeId)
+    return getThemeState()
+  }
+
+  function addCustomTheme(theme: Theme): ThemeStateSnapshot | null {
+    const existing = findTheme(theme.id)
     if (existing) {
       console.warn(`Theme with id "${theme.id}" already exists`)
-      return false
+      return null
     }
-    customThemes.value.push({ ...theme, isBuiltIn: false })
-    saveCustomThemesToStorage()
-    return true
+
+    customThemes.value = [...customThemes.value, normalizeCustomTheme(theme)]
+    return getThemeState()
   }
 
-  function removeCustomTheme(themeId: string) {
-    const index = customThemes.value.findIndex((t) => t.id === themeId)
-    if (index !== -1) {
-      customThemes.value.splice(index, 1)
-      saveCustomThemesToStorage()
-      if (currentThemeId.value === themeId) {
-        setTheme('dark')
-      }
-      return true
+  function removeCustomTheme(themeId: string): ThemeStateSnapshot | null {
+    const exists = customThemes.value.some((t) => t.id === themeId)
+    if (!exists) {
+      return null
     }
-    return false
+
+    customThemes.value = customThemes.value.filter((t) => t.id !== themeId)
+    if (currentThemeId.value === themeId) {
+      applyResolvedTheme('dark')
+    }
+
+    return getThemeState()
   }
 
-  function updateCustomTheme(themeId: string, updates: Partial<Theme>) {
-    const theme = customThemes.value.find((t) => t.id === themeId)
-    if (theme) {
-      if (updates.colors) {
-        theme.colors = { ...theme.colors, ...updates.colors }
-      }
-      if (updates.effects) {
-        theme.effects = { ...theme.effects, ...updates.effects }
-      }
-      if (updates.name) theme.name = updates.name
-      if (updates.description) theme.description = updates.description
-      saveCustomThemesToStorage()
-      if (currentThemeId.value === themeId) {
-        applyTheme(theme)
-      }
-      return true
-    }
-    return false
-  }
+  function updateCustomTheme(themeId: string, updates: Partial<Theme>): ThemeStateSnapshot | null {
+    let updated = false
 
-  function saveThemeToStorage(themeId: string) {
-    try {
-      localStorage.setItem('blipod-theme', themeId)
-    } catch (e) {
-      console.warn('Failed to save theme to localStorage:', e)
-    }
-  }
-
-  function saveCustomThemesToStorage() {
-    try {
-      localStorage.setItem('blipod-custom-themes', JSON.stringify(customThemes.value))
-    } catch (e) {
-      console.warn('Failed to save custom themes:', e)
-    }
-  }
-
-  function loadFromStorage(initialThemeId?: string) {
-    try {
-      const savedCustomThemes = localStorage.getItem('blipod-custom-themes')
-      if (savedCustomThemes) {
-        customThemes.value = JSON.parse(savedCustomThemes)
+    customThemes.value = customThemes.value.map((theme) => {
+      if (theme.id !== themeId) {
+        return theme
       }
 
-      const savedThemeId = localStorage.getItem('blipod-theme')
-      const preferredThemeId = [initialThemeId, savedThemeId, 'dark'].find(
-        (themeId): themeId is string => Boolean(themeId && allThemes.value.find((t) => t.id === themeId))
-      )
-
-      if (preferredThemeId) {
-        setTheme(preferredThemeId)
-      }
-    } catch (e) {
-      console.warn('Failed to load from localStorage:', e)
-      setTheme(initialThemeId && allThemes.value.find((t) => t.id === initialThemeId) ? initialThemeId : 'dark')
-    }
-  }
-
-  function initTheme(initialThemeId?: string) {
-    loadFromStorage(initialThemeId)
-  }
-
-  function resetToDefault() {
-    setTheme('dark')
-    customThemes.value = []
-    localStorage.removeItem('blipod-custom-themes')
-  }
-
-  function duplicateTheme(themeId: string, newId: string, newName: string) {
-    const source = allThemes.value.find((t) => t.id === themeId)
-    if (source) {
-      return addCustomTheme({
-        id: newId,
-        name: newName,
-        description: `Copy of ${source.name}`,
-        colors: { ...source.colors },
-        effects: source.effects ? { ...source.effects } : undefined
+      updated = true
+      return normalizeCustomTheme({
+        ...theme,
+        ...(updates.name !== undefined ? { name: updates.name } : {}),
+        ...(updates.description !== undefined ? { description: updates.description } : {}),
+        colors: updates.colors ? { ...theme.colors, ...updates.colors } : theme.colors,
+        effects:
+          updates.effects !== undefined ? { ...(theme.effects ?? {}), ...updates.effects } : theme.effects
       })
+    })
+
+    if (!updated) {
+      return null
     }
-    return false
+
+    if (currentThemeId.value === themeId) {
+      applyResolvedTheme(themeId)
+    }
+
+    return getThemeState()
+  }
+
+  function initTheme(settings: ThemeStateSnapshot = { currentThemeId: 'dark', customThemes: [] }) {
+    return syncFromSettings(settings)
+  }
+
+  function resetToDefault(): ThemeStateSnapshot {
+    customThemes.value = []
+    applyResolvedTheme('dark')
+    return getThemeState()
+  }
+
+  function duplicateTheme(themeId: string, newId: string, newName: string): ThemeStateSnapshot | null {
+    const source = findTheme(themeId)
+    if (!source) {
+      return null
+    }
+
+    return addCustomTheme({
+      id: newId,
+      name: newName,
+      description: `Copy of ${source.name}`,
+      colors: { ...source.colors },
+      effects: source.effects ? { ...source.effects } : undefined
+    })
   }
 
   return {
@@ -463,6 +493,7 @@ export const useThemeStore = defineStore('theme', () => {
     builtInThemes,
     customThemes,
     setTheme,
+    syncFromSettings,
     addCustomTheme,
     removeCustomTheme,
     updateCustomTheme,
@@ -471,3 +502,4 @@ export const useThemeStore = defineStore('theme', () => {
     resetToDefault
   }
 })
+

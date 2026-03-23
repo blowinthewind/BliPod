@@ -67,7 +67,10 @@ const themeStore = useThemeStore()
 const appSettingsStore = useAppSettingsStore()
 
 void appSettingsStore.loadSettings().finally(() => {
-  themeStore.initTheme(appSettingsStore.currentThemeId)
+  themeStore.initTheme({
+    currentThemeId: appSettingsStore.settings.currentThemeId,
+    customThemes: appSettingsStore.settings.customThemes
+  })
 })
 
 app.mount('#app')
