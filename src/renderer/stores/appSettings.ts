@@ -83,7 +83,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
       ...(updates.name !== undefined ? { name: updates.name } : {}),
       ...(updates.description !== undefined ? { description: updates.description } : {}),
       colors: updates.colors ? { ...current.colors, ...updates.colors } : current.colors,
-      effects: updates.effects !== undefined ? { ...(current.effects ?? {}), ...updates.effects } : current.effects
+      effects: updates.effects !== undefined ? updates.effects : current.effects
     })
 
     const nextThemes = [...settings.value.customThemes]

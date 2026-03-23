@@ -1,7 +1,16 @@
 <script setup lang="ts">
   import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
   import { useThemeStore } from '@/stores/theme'
-  import type { Theme, ThemeColors, ThemeEffects } from '../../shared/theme'
+  import {
+    THEME_COLOR_GROUPS,
+    THEME_EFFECT_GROUPS,
+    cloneTheme,
+    createCustomThemeDraft,
+    type Theme,
+    type ThemeColorKey,
+    type ThemeEffectKey,
+    type ThemeEffects
+  } from '../../shared/theme'
   import { useAuthStore } from '@/stores/auth'
   import { useFavoritesStore } from '@/stores/favorites'
   import { usePlaylistsStore } from '@/stores/playlists'
@@ -267,75 +276,88 @@
     handleImport()
   }
 
-  const defaultColors: ThemeColors = {
-    bgPrimary: '#0a0a0b',
-    bgSecondary: '#111113',
-    bgCard: '#18181b',
-    bgElevated: '#1f1f23',
-    bgOverlay: 'rgba(0, 0, 0, 0.6)',
-    textPrimary: '#fafafa',
-    textSecondary: '#8b8b96',
-    textSecondaryStrong: '#a7a7b2',
-    textTertiary: '#52525b',
-    accent: '#f43f5e',
-    accentHover: '#fb7185',
-    accentMuted: 'rgba(244, 63, 94, 0.15)',
-    accentRose: '#fb7185',
-    accentBlush: '#fda4af',
-    accentLilac: '#c084fc',
-    accentViolet: '#a855f7',
-    accentSky: '#38bdf8',
-    accentAmber: '#f59e0b',
-    accentMint: '#34d399',
-    border: '#27272a',
-    borderSubtle: '#1f1f23',
-    success: '#10b981',
-    warning: '#f59e0b',
-    error: '#ef4444',
-    glow: 'rgba(244, 63, 94, 0.25)',
-    glassBg: 'rgba(17, 17, 19, 0.85)',
-    glassBorder: 'rgba(255, 255, 255, 0.08)'
+  type EditableTheme = Theme & { effects: ThemeEffects }
+
+  const themeColorGroups = THEME_COLOR_GROUPS
+  const themeEffectGroups = THEME_EFFECT_GROUPS
+  const newTheme = ref<EditableTheme>(createCustomThemeDraft())
+  const editingTheme = ref<EditableTheme | null>(null)
+
+  function createEditableTheme(theme: Theme): EditableTheme {
+    const clonedTheme = cloneTheme(theme)
+    return {
+      ...clonedTheme,
+      effects: clonedTheme.effects ? { ...clonedTheme.effects } : {}
+    }
   }
 
+  function isHexColor(value?: string): value is string {
+    return /^#[0-9a-fA-F]{6}$/.test(value ?? '')
+  }
 
-  const newTheme = ref<Partial<Theme>>({
-    id: '',
-    name: '',
-    description: '',
-    colors: { ...defaultColors },
-    effects: {}
-  })
+  function getThemeColorValue(theme: EditableTheme, key: ThemeColorKey): string {
+    return theme.colors[key] ?? ''
+  }
 
-  const editingTheme = ref<(Theme & { effects: ThemeEffects }) | null>(null)
+  function canUseColorPicker(theme: EditableTheme, key: ThemeColorKey): boolean {
+    return isHexColor(theme.colors[key])
+  }
 
-  const colorLabels: Record<keyof ThemeColors, string> = {
-    bgPrimary: '主背景',
-    bgSecondary: '侧边背景',
-    bgCard: '卡片背景',
-    bgElevated: '浮层背景',
-    bgOverlay: '遮罩背景',
-    textPrimary: '主文字',
-    textSecondary: '次级文字',
-    textSecondaryStrong: '强调次级文字',
-    textTertiary: '弱化文字',
-    accent: '主强调色',
-    accentHover: '强调悬浮色',
-    accentMuted: '强调弱化色',
-    accentRose: '玫瑰强调色',
-    accentBlush: '腮红强调色',
-    accentLilac: '淡紫强调色',
-    accentViolet: '紫罗兰强调色',
-    accentSky: '天青强调色',
-    accentAmber: '琥珀强调色',
-    accentMint: '薄荷强调色',
-    border: '主边框',
-    borderSubtle: '弱化边框',
-    success: '成功色',
-    warning: '警告色',
-    error: '错误色',
-    glow: '辉光色',
-    glassBg: '玻璃背景',
-    glassBorder: '玻璃边框'
+  function getThemeEffectTextValue(theme: EditableTheme, key: ThemeEffectKey): string {
+    const value = theme.effects[key]
+    return typeof value === 'string' ? value : ''
+  }
+
+  function getThemeEffectNumberValue(theme: EditableTheme, key: ThemeEffectKey): number | '' {
+    const value = theme.effects[key]
+    return typeof value === 'number' ? value : ''
+  }
+
+  function getThemeEffectBooleanValue(theme: EditableTheme, key: ThemeEffectKey): boolean {
+    return theme.effects[key] === true
+  }
+
+  function isWideEffectToken(key: ThemeEffectKey): boolean {
+    return key === 'bgGradient' || key === 'bgImage'
+  }
+
+  function updateThemeColor(theme: EditableTheme, key: ThemeColorKey, value: string) {
+    theme.colors[key] = value
+  }
+
+  function updateThemeTextEffect(theme: EditableTheme, key: ThemeEffectKey, value: string) {
+    if (!value) {
+      delete theme.effects[key]
+      return
+    }
+
+    theme.effects[key] = value as never
+  }
+
+  function updateThemeNumberEffect(theme: EditableTheme, key: ThemeEffectKey, value: string) {
+    if (value === '') {
+      delete theme.effects[key]
+      return
+    }
+
+    theme.effects[key] = Number(value) as never
+  }
+
+  function updateThemeBooleanEffect(theme: EditableTheme, key: ThemeEffectKey, value: boolean) {
+    if (!value) {
+      delete theme.effects[key]
+      return
+    }
+
+    theme.effects[key] = value as never
+  }
+
+  function isEffectTokenVisible(theme: EditableTheme, key: ThemeEffectKey): boolean {
+    if ((key === 'glassBlur' || key === 'glassOpacity') && !theme.effects.glassEffect) {
+      return false
+    }
+
+    return true
   }
 
 
@@ -344,13 +366,7 @@
   }
 
   function openCreateTheme() {
-    newTheme.value = {
-      id: '',
-      name: '',
-      description: '',
-      colors: { ...defaultColors },
-      effects: {}
-    }
+    newTheme.value = createCustomThemeDraft()
     showCreateTheme.value = true
   }
 
@@ -365,9 +381,8 @@
       id: newTheme.value.id,
       name: newTheme.value.name,
       description: newTheme.value.description || '自定义主题',
-      colors: newTheme.value.colors as ThemeColors,
-      effects:
-        Object.keys(newTheme.value.effects || {}).length > 0 ? newTheme.value.effects : undefined
+      colors: newTheme.value.colors,
+      effects: Object.keys(newTheme.value.effects).length > 0 ? newTheme.value.effects : undefined
     })
 
     if (success) {
@@ -378,12 +393,7 @@
   function openEditTheme(themeId: string) {
     const theme = themeStore.allThemes.find((t) => t.id === themeId)
     if (theme && !theme.isBuiltIn) {
-      editingTheme.value = JSON.parse(
-        JSON.stringify({
-          ...theme,
-          effects: theme.effects || {}
-        })
-      )
+      editingTheme.value = createEditableTheme(theme)
       editingThemeId.value = themeId
       showEditTheme.value = true
     }
@@ -881,37 +891,34 @@
               <Palette :size="16" />
               颜色
             </h3>
-            <div class="color-grid">
-              <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
-                <label :for="`create-color-text-${String(key)}`">{{ label }}</label>
-                <div class="color-input-wrapper">
-                  <input
-                    type="color"
-                    :value="
-                      newTheme.colors?.[key as keyof ThemeColors] ||
-                      defaultColors[key as keyof ThemeColors]
-                    "
-                    @input="
-                      (e) =>
-                        newTheme.colors &&
-                        (newTheme.colors[key as keyof ThemeColors] = (
-                          e.target as HTMLInputElement
-                        ).value)
-                    "
-                  />
-                  <input
-                    :id="`create-color-text-${String(key)}`"
-                    type="text"
-                    :value="newTheme.colors?.[key as keyof ThemeColors] || ''"
-                    @input="
-                      (e) =>
-                        newTheme.colors &&
-                        (newTheme.colors[key as keyof ThemeColors] = (
-                          e.target as HTMLInputElement
-                        ).value)
-                    "
-                    class="color-text-input"
-                  />
+            <div class="editor-group" v-for="group in themeColorGroups" :key="`create-${group.id}`">
+              <h4 class="editor-group-title">{{ group.label }}</h4>
+              <div class="editor-grid">
+                <div
+                  v-for="token in group.tokens"
+                  :key="`create-${group.id}-${token.key}`"
+                  class="editor-field"
+                >
+                  <label :for="`create-color-text-${token.key}`">{{ token.label }}</label>
+                  <div class="color-input-wrapper" :class="{ compact: !canUseColorPicker(newTheme, token.key) }">
+                    <input
+                      v-if="canUseColorPicker(newTheme, token.key)"
+                      type="color"
+                      :value="getThemeColorValue(newTheme, token.key)"
+                      @input="updateThemeColor(newTheme, token.key, ($event.target as HTMLInputElement).value)"
+                    />
+                    <input
+                      :id="`create-color-text-${token.key}`"
+                      type="text"
+                      :value="getThemeColorValue(newTheme, token.key)"
+                      @input="updateThemeColor(newTheme, token.key, ($event.target as HTMLInputElement).value)"
+                      class="color-text-input"
+                      placeholder="#000000"
+                    />
+                  </div>
+                  <p v-if="!canUseColorPicker(newTheme, token.key)" class="field-note">
+                    当前值不是 6 位 HEX，请用文本输入编辑。
+                  </p>
                 </div>
               </div>
             </div>
@@ -922,80 +929,70 @@
               <Sparkles :size="16" />
               效果
             </h3>
-
-            <div class="effect-item">
-              <label for="create-theme-bg-gradient">背景渐变</label>
-              <input
-                id="create-theme-bg-gradient"
-                type="text"
-                v-model="newTheme.effects!.bgGradient"
-                placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
-              />
-            </div>
-
-            <div class="effect-item">
-              <label for="create-theme-bg-image">背景图地址</label>
-              <input
-                id="create-theme-bg-image"
-                type="text"
-                v-model="newTheme.effects!.bgImage"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-
-            <div class="effect-row">
-              <div class="effect-item half">
-                <label for="create-theme-image-opacity">背景图透明度（0-1）</label>
-                <input
-                  id="create-theme-image-opacity"
-                  type="number"
-                  v-model.number="newTheme.effects!.bgImageOpacity"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  placeholder="0.5"
-                />
-              </div>
-              <div class="effect-item half">
-                <label for="create-theme-bg-blur">背景模糊</label>
-                <input
-                  id="create-theme-bg-blur"
-                  type="text"
-                  v-model="newTheme.effects!.bgBlur"
-                  placeholder="10px"
-                />
-              </div>
-            </div>
-
-            <div class="effect-toggle">
-              <label class="toggle">
-                <input type="checkbox" v-model="newTheme.effects!.glassEffect" />
-                <span class="toggle-slider"></span>
-              </label>
-              <span>启用玻璃效果</span>
-            </div>
-
-            <div v-if="newTheme.effects?.glassEffect" class="effect-row">
-              <div class="effect-item half">
-                <label for="create-theme-glass-blur">玻璃模糊</label>
-                <input
-                  id="create-theme-glass-blur"
-                  type="text"
-                  v-model="newTheme.effects!.glassBlur"
-                  placeholder="20px"
-                />
-              </div>
-              <div class="effect-item half">
-                <label for="create-theme-glass-opacity">玻璃透明度（0-1）</label>
-                <input
-                  id="create-theme-glass-opacity"
-                  type="number"
-                  v-model.number="newTheme.effects!.glassOpacity"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  placeholder="0.8"
-                />
+            <div class="editor-group" v-for="group in themeEffectGroups" :key="`create-${group.id}`">
+              <h4 class="editor-group-title">{{ group.label }}</h4>
+              <div class="editor-grid effect-grid">
+                <template v-for="token in group.tokens" :key="`create-${group.id}-${token.key}`">
+                  <div
+                    v-if="isEffectTokenVisible(newTheme, token.key)"
+                    class="editor-field"
+                    :class="{ wide: isWideEffectToken(token.key), 'toggle-field': token.input === 'boolean' }"
+                  >
+                    <template v-if="token.input === 'boolean'">
+                      <div class="effect-toggle">
+                        <label class="toggle">
+                          <input
+                            type="checkbox"
+                            :checked="getThemeEffectBooleanValue(newTheme, token.key)"
+                            @change="
+                              updateThemeBooleanEffect(
+                                newTheme,
+                                token.key,
+                                ($event.target as HTMLInputElement).checked
+                              )
+                            "
+                          />
+                          <span class="toggle-slider"></span>
+                        </label>
+                        <span class="effect-toggle-label">{{ token.label }}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <label :for="`create-effect-${token.key}`">{{ token.label }}</label>
+                      <input
+                        v-if="token.input === 'number'"
+                        :id="`create-effect-${token.key}`"
+                        type="number"
+                        :value="getThemeEffectNumberValue(newTheme, token.key)"
+                        @input="
+                          updateThemeNumberEffect(
+                            newTheme,
+                            token.key,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        :placeholder="token.placeholder"
+                      />
+                      <input
+                        v-else
+                        :id="`create-effect-${token.key}`"
+                        type="text"
+                        :value="getThemeEffectTextValue(newTheme, token.key)"
+                        @input="
+                          updateThemeTextEffect(
+                            newTheme,
+                            token.key,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                        :placeholder="token.placeholder"
+                      />
+                    </template>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -1056,35 +1053,41 @@
               <Palette :size="16" />
               颜色
             </h3>
-            <div class="color-grid">
-              <div v-for="(label, key) in colorLabels" :key="key" class="color-item">
-                <label :for="`edit-color-text-${String(key)}`">{{ label }}</label>
-                <div class="color-input-wrapper">
-                  <input
-                    type="color"
-                    :value="
-                      editingTheme!.colors[key as keyof ThemeColors] ||
-                      defaultColors[key as keyof ThemeColors]
-                    "
-                    @input="
-                      (e) =>
-                        (editingTheme!.colors[key as keyof ThemeColors] = (
-                          e.target as HTMLInputElement
-                        ).value)
-                    "
-                  />
-                  <input
-                    :id="`edit-color-text-${String(key)}`"
-                    type="text"
-                    :value="editingTheme!.colors[key as keyof ThemeColors] || ''"
-                    @input="
-                      (e) =>
-                        (editingTheme!.colors[key as keyof ThemeColors] = (
-                          e.target as HTMLInputElement
-                        ).value)
-                    "
-                    class="color-text-input"
-                  />
+            <div class="editor-group" v-for="group in themeColorGroups" :key="`edit-${group.id}`">
+              <h4 class="editor-group-title">{{ group.label }}</h4>
+              <div class="editor-grid">
+                <div
+                  v-for="token in group.tokens"
+                  :key="`edit-${group.id}-${token.key}`"
+                  class="editor-field"
+                >
+                  <label :for="`edit-color-text-${token.key}`">{{ token.label }}</label>
+                  <div
+                    class="color-input-wrapper"
+                    :class="{ compact: !canUseColorPicker(editingTheme!, token.key) }"
+                  >
+                    <input
+                      v-if="canUseColorPicker(editingTheme!, token.key)"
+                      type="color"
+                      :value="getThemeColorValue(editingTheme!, token.key)"
+                      @input="
+                        updateThemeColor(editingTheme!, token.key, ($event.target as HTMLInputElement).value)
+                      "
+                    />
+                    <input
+                      :id="`edit-color-text-${token.key}`"
+                      type="text"
+                      :value="getThemeColorValue(editingTheme!, token.key)"
+                      @input="
+                        updateThemeColor(editingTheme!, token.key, ($event.target as HTMLInputElement).value)
+                      "
+                      class="color-text-input"
+                      placeholder="#000000"
+                    />
+                  </div>
+                  <p v-if="!canUseColorPicker(editingTheme!, token.key)" class="field-note">
+                    当前值不是 6 位 HEX，请用文本输入编辑。
+                  </p>
                 </div>
               </div>
             </div>
@@ -1095,78 +1098,70 @@
               <Sparkles :size="16" />
               效果
             </h3>
-
-            <div class="effect-item">
-              <label for="edit-theme-bg-gradient">背景渐变</label>
-              <input
-                id="edit-theme-bg-gradient"
-                type="text"
-                v-model="editingTheme!.effects.bgGradient"
-                placeholder="linear-gradient(135deg, #1a1a1a, #2d2d2d)"
-              />
-            </div>
-
-            <div class="effect-item">
-              <label for="edit-theme-bg-image">背景图地址</label>
-              <input
-                id="edit-theme-bg-image"
-                type="text"
-                v-model="editingTheme!.effects.bgImage"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-
-            <div class="effect-row">
-              <div class="effect-item half">
-                <label for="edit-theme-image-opacity">背景图透明度（0-1）</label>
-                <input
-                  id="edit-theme-image-opacity"
-                  type="number"
-                  v-model.number="editingTheme!.effects.bgImageOpacity"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                />
-              </div>
-              <div class="effect-item half">
-                <label for="edit-theme-bg-blur">背景模糊</label>
-                <input
-                  id="edit-theme-bg-blur"
-                  type="text"
-                  v-model="editingTheme!.effects.bgBlur"
-                  placeholder="10px"
-                />
-              </div>
-            </div>
-
-            <div class="effect-toggle">
-              <label class="toggle">
-                <input type="checkbox" v-model="editingTheme!.effects.glassEffect" />
-                <span class="toggle-slider"></span>
-              </label>
-              <span>启用玻璃效果</span>
-            </div>
-
-            <div v-if="editingTheme!.effects?.glassEffect" class="effect-row">
-              <div class="effect-item half">
-                <label for="edit-theme-glass-blur">玻璃模糊</label>
-                <input
-                  id="edit-theme-glass-blur"
-                  type="text"
-                  v-model="editingTheme!.effects.glassBlur"
-                  placeholder="20px"
-                />
-              </div>
-              <div class="effect-item half">
-                <label for="edit-theme-glass-opacity">玻璃透明度（0-1）</label>
-                <input
-                  id="edit-theme-glass-opacity"
-                  type="number"
-                  v-model.number="editingTheme!.effects.glassOpacity"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                />
+            <div class="editor-group" v-for="group in themeEffectGroups" :key="`edit-${group.id}`">
+              <h4 class="editor-group-title">{{ group.label }}</h4>
+              <div class="editor-grid effect-grid">
+                <template v-for="token in group.tokens" :key="`edit-${group.id}-${token.key}`">
+                  <div
+                    v-if="isEffectTokenVisible(editingTheme!, token.key)"
+                    class="editor-field"
+                    :class="{ wide: isWideEffectToken(token.key), 'toggle-field': token.input === 'boolean' }"
+                  >
+                    <template v-if="token.input === 'boolean'">
+                      <div class="effect-toggle">
+                        <label class="toggle">
+                          <input
+                            type="checkbox"
+                            :checked="getThemeEffectBooleanValue(editingTheme!, token.key)"
+                            @change="
+                              updateThemeBooleanEffect(
+                                editingTheme!,
+                                token.key,
+                                ($event.target as HTMLInputElement).checked
+                              )
+                            "
+                          />
+                          <span class="toggle-slider"></span>
+                        </label>
+                        <span class="effect-toggle-label">{{ token.label }}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <label :for="`edit-effect-${token.key}`">{{ token.label }}</label>
+                      <input
+                        v-if="token.input === 'number'"
+                        :id="`edit-effect-${token.key}`"
+                        type="number"
+                        :value="getThemeEffectNumberValue(editingTheme!, token.key)"
+                        @input="
+                          updateThemeNumberEffect(
+                            editingTheme!,
+                            token.key,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        :placeholder="token.placeholder"
+                      />
+                      <input
+                        v-else
+                        :id="`edit-effect-${token.key}`"
+                        type="text"
+                        :value="getThemeEffectTextValue(editingTheme!, token.key)"
+                        @input="
+                          updateThemeTextEffect(
+                            editingTheme!,
+                            token.key,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
+                        :placeholder="token.placeholder"
+                      />
+                    </template>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -1920,27 +1915,82 @@
     color: var(--text-primary);
   }
 
-  .color-grid {
+  .editor-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .editor-group-title {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .editor-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
   }
 
-  .color-item {
+  .effect-grid {
+    align-items: start;
+  }
+
+  .editor-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .color-item label {
+  .editor-field.wide {
+    grid-column: 1 / -1;
+  }
+
+  .editor-field.toggle-field {
+    justify-content: center;
+  }
+
+  .editor-field label {
     font-size: var(--text-xs);
     color: var(--text-secondary);
   }
+
+  .editor-field input {
+    padding: 10px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    outline: none;
+  }
+
+  .editor-field input:focus {
+    border-color: var(--accent);
+  }
+
+  .field-note {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-tertiary, var(--text-secondary));
+  }
+
 
   .color-input-wrapper {
     display: flex;
     gap: 8px;
   }
+
+  .color-input-wrapper.compact {
+    display: block;
+  }
+
 
   .color-input-wrapper input[type='color'] {
     width: 40px;
@@ -1963,41 +2013,6 @@
     font-family: monospace;
   }
 
-  .effect-item {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .effect-item.half {
-    flex: 1;
-  }
-
-  .effect-item label {
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
-  }
-
-  .effect-item input {
-    padding: 10px 12px;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: var(--text-sm);
-    outline: none;
-  }
-
-  .effect-item input:focus {
-    border-color: var(--accent);
-  }
-
-  .effect-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
   .effect-toggle {
     display: flex;
     align-items: center;
@@ -2005,10 +2020,11 @@
     padding: 8px 0;
   }
 
-  .effect-toggle span {
+  .effect-toggle-label {
     font-size: var(--text-xs);
     color: var(--text-primary);
   }
+
 
   .modal-actions {
     display: flex;
@@ -2088,13 +2104,10 @@
       grid-template-columns: 1fr;
     }
 
-    .color-grid {
+    .editor-grid {
       grid-template-columns: 1fr;
     }
 
-    .effect-row {
-      grid-template-columns: 1fr;
-    }
   }
 
   @media (max-width: 640px) {

@@ -56,49 +56,63 @@ export interface Theme {
 export type ThemeColorKey = keyof ThemeColors
 export type ThemeEffectKey = keyof ThemeEffects
 
+export interface ThemeTokenField<TKey extends string> {
+  key: TKey
+  label: string
+  input: 'color' | 'text' | 'number' | 'boolean'
+  placeholder?: string
+}
+
 export interface ThemeTokenGroup<TKey extends string> {
   id: string
   label: string
-  keys: TKey[]
+  tokens: ThemeTokenField<TKey>[]
 }
 
 export const THEME_COLOR_GROUPS: ThemeTokenGroup<ThemeColorKey>[] = [
   {
     id: 'core-surface',
     label: '核心界面',
-    keys: [
-      'bgPrimary',
-      'bgSecondary',
-      'bgCard',
-      'bgElevated',
-      'bgOverlay',
-      'textPrimary',
-      'textSecondary',
-      'textSecondaryStrong',
-      'textTertiary',
-      'border',
-      'borderSubtle'
+    tokens: [
+      { key: 'bgPrimary', label: '主背景', input: 'color' },
+      { key: 'bgSecondary', label: '侧边背景', input: 'color' },
+      { key: 'bgCard', label: '卡片背景', input: 'color' },
+      { key: 'bgElevated', label: '浮层背景', input: 'color' },
+      { key: 'bgOverlay', label: '遮罩背景', input: 'color' },
+      { key: 'textPrimary', label: '主文字', input: 'color' },
+      { key: 'textSecondary', label: '次级文字', input: 'color' },
+      { key: 'textSecondaryStrong', label: '强调次级文字', input: 'color' },
+      { key: 'textTertiary', label: '弱化文字', input: 'color' },
+      { key: 'border', label: '主边框', input: 'color' },
+      { key: 'borderSubtle', label: '弱化边框', input: 'color' }
     ]
   },
   {
     id: 'accent-state',
     label: '主强调与状态',
-    keys: ['accent', 'accentHover', 'accentMuted', 'success', 'warning', 'error']
+    tokens: [
+      { key: 'accent', label: '主强调色', input: 'color' },
+      { key: 'accentHover', label: '强调悬浮色', input: 'color' },
+      { key: 'accentMuted', label: '强调弱化色', input: 'color' },
+      { key: 'success', label: '成功色', input: 'color' },
+      { key: 'warning', label: '警告色', input: 'color' },
+      { key: 'error', label: '错误色', input: 'color' }
+    ]
   },
   {
     id: 'extended-visual',
     label: '扩展视觉',
-    keys: [
-      'accentRose',
-      'accentBlush',
-      'accentLilac',
-      'accentViolet',
-      'accentSky',
-      'accentAmber',
-      'accentMint',
-      'glow',
-      'glassBg',
-      'glassBorder'
+    tokens: [
+      { key: 'accentRose', label: '玫瑰强调色', input: 'color' },
+      { key: 'accentBlush', label: '腮红强调色', input: 'color' },
+      { key: 'accentLilac', label: '淡紫强调色', input: 'color' },
+      { key: 'accentViolet', label: '紫罗兰强调色', input: 'color' },
+      { key: 'accentSky', label: '天青强调色', input: 'color' },
+      { key: 'accentAmber', label: '琥珀强调色', input: 'color' },
+      { key: 'accentMint', label: '薄荷强调色', input: 'color' },
+      { key: 'glow', label: '辉光色', input: 'color' },
+      { key: 'glassBg', label: '玻璃背景', input: 'color' },
+      { key: 'glassBorder', label: '玻璃边框', input: 'color' }
     ]
   }
 ]
@@ -107,7 +121,25 @@ export const THEME_EFFECT_GROUPS: ThemeTokenGroup<ThemeEffectKey>[] = [
   {
     id: 'effects',
     label: '效果',
-    keys: ['bgGradient', 'bgImage', 'bgImageOpacity', 'bgBlur', 'glassEffect', 'glassBlur', 'glassOpacity']
+    tokens: [
+      {
+        key: 'bgGradient',
+        label: '背景渐变',
+        input: 'text',
+        placeholder: 'linear-gradient(135deg, #1a1a1a, #2d2d2d)'
+      },
+      {
+        key: 'bgImage',
+        label: '背景图地址',
+        input: 'text',
+        placeholder: 'https://example.com/image.jpg'
+      },
+      { key: 'bgImageOpacity', label: '背景图透明度（0-1）', input: 'number', placeholder: '0.5' },
+      { key: 'bgBlur', label: '背景模糊', input: 'text', placeholder: '10px' },
+      { key: 'glassEffect', label: '启用玻璃效果', input: 'boolean' },
+      { key: 'glassBlur', label: '玻璃模糊', input: 'text', placeholder: '20px' },
+      { key: 'glassOpacity', label: '玻璃透明度（0-1）', input: 'number', placeholder: '0.8' }
+    ]
   }
 ]
 
@@ -335,4 +367,16 @@ export function resolveTheme(themeId?: string, customThemes: Theme[] = []): Them
 
 export function resolveThemeId(themeId: string, customThemes: Theme[] = []): string {
   return findTheme(themeId, customThemes)?.id ?? DEFAULT_THEME_ID
+}
+
+export function createCustomThemeDraft(baseTheme: Theme = getFallbackTheme()): Theme & { effects: ThemeEffects } {
+  const clonedTheme = cloneTheme(baseTheme)
+  return {
+    ...clonedTheme,
+    id: '',
+    name: '',
+    description: '',
+    isBuiltIn: false,
+    effects: clonedTheme.effects ? { ...clonedTheme.effects } : {}
+  }
 }
