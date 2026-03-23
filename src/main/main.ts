@@ -52,6 +52,8 @@ import {
 import type { ExportOptions, ImportOptionsV2 } from './dataImportExport'
 import { logger } from './utils/logger'
 import { createMacOSPlaybackControls } from './macosPlaybackControls'
+import { DEFAULT_RUNTIME_CONFIG } from '../shared/runtimeConfig'
+import { getRuntimeConfig, loadRuntimeConfig } from './runtimeConfig'
 
 let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
@@ -62,7 +64,7 @@ let qrPollInterval: NodeJS.Timeout | null = null
 let memoryCleanupInterval: NodeJS.Timeout | null = null
 let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
-let viewIdleTimeout: number = 10 * 60 * 1000
+let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
 
 const BILIBILI_SESSION = 'persist:bilibili'
@@ -835,6 +837,10 @@ async function logout() {
 }
 
 function setupIPC() {
+  ipcMain.handle('config:getRuntimeConfig', async () => {
+    return getRuntimeConfig()
+  })
+
   ipcMain.handle(
     'search:query',
     async (_event, query: string, offset?: number): Promise<SearchResult> => {
@@ -1316,6 +1322,10 @@ app.whenReady().then(() => {
   setMacOSDockIcon()
   setupCSP()
   setupBilibiliImageReferer()
+
+  const runtimeConfig = loadRuntimeConfig()
+  viewIdleTimeout = runtimeConfig.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
+
   setupIPC()
   startMemoryManagement()
   refreshApplicationMenu()
