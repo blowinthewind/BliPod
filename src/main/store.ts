@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import type { ExtractedVideo } from '../preload/preload'
+import type { ExtractedVideo, Theme } from '../preload/preload'
 
 export interface FavoriteVideo extends ExtractedVideo {
   addedAt: number
@@ -23,6 +23,7 @@ export interface AppSettings {
   autoPlay: boolean
   rememberPosition: boolean
   currentThemeId: string
+  customThemes: Theme[]
 }
 
 export interface PlayPosition {
@@ -58,7 +59,8 @@ const defaults: AppStore = {
   settings: {
     autoPlay: true,
     rememberPosition: true,
-    currentThemeId: 'dark'
+    currentThemeId: 'dark',
+    customThemes: []
   },
   playPositions: [],
   userQueue: [],
@@ -66,11 +68,21 @@ const defaults: AppStore = {
   playStats: {}
 }
 
+export function normalizeAppSettings(settings?: Partial<AppSettings>): AppSettings {
+  return {
+    ...defaults.settings,
+    ...safeClone(settings ?? {}),
+    customThemes: Array.isArray(settings?.customThemes) ? safeClone(settings.customThemes) : []
+  }
+}
+
 export const store = new Store<AppStore>({
   defaults,
   name: 'blipod-data',
   encryptionKey: process.env.NODE_ENV === 'production' ? 'blipod-secret-key' : undefined
 })
+
+store.set('settings', normalizeAppSettings(store.get('settings')))
 
 export function getFavorites(): FavoriteVideo[] {
   return safeClone(store.get('favorites'))
@@ -212,12 +224,12 @@ export function updatePlaylistVideoDuration(bvid: string, duration: string): boo
 }
 
 export function getSettings(): AppSettings {
-  return safeClone(store.get('settings'))
+  return normalizeAppSettings(store.get('settings'))
 }
 
 export function updateSettings(updates: Partial<AppSettings>): AppSettings {
   const settings = store.get('settings')
-  const newSettings = { ...settings, ...updates }
+  const newSettings = normalizeAppSettings({ ...settings, ...updates })
   store.set('settings', newSettings)
   return newSettings
 }
@@ -378,7 +390,7 @@ export function exportData(): AppStore {
   return {
     favorites: safeClone(store.get('favorites')),
     playlists: safeClone(store.get('playlists')),
-    settings: safeClone(store.get('settings')),
+    settings: getSettings(),
     playPositions: safeClone(store.get('playPositions')),
     userQueue: safeClone(store.get('userQueue')),
     lastVolume: store.get('lastVolume')
@@ -393,7 +405,7 @@ export function importData(data: Partial<AppStore>): void {
     store.set('playlists', data.playlists)
   }
   if (data.settings) {
-    store.set('settings', { ...store.get('settings'), ...data.settings })
+    store.set('settings', normalizeAppSettings({ ...store.get('settings'), ...data.settings }))
   }
   if (data.playPositions) {
     store.set('playPositions', data.playPositions)

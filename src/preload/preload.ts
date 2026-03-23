@@ -67,10 +67,60 @@ export interface Playlist {
   updatedAt: number
 }
 
+export interface ThemeColors {
+  bgPrimary: string
+  bgSecondary: string
+  bgCard: string
+  bgElevated: string
+  bgOverlay?: string
+  textPrimary: string
+  textSecondary: string
+  textSecondaryStrong?: string
+  textTertiary?: string
+  accent: string
+  accentHover: string
+  accentMuted?: string
+  accentRose?: string
+  accentBlush?: string
+  accentLilac?: string
+  accentViolet?: string
+  accentSky?: string
+  accentAmber?: string
+  accentMint?: string
+  border: string
+  borderSubtle?: string
+  success?: string
+  warning?: string
+  error?: string
+  glow?: string
+  glassBg?: string
+  glassBorder?: string
+}
+
+export interface ThemeEffects {
+  bgGradient?: string
+  bgImage?: string
+  bgImageOpacity?: number
+  bgBlur?: string
+  glassEffect?: boolean
+  glassBlur?: string
+  glassOpacity?: number
+}
+
+export interface Theme {
+  id: string
+  name: string
+  description?: string
+  colors: ThemeColors
+  effects?: ThemeEffects
+  isBuiltIn?: boolean
+}
+
 export interface AppSettings {
   autoPlay: boolean
   rememberPosition: boolean
   currentThemeId: string
+  customThemes: Theme[]
 }
 
 export interface PlayPosition {

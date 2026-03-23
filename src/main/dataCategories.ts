@@ -1,6 +1,6 @@
 import type { FavoriteVideo, Playlist, AppSettings } from './store'
-import type { ExtractedVideo } from '../preload/preload'
-import { store } from './store'
+import type { ExtractedVideo, Theme } from '../preload/preload'
+import { getSettings, normalizeAppSettings, store } from './store'
 
 export interface DataCategory<T> {
   key: string
@@ -69,13 +69,55 @@ function isValidExtractedVideo(data: unknown): data is ExtractedVideo {
   )
 }
 
+function isValidThemeColors(data: unknown): data is Theme['colors'] {
+  if (!data || typeof data !== 'object') return false
+  const colors = data as Record<string, unknown>
+
+  return (
+    typeof colors.bgPrimary === 'string' &&
+    typeof colors.bgSecondary === 'string' &&
+    typeof colors.bgCard === 'string' &&
+    typeof colors.bgElevated === 'string' &&
+    typeof colors.textPrimary === 'string' &&
+    typeof colors.textSecondary === 'string' &&
+    typeof colors.accent === 'string' &&
+    typeof colors.accentHover === 'string' &&
+    typeof colors.border === 'string'
+  )
+}
+
+function isValidThemeEffects(data: unknown): data is NonNullable<Theme['effects']> {
+  if (!data || typeof data !== 'object') return false
+  const effects = data as Record<string, unknown>
+
+  return Object.values(effects).every(
+    (value) => value === undefined || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+  )
+}
+
+function isValidTheme(data: unknown): data is Theme {
+  if (!data || typeof data !== 'object') return false
+  const theme = data as Record<string, unknown>
+
+  return (
+    typeof theme.id === 'string' &&
+    typeof theme.name === 'string' &&
+    (theme.description === undefined || typeof theme.description === 'string') &&
+    isValidThemeColors(theme.colors) &&
+    (theme.effects === undefined || isValidThemeEffects(theme.effects)) &&
+    (theme.isBuiltIn === undefined || typeof theme.isBuiltIn === 'boolean')
+  )
+}
+
 function isValidAppSettings(data: unknown): data is AppSettings {
   if (!data || typeof data !== 'object') return false
   const s = data as Record<string, unknown>
   return (
     typeof s.autoPlay === 'boolean' &&
     typeof s.rememberPosition === 'boolean' &&
-    typeof s.currentThemeId === 'string'
+    typeof s.currentThemeId === 'string' &&
+    (s.customThemes === undefined ||
+      (Array.isArray(s.customThemes) && s.customThemes.every(isValidTheme)))
   )
 }
 
@@ -178,8 +220,8 @@ registerDataCategory<AppSettings>({
   key: 'settings',
   name: '应用设置',
   description: '应用配置选项',
-  get: () => safeClone(store.get('settings')),
-  set: (data) => store.set('settings', data),
+  get: () => getSettings(),
+  set: (data) => store.set('settings', normalizeAppSettings(data)),
   validate: isValidAppSettings,
   getStats: () => 1
 })

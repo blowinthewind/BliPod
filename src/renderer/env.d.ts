@@ -73,10 +73,60 @@ interface Playlist {
   updatedAt: number
 }
 
+interface ThemeColors {
+  bgPrimary: string
+  bgSecondary: string
+  bgCard: string
+  bgElevated: string
+  bgOverlay?: string
+  textPrimary: string
+  textSecondary: string
+  textSecondaryStrong?: string
+  textTertiary?: string
+  accent: string
+  accentHover: string
+  accentMuted?: string
+  accentRose?: string
+  accentBlush?: string
+  accentLilac?: string
+  accentViolet?: string
+  accentSky?: string
+  accentAmber?: string
+  accentMint?: string
+  border: string
+  borderSubtle?: string
+  success?: string
+  warning?: string
+  error?: string
+  glow?: string
+  glassBg?: string
+  glassBorder?: string
+}
+
+interface ThemeEffects {
+  bgGradient?: string
+  bgImage?: string
+  bgImageOpacity?: number
+  bgBlur?: string
+  glassEffect?: boolean
+  glassBlur?: string
+  glassOpacity?: number
+}
+
+interface Theme {
+  id: string
+  name: string
+  description?: string
+  colors: ThemeColors
+  effects?: ThemeEffects
+  isBuiltIn?: boolean
+}
+
 interface AppSettings {
   autoPlay: boolean
   rememberPosition: boolean
   currentThemeId: string
+  customThemes: Theme[]
 }
 
 interface PlayPosition {

@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppSettings, AppStore } from '../../preload/preload'
+import type { AppSettings, AppStore, Theme } from '../../preload/preload'
 
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
     autoPlay: true,
     rememberPosition: true,
-    currentThemeId: 'dark'
+    currentThemeId: 'dark',
+    customThemes: []
   })
   const lastVolume = ref(80)
   const isLoading = ref(false)
@@ -15,6 +16,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   const autoPlay = computed(() => settings.value.autoPlay)
   const rememberPosition = computed(() => settings.value.rememberPosition)
   const currentThemeId = computed(() => settings.value.currentThemeId)
+  const customThemes = computed(() => settings.value.customThemes)
 
   async function loadSettings() {
     isLoading.value = true
@@ -51,6 +53,10 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     await updateSettings({ currentThemeId: themeId })
   }
 
+  async function setCustomThemes(themes: Theme[]) {
+    await updateSettings({ customThemes: themes })
+  }
+
   async function setLastVolume(value: number) {
     const clampedValue = Math.max(0, Math.min(100, value))
     lastVolume.value = clampedValue
@@ -85,11 +91,13 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     autoPlay,
     rememberPosition,
     currentThemeId,
+    customThemes,
     loadSettings,
     updateSettings,
     setAutoPlay,
     setRememberPosition,
     setCurrentThemeId,
+    setCustomThemes,
     setLastVolume,
     exportData,
     importData
