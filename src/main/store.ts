@@ -68,12 +68,27 @@ const defaults: AppStore = {
   playStats: {}
 }
 
+const BUILT_IN_THEME_IDS = new Set(['dark', 'light', 'sunset', 'ocean', 'glass'])
+
 export function normalizeAppSettings(settings?: Partial<AppSettings>): AppSettings {
-  return {
+  const normalizedSettings: AppSettings = {
     ...defaults.settings,
     ...safeClone(settings ?? {}),
     customThemes: Array.isArray(settings?.customThemes) ? safeClone(settings.customThemes) : []
   }
+
+  const availableThemeIds = new Set(BUILT_IN_THEME_IDS)
+  normalizedSettings.customThemes.forEach((theme) => {
+    if (theme?.id) {
+      availableThemeIds.add(theme.id)
+    }
+  })
+
+  if (!availableThemeIds.has(normalizedSettings.currentThemeId)) {
+    normalizedSettings.currentThemeId = defaults.settings.currentThemeId
+  }
+
+  return normalizedSettings
 }
 
 export const store = new Store<AppStore>({
