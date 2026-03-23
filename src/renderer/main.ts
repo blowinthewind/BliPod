@@ -4,6 +4,7 @@ import VueLazyload from 'vue-lazyload'
 import router from './router'
 import { useThemeStore } from './stores/theme'
 import { useAppSettingsStore } from './stores/appSettings'
+import { useRuntimeConfigStore } from './stores/runtimeConfig'
 import { lazyloadOptions } from './composables/useImageLazyload'
 import { logger } from './utils/logger'
 import App from './App.vue'
@@ -65,6 +66,7 @@ setupGlobalErrorHandlers()
 
 const themeStore = useThemeStore()
 const appSettingsStore = useAppSettingsStore()
+const runtimeConfigStore = useRuntimeConfigStore()
 
 watch(
   () => appSettingsStore.settings,
@@ -77,9 +79,9 @@ watch(
   { deep: true, immediate: true }
 )
 
-void appSettingsStore.loadSettings()
+void Promise.all([runtimeConfigStore.loadRuntimeConfig(), appSettingsStore.loadSettings()]).finally(() => {
+  app.mount('#app')
 
-app.mount('#app')
-
-// 应用启动日志
-logger.info('BliPod Renderer started')
+  // 应用启动日志
+  logger.info('BliPod Renderer started')
+})
