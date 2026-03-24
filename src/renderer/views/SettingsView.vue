@@ -36,6 +36,7 @@
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
   import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
+  import { logger } from '@/utils/logger'
 
   const themeStore = useThemeStore()
   const authStore = useAuthStore()
@@ -141,7 +142,10 @@
       categoryStats.value = stats
       selectedExportCategories.value = stats.map((s) => s.key)
     } catch (error) {
-      console.error('Failed to load category stats:', error)
+      logger.error(
+        'Failed to load category stats',
+        error instanceof Error ? error.message : String(error)
+      )
     }
   }
 

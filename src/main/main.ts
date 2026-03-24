@@ -487,10 +487,17 @@ async function createSearchView(): Promise<BrowserView> {
       )) as SearchResult | null
 
       if (result?.pageUrl?.includes('m.bilibili.com')) {
-        logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl })
+        logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl.split('?')[0] })
       }
 
-      logger.info('Extract result:', JSON.stringify(result, null, 2))
+      if (result) {
+        logger.info('Search results extracted', {
+          videoCount: result.videos.length,
+          hasMore: result.hasMore,
+          currentPage: result.currentPage,
+          nextOffset: result.nextOffset
+        })
+      }
 
       if (result && mainWindow) {
         mainWindow.webContents.send('search:result', result)
@@ -632,27 +639,18 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
 async function checkLoginStatus(): Promise<BiliAuthStatus> {
   const bilibiliSession = getBilibiliSession()
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
-
-  logger.debug('checkLoginStatus: found', `${cookies.length} cookies`)
-  logger.debug('checkLoginStatus: cookie names:', cookies.map((c) => c.name).join(', '))
-
   const sessdata = cookies.find((c) => c.name === 'SESSDATA')
 
   if (!sessdata) {
-    logger.debug('checkLoginStatus: no SESSDATA cookie found')
-
-    const allCookies = await bilibiliSession.cookies.get({})
-    logger.debug('checkLoginStatus: all cookies in session:', `${allCookies.length}`)
-    logger.debug('checkLoginStatus: all cookie names:', allCookies.map((c) => c.name).join(', '))
-
+    logger.debug('No active Bilibili session found')
     return { isLoggedIn: false, userInfo: null }
   }
 
-  logger.debug('checkLoginStatus: SESSDATA found, fetching user info...')
+  logger.debug('Active Bilibili session detected, fetching user info')
 
   const userInfo = await fetchUserInfo()
 
-  logger.debug('checkLoginStatus: userInfo result:', userInfo ? userInfo.name : 'null')
+  logger.debug('Login status resolved', { isLoggedIn: userInfo !== null })
 
   return {
     isLoggedIn: userInfo !== null,
@@ -731,8 +729,7 @@ async function startQrLogin() {
 
         if (statusResult.data?.code === 0) {
           stopQrPoll()
-
-          logger.info('Login success! URL:', statusResult.data.url?.substring(0, 100) + '...')
+          logger.info('QR login confirmed')
 
           const url = new URL(statusResult.data.url)
           const cookieParams = url.searchParams
@@ -744,12 +741,6 @@ async function startQrLogin() {
           const sessdata = cookieParams.get('SESSDATA')
           const biliJct = cookieParams.get('bili_jct')
 
-          logger.debug('Cookie params from URL:')
-          logger.debug('  DedeUserID:', dedeuserid ? 'present' : 'missing')
-          logger.debug('  DedeUserID__ckMd5:', dedeuseridCkMd5 ? 'present' : 'missing')
-          logger.debug('  SESSDATA:', sessdata ? `present (length: ${sessdata.length})` : 'missing')
-          logger.debug('  bili_jct:', biliJct ? 'present' : 'missing')
-
           if (sessdata) {
             const expirationDate = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60
 
@@ -760,18 +751,12 @@ async function startQrLogin() {
               expirationDate
             }
 
-            logger.debug(
-              'Setting cookies with expiration:',
-              new Date(expirationDate * 1000).toISOString()
-            )
-
             if (dedeuserid) {
               await bilibiliSession.cookies.set({
                 ...cookieOptions,
                 name: 'DedeUserID',
                 value: dedeuserid
               })
-              logger.debug('Set DedeUserID cookie')
             }
 
             if (dedeuseridCkMd5) {
@@ -780,7 +765,6 @@ async function startQrLogin() {
                 name: 'DedeUserID__ckMd5',
                 value: dedeuseridCkMd5
               })
-              logger.debug('Set DedeUserID__ckMd5 cookie')
             }
 
             await bilibiliSession.cookies.set({
@@ -790,7 +774,6 @@ async function startQrLogin() {
               secure: true,
               httpOnly: true
             })
-            logger.debug('Set SESSDATA cookie')
 
             if (biliJct) {
               await bilibiliSession.cookies.set({
@@ -798,13 +781,9 @@ async function startQrLogin() {
                 name: 'bili_jct',
                 value: biliJct
               })
-              logger.debug('Set bili_jct cookie')
             }
 
-            const savedCookies = await bilibiliSession.cookies.get({
-              url: 'https://www.bilibili.com'
-            })
-            logger.debug('Cookies after saving:', savedCookies.map((c) => c.name).join(', '))
+            logger.info('Bilibili session cookies saved')
 
             const userInfo = await fetchUserInfo()
 

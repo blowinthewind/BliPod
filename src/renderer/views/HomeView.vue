@@ -11,6 +11,7 @@
   import LazyImage from '../components/ui/LazyImage.vue'
   import type { HistoryVideo } from '../stores/player'
   import { formatDuration } from '../utils/format'
+  import { logger } from '../utils/logger'
 
   const CONTINUE_CONFIG = {
     MIN_PROGRESS: 0.02,
@@ -79,7 +80,7 @@
           }
         }
       } catch (e) {
-        console.warn('Failed to get play position:', e)
+        logger.warn('Failed to get play position', e instanceof Error ? e.message : String(e))
       }
     }
 
