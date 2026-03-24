@@ -7,6 +7,7 @@ import {
   getCategoryStats,
   type CategoryStats
 } from './dataCategories'
+import { logger } from './utils/logger'
 
 const CURRENT_EXPORT_VERSION = '2.0.0'
 
@@ -149,7 +150,7 @@ export async function exportDataToFile(options?: ExportOptions): Promise<ExportR
 
     return { success: true, filePath: result.filePath }
   } catch (error) {
-    console.error('[BliPod] Export error:', error)
+    logger.error('Failed to export data', error instanceof Error ? error.message : String(error))
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Export failed'
@@ -191,7 +192,7 @@ export async function importDataFromFile(options: ImportOptionsV2): Promise<Impo
     for (const categoryKey of categoriesToImport) {
       const category = getDataCategory(categoryKey)
       if (!category) {
-        console.warn(`[BliPod] Unknown category: ${categoryKey}`)
+        logger.warn('Unknown category in import data', { categoryKey })
         continue
       }
 
@@ -201,7 +202,7 @@ export async function importDataFromFile(options: ImportOptionsV2): Promise<Impo
       }
 
       if (!category.validate(importedData)) {
-        console.warn(`[BliPod] Invalid data for category: ${categoryKey}`)
+        logger.warn('Invalid data for import category', { categoryKey })
         continue
       }
 
@@ -227,7 +228,7 @@ export async function importDataFromFile(options: ImportOptionsV2): Promise<Impo
 
     return { success: true, stats }
   } catch (error) {
-    console.error('[BliPod] Import error:', error)
+    logger.error('Failed to import data', error instanceof Error ? error.message : String(error))
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Import failed'

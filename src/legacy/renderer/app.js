@@ -102,8 +102,6 @@ const injectScript = `
       author = authorEl.textContent.trim() || authorEl.getAttribute('title') || '';
     }
     
-    console.log('BliPod getVideoInfo:', { title, cover, author });
-    
     return {
       title: title.trim(),
       cover: cover,
@@ -241,6 +239,10 @@ function formatTime(seconds) {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+function getErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error)
+}
+
 function startStateUpdates() {
   if (stateUpdateInterval) clearInterval(stateUpdateInterval)
   
@@ -251,7 +253,7 @@ function startStateUpdates() {
           updatePlayerUI(state)
         }
       })
-      .catch(err => console.error('Failed to get player state:', err))
+      .catch(err => console.error('Failed to get player state:', getErrorMessage(err)))
   }, 500)
 }
 
@@ -276,7 +278,6 @@ function updatePlayerUI(state) {
 }
 
 function updateVideoInfo(info) {
-  console.log('updateVideoInfo received:', info)
   if (info.title) {
     videoTitle.textContent = info.title
   }
@@ -291,17 +292,9 @@ function updateVideoInfo(info) {
     
     coverUrl = coverUrl.replace(/@\d+w_\d+h.*$/, '')
     coverUrl = coverUrl.split('@')[0]
-    
-    console.log('Setting cover image:', coverUrl)
-    
-    const img = new Image()
-    img.onload = function() {
-      console.log('Cover original size:', this.naturalWidth, 'x', this.naturalHeight)
-      statusText.textContent = `视频已加载 (封面: ${this.naturalWidth}x${this.naturalHeight})`
-    }
-    img.src = coverUrl
-    
-    coverContainer.innerHTML = `<img src="${coverUrl}" alt="封面" onerror="console.error('Cover image failed to load:', this.src)">`
+
+    statusText.textContent = '视频已加载'
+    coverContainer.innerHTML = `<img src="${coverUrl}" alt="封面">`
   }
   if (info.duration) {
     durationEl.textContent = info.duration
@@ -313,8 +306,7 @@ function updateVideoInfo(info) {
 
 webview.addEventListener('dom-ready', () => {
   webview.executeJavaScript(injectScript)
-    .then(() => console.log('Injection script loaded'))
-    .catch(err => console.error('Failed to inject script:', err))
+    .catch(err => console.error('Failed to inject script:', getErrorMessage(err)))
   
   setTimeout(() => {
     webview.executeJavaScript('window.bliPodControls.getVideoInfo()')
@@ -323,7 +315,7 @@ webview.addEventListener('dom-ready', () => {
           updateVideoInfo(info)
         }
       })
-      .catch(err => console.error('Early getVideoInfo failed:', err))
+      .catch(err => console.error('Early getVideoInfo failed:', getErrorMessage(err)))
   }, 500)
 })
 
@@ -342,7 +334,7 @@ webview.addEventListener('did-finish-load', () => {
         }
       })
       .catch(err => {
-        console.error('Failed to get video info:', err)
+        console.error('Failed to get video info:', getErrorMessage(err))
         if (retryCount < maxRetries) {
           retryCount++
           setTimeout(fetchVideoInfo, 1000)

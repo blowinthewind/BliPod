@@ -2,6 +2,7 @@ import type { FavoriteVideo, Playlist, AppSettings } from './store'
 import type { Theme } from '../shared/theme'
 import type { ExtractedVideo } from '../preload/preload'
 import { getSettings, normalizeAppSettings, store } from './store'
+import { logger } from './utils/logger'
 
 export interface DataCategory<T> {
   key: string
@@ -18,7 +19,7 @@ const dataCategoriesMap = new Map<string, DataCategory<unknown>>()
 
 export function registerDataCategory<T>(category: DataCategory<T>): void {
   if (dataCategoriesMap.has(category.key)) {
-    console.warn(`[BliPod] Data category "${category.key}" already registered, overwriting`)
+    logger.warn('Data category already registered, overwriting', { key: category.key })
   }
   dataCategoriesMap.set(category.key, category as DataCategory<unknown>)
 }
