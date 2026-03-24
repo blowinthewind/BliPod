@@ -141,7 +141,7 @@
 
     <section class="shortcuts-section">
       <button class="shortcut-card" type="button" aria-label="打开我的收藏" @click="goToFavorites">
-        <div class="shortcut-icon favorites">
+        <div class="shortcut-icon">
           <Heart :size="24" />
         </div>
         <div class="shortcut-info">
@@ -150,7 +150,7 @@
         </div>
       </button>
       <button class="shortcut-card" type="button" aria-label="打开播放列表" @click="goToPlaylists">
-        <div class="shortcut-icon playlist">
+        <div class="shortcut-icon">
           <ListMusic :size="24" />
         </div>
         <div class="shortcut-info">
@@ -159,7 +159,7 @@
         </div>
       </button>
       <button class="shortcut-card" type="button" aria-label="打开播放历史" @click="goToHistory">
-        <div class="shortcut-icon history">
+        <div class="shortcut-icon">
           <History :size="24" />
         </div>
         <div class="shortcut-info">
@@ -373,20 +373,9 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-md);
-    color: white;
+    background: var(--accent);
+    color: var(--bg-primary);
     flex-shrink: 0;
-  }
-
-  .shortcut-icon.favorites {
-    background: linear-gradient(135deg, var(--accent), var(--accent-rose));
-  }
-
-  .shortcut-icon.history {
-    background: linear-gradient(135deg, var(--accent-sky), var(--accent-violet));
-  }
-
-  .shortcut-icon.playlist {
-    background: linear-gradient(135deg, var(--accent-violet), var(--accent-lilac));
   }
 
   .shortcut-info {

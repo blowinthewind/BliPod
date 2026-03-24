@@ -1313,8 +1313,9 @@
     width: 56px;
     height: 56px;
     border-radius: var(--radius-lg, 12px);
-    background: linear-gradient(135deg, var(--accent), var(--accent-mint));
-    color: white;
+    background: var(--accent-muted);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
   }
 
   .page-title {

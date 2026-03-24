@@ -200,8 +200,8 @@
     width: 56px;
     height: 56px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-violet));
-    color: white;
+    background: var(--accent);
+    color: var(--bg-primary);
   }
 
   .header-text {

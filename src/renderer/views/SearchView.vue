@@ -180,8 +180,13 @@
 <template>
   <div class="search-view">
     <div class="search-header">
-      <h1 class="page-title">搜索</h1>
-      <p class="page-desc">搜索视频、UP 主和你想听的内容</p>
+      <div class="header-icon" aria-hidden="true">
+        <Search :size="24" />
+      </div>
+      <div class="header-text">
+        <h1 class="page-title">搜索</h1>
+        <p class="page-desc">搜索视频、UP 主和你想听的内容</p>
+      </div>
     </div>
 
     <div class="search-box">
@@ -412,6 +417,24 @@
 
   .search-header {
     display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: var(--bg-primary);
+    flex-shrink: 0;
+  }
+
+  .header-text {
+    display: flex;
     flex-direction: column;
     gap: 4px;
   }
@@ -425,6 +448,17 @@
   .page-desc {
     font-size: var(--text-sm);
     color: var(--text-secondary);
+  }
+
+  @media (max-width: 420px) {
+    .search-header {
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 48px;
+      height: 48px;
+    }
   }
 
   .search-box {
