@@ -144,7 +144,7 @@
         <h1 class="page-title">播放列表</h1>
         <p class="page-desc">{{ playlists.length }} 个列表</p>
       </div>
-      <Button class="create-btn" v-if="playlists.length > 0" @click="openCreateModal">
+      <Button v-if="playlists.length > 0" @click="openCreateModal">
         <Plus :size="18" />
         新建列表
       </Button>
@@ -245,21 +245,8 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <Button
-            class="modal-btn cancel"
-            variant="secondary"
-            type="button"
-            @click="closeCreateModal"
-          >
-            取消
-          </Button>
-          <Button
-            class="modal-btn confirm"
-            variant="default"
-            type="button"
-            @click="createPlaylist"
-            :disabled="!newPlaylistName.trim()"
-          >
+          <Button variant="secondary" type="button" @click="closeCreateModal">取消</Button>
+          <Button variant="default" type="button" @click="createPlaylist" :disabled="!newPlaylistName.trim()">
             创建
           </Button>
         </div>
@@ -296,21 +283,8 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <Button
-            class="modal-btn cancel"
-            variant="secondary"
-            type="button"
-            @click="closeEditModal"
-          >
-            取消
-          </Button>
-          <Button
-            class="modal-btn confirm"
-            variant="default"
-            type="button"
-            @click="updatePlaylist"
-            :disabled="!newPlaylistName.trim()"
-          >
+          <Button variant="secondary" type="button" @click="closeEditModal">取消</Button>
+          <Button variant="default" type="button" @click="updatePlaylist" :disabled="!newPlaylistName.trim()">
             保存
           </Button>
         </div>
@@ -334,23 +308,10 @@
           </span>
         </p>
         <div class="modal-actions">
-          <Button
-            ref="deleteCancelButtonRef"
-            class="modal-btn cancel"
-            variant="secondary"
-            type="button"
-            @click="closeDeleteConfirm"
-          >
+          <Button ref="deleteCancelButtonRef" variant="secondary" type="button" @click="closeDeleteConfirm">
             取消
           </Button>
-          <Button
-            class="modal-btn delete"
-            variant="destructive"
-            type="button"
-            @click="deletePlaylist"
-          >
-            删除
-          </Button>
+          <Button variant="destructive" type="button" @click="deletePlaylist">删除</Button>
         </div>
       </DialogPanel>
     </DialogOverlay>
@@ -410,28 +371,6 @@
     line-height: 1.45;
   }
 
-  .create-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .create-btn:hover {
-    background: var(--accent-hover);
-  }
 
   .loading-state {
     display: flex;
@@ -672,51 +611,6 @@
     gap: 12px;
   }
 
-  .modal-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s,
-      transform 0.2s;
-  }
-
-  .modal-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .modal-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .modal-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .modal-btn.confirm {
-    background: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .modal-btn.confirm:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
-
-  .modal-btn.delete {
-    background: var(--error);
-    color: var(--text-on-error);
-  }
-
-  .modal-btn.delete:hover {
-    background: color-mix(in srgb, var(--error) 82%, black);
-  }
 
   .confirm-modal .confirm-text {
     font-size: var(--text-sm);
@@ -730,7 +624,7 @@
       align-items: stretch;
     }
 
-    .modal-btn {
+    :deep(.modal-actions .button-base) {
       width: 100%;
       justify-content: center;
     }

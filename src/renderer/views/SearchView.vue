@@ -214,9 +214,8 @@
           <X :size="16" />
         </button>
       </div>
-      <Button class="search-btn" @click="handleSearch" :disabled="searchStore.isSearching">
-        <Loader2 v-if="searchStore.isSearching" :size="18" class="animate-spin" />
-        <span v-else>搜索</span>
+      <Button class="search-btn" :loading="searchStore.isSearching" @click="handleSearch">
+        搜索
       </Button>
 
       <div v-if="showHistory && searchStore.searchHistory.length > 0" class="history-dropdown">
@@ -225,9 +224,7 @@
             <History :size="14" />
             搜索历史
           </span>
-          <Button class="clear-history-btn" variant="ghost" size="sm" @click="clearAllHistory">
-            清空
-          </Button>
+          <Button variant="link" size="sm" @click="clearAllHistory">清空</Button>
         </div>
         <div class="history-list">
           <div v-for="item in searchStore.searchHistory" :key="item" class="history-item">
@@ -536,34 +533,9 @@
   }
 
   .search-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 24px;
-    height: 48px;
-    background: var(--accent);
-    color: var(--text-on-accent);
-    border: none;
+    min-height: 48px;
+    padding-inline: 24px;
     border-radius: 12px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      opacity 0.2s;
-  }
-
-  .search-btn:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
-
-  .search-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
   }
 
   .animate-spin {
@@ -612,17 +584,6 @@
     letter-spacing: 0.5px;
   }
 
-  .clear-history-btn {
-    font-size: var(--text-xs);
-    color: var(--accent);
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-
-  .clear-history-btn:hover {
-    text-decoration: underline;
-  }
 
   .history-list {
     max-height: 300px;
@@ -1036,34 +997,7 @@
   }
 
   .load-more-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      opacity 0.2s;
-  }
-
-  .load-more-btn:hover:not(:disabled) {
-    background: var(--bg-card);
-    border-color: var(--accent);
-  }
-
-  .load-more-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+    padding-inline: 24px;
   }
 
   .loading-state {

@@ -147,16 +147,11 @@
           <p v-if="playlist.description" class="page-description">{{ playlist.description }}</p>
         </div>
         <div class="header-actions">
-          <Button class="action-btn primary" v-if="videos.length > 0" @click="playAll">
+          <Button v-if="videos.length > 0" @click="playAll">
             <Play :size="18" />
             播放全部
           </Button>
-          <Button
-            class="action-btn secondary"
-            variant="secondary"
-            v-if="videos.length > 1"
-            @click="shufflePlay"
-          >
+          <Button variant="secondary" v-if="videos.length > 1" @click="shufflePlay">
             <Shuffle :size="18" />
             随机播放
           </Button>
@@ -267,21 +262,8 @@
           aria-label="播放列表描述"
         ></textarea>
         <div class="modal-actions">
-          <Button
-            class="modal-btn cancel"
-            variant="secondary"
-            type="button"
-            @click="closeEditModal"
-          >
-            取消
-          </Button>
-          <Button
-            class="modal-btn confirm"
-            variant="default"
-            type="button"
-            @click="updatePlaylist"
-            :disabled="!editName.trim()"
-          >
+          <Button variant="secondary" type="button" @click="closeEditModal">取消</Button>
+          <Button variant="default" type="button" @click="updatePlaylist" :disabled="!editName.trim()">
             保存
           </Button>
         </div>
@@ -406,42 +388,6 @@
     gap: 8px;
   }
 
-  .action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      opacity 0.2s;
-  }
-
-  .action-btn.primary {
-    background: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .action-btn.primary:hover {
-    background: var(--accent-hover);
-  }
-
-  .action-btn.secondary {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .action-btn.secondary:hover {
-    background: var(--bg-primary);
-  }
 
   .action-btn.icon {
     width: 36px;
@@ -723,42 +669,6 @@
     gap: 12px;
   }
 
-  .modal-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s,
-      transform 0.2s;
-  }
-
-  .modal-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .modal-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .modal-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .modal-btn.confirm {
-    background: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .modal-btn.confirm:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
 
   @media (max-width: 768px) {
     .page-header {
@@ -803,6 +713,11 @@
     .modal-actions {
       flex-direction: column-reverse;
       align-items: stretch;
+    }
+
+    :deep(.modal-actions .button-base) {
+      width: 100%;
+      justify-content: center;
     }
   }
 

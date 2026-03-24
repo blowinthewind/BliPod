@@ -212,21 +212,8 @@
             aria-label="播放列表名称"
           />
           <div class="create-actions">
-            <Button
-              class="create-btn cancel"
-              variant="secondary"
-              type="button"
-              @click="closeCreateModal"
-            >
-              取消
-            </Button>
-            <Button
-              class="create-btn confirm"
-              variant="default"
-              type="button"
-              @click="createAndAdd"
-              :disabled="!newPlaylistName.trim()"
-            >
+            <Button variant="secondary" type="button" @click="closeCreateModal">取消</Button>
+            <Button variant="default" type="button" @click="createAndAdd" :disabled="!newPlaylistName.trim()">
               创建并添加
             </Button>
           </div>
@@ -553,42 +540,6 @@
     gap: 8px;
   }
 
-  .create-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    font-size: var(--text-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s,
-      transform 0.2s;
-  }
-
-  .create-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .create-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .create-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .create-btn.confirm {
-    background: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .create-btn.confirm:hover:not(:disabled) {
-    background: var(--accent-hover);
-  }
 
   .sr-only {
     position: absolute;
