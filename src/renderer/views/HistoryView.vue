@@ -201,7 +201,7 @@
     height: 56px;
     border-radius: 12px;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
   }
 
   .header-text {
@@ -342,7 +342,7 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);
@@ -508,7 +508,7 @@
 
   .confirm-btn.clear {
     background: var(--error);
-    color: white;
+    color: var(--text-on-error);
   }
 
   .confirm-btn.clear:hover {

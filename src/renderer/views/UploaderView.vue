@@ -540,7 +540,7 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);

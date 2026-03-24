@@ -429,7 +429,7 @@
     height: 56px;
     border-radius: 12px;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     flex-shrink: 0;
   }
 
@@ -543,7 +543,7 @@
     padding: 0 24px;
     height: 48px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: 12px;
     font-size: var(--text-sm);
@@ -837,7 +837,7 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);

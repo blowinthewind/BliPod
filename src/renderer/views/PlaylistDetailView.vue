@@ -355,7 +355,7 @@
     height: 56px;
     border-radius: 12px;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     flex-shrink: 0;
   }
 
@@ -427,7 +427,7 @@
 
   .action-btn.primary {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .action-btn.primary:hover {
@@ -551,7 +551,7 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);
@@ -753,7 +753,7 @@
 
   .modal-btn.confirm {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .modal-btn.confirm:hover:not(:disabled) {

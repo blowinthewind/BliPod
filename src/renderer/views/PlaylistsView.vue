@@ -390,7 +390,7 @@
     height: 56px;
     border-radius: 12px;
     background: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
   }
 
   .header-text {
@@ -416,7 +416,7 @@
     gap: 8px;
     padding: 10px 20px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -702,7 +702,7 @@
 
   .modal-btn.confirm {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .modal-btn.confirm:hover:not(:disabled) {
@@ -711,7 +711,7 @@
 
   .modal-btn.delete {
     background: var(--error);
-    color: white;
+    color: var(--text-on-error);
   }
 
   .modal-btn.delete:hover {

@@ -22,6 +22,7 @@ const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
   textTertiary: '--text-tertiary',
   accent: '--accent',
   accentHover: '--accent-hover',
+  textOnAccent: '--text-on-accent',
   accentMuted: '--accent-muted',
   accentRose: '--accent-rose',
   accentBlush: '--accent-blush',
@@ -35,6 +36,7 @@ const CSS_VAR_MAP: Record<keyof ThemeColors, string> = {
   success: '--success',
   warning: '--warning',
   error: '--error',
+  textOnError: '--text-on-error',
   glow: '--glow',
   glassBg: '--glass-bg',
   glassBorder: '--glass-border'

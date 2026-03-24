@@ -91,7 +91,7 @@
   .button--default {
     background: var(--accent);
     border-color: var(--accent);
-    color: var(--bg-primary);
+    color: var(--text-on-accent);
   }
 
   .button--default:hover:not(:disabled) {

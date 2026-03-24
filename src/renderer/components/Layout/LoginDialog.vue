@@ -396,7 +396,7 @@
     gap: 10px;
     padding: 14px 28px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: 10px;
     font-size: var(--text-sm);

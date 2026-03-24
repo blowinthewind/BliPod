@@ -14,6 +14,7 @@
 
   --accent: #b97757;
   --accent-hover: #c58665;
+  --text-on-accent: var(--bg-primary);
   --accent-muted: rgba(185, 119, 87, 0.14);
   --accent-rose: #cc8b6e;
   --accent-blush: #d5b6a8;
@@ -28,6 +29,7 @@
   --success: #57a083;
   --warning: #c09247;
   --error: #cf5750;
+  --text-on-error: var(--bg-primary);
   --glow: rgba(185, 119, 87, 0.14);
   --glass-bg: rgba(20, 22, 26, 0.82);
   --glass-border: rgba(255, 255, 255, 0.08);
@@ -137,7 +139,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 *:focus-visible {
@@ -173,7 +175,7 @@ a:focus-visible {
   top: -40px;
   left: 0;
   background: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   padding: 8px 16px;
   z-index: 1000;
   transition: top 0.2s;
@@ -293,7 +295,7 @@ a:focus-visible {
 .btn-primary {
   background: var(--accent);
   border: 1px solid var(--accent);
-  color: var(--bg-primary);
+  color: var(--text-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {

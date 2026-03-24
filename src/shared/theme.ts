@@ -16,6 +16,7 @@ export interface ThemeColors {
   textTertiary?: string
   accent: string
   accentHover: string
+  textOnAccent?: string
   accentMuted?: string
   accentRose?: string
   accentBlush?: string
@@ -29,6 +30,7 @@ export interface ThemeColors {
   success?: string
   warning?: string
   error?: string
+  textOnError?: string
   glow?: string
   glassBg?: string
   glassBorder?: string
@@ -93,10 +95,12 @@ export const THEME_COLOR_GROUPS: ThemeTokenGroup<ThemeColorKey>[] = [
     tokens: [
       { key: 'accent', label: '主强调色', input: 'color' },
       { key: 'accentHover', label: '强调悬浮色', input: 'color' },
+      { key: 'textOnAccent', label: '强调前景色', input: 'color' },
       { key: 'accentMuted', label: '强调弱化色', input: 'color' },
       { key: 'success', label: '成功色', input: 'color' },
       { key: 'warning', label: '警告色', input: 'color' },
-      { key: 'error', label: '错误色', input: 'color' }
+      { key: 'error', label: '错误色', input: 'color' },
+      { key: 'textOnError', label: '错误前景色', input: 'color' }
     ]
   },
   {
@@ -161,6 +165,7 @@ export const builtInThemes: Theme[] = [
       textTertiary: '#756f68',
       accent: '#b97757',
       accentHover: '#c58665',
+      textOnAccent: '#0d0e10',
       accentMuted: 'rgba(185, 119, 87, 0.14)',
       accentRose: '#cc8b6e',
       accentBlush: '#d5b6a8',
@@ -174,6 +179,7 @@ export const builtInThemes: Theme[] = [
       success: '#57a083',
       warning: '#c09247',
       error: '#cf5750',
+      textOnError: '#0d0e10',
       glow: 'rgba(185, 119, 87, 0.14)',
       glassBg: 'rgba(20, 22, 26, 0.82)',
       glassBorder: 'rgba(255, 255, 255, 0.08)'
@@ -196,6 +202,7 @@ export const builtInThemes: Theme[] = [
       textTertiary: 'oklch(56% 0.012 38)',
       accent: 'oklch(60% 0.085 36)',
       accentHover: 'oklch(64% 0.078 36)',
+      textOnAccent: 'oklch(17% 0.018 34)',
       accentMuted: 'color-mix(in oklch, oklch(60% 0.085 36) 13%, transparent)',
       accentRose: 'color-mix(in oklch, oklch(60% 0.085 36) 76%, oklch(66% 0.04 32) 24%)',
       accentBlush: 'color-mix(in oklch, oklch(60% 0.085 36) 30%, oklch(84% 0.018 42) 70%)',
@@ -209,6 +216,7 @@ export const builtInThemes: Theme[] = [
       success: 'oklch(65% 0.07 156)',
       warning: 'oklch(74% 0.065 82)',
       error: 'oklch(56% 0.14 24)',
+      textOnError: 'oklch(17% 0.018 34)',
       glow: 'color-mix(in oklch, oklch(60% 0.085 36) 12%, transparent)',
       glassBg: 'color-mix(in oklch, oklch(24.5% 0.022 34) 88%, transparent)',
       glassBorder: 'color-mix(in oklch, oklch(96% 0.008 38) 10%, transparent)'
@@ -235,6 +243,7 @@ export const builtInThemes: Theme[] = [
       textTertiary: 'oklch(54% 0.011 214)',
       accent: 'oklch(59% 0.082 190)',
       accentHover: 'oklch(63% 0.076 190)',
+      textOnAccent: 'oklch(16.5% 0.018 210)',
       accentMuted: 'color-mix(in oklch, oklch(59% 0.082 190) 13%, transparent)',
       accentRose: 'color-mix(in oklch, oklch(59% 0.082 190) 66%, oklch(64% 0.032 28) 34%)',
       accentBlush: 'color-mix(in oklch, oklch(59% 0.082 190) 30%, oklch(83% 0.015 42) 70%)',
@@ -248,6 +257,7 @@ export const builtInThemes: Theme[] = [
       success: 'oklch(64% 0.072 160)',
       warning: 'oklch(73% 0.07 82)',
       error: 'oklch(56% 0.14 24)',
+      textOnError: 'oklch(16.5% 0.018 210)',
       glow: 'color-mix(in oklch, oklch(59% 0.082 190) 12%, transparent)',
       glassBg: 'color-mix(in oklch, oklch(24% 0.022 210) 88%, transparent)',
       glassBorder: 'color-mix(in oklch, oklch(95% 0.008 214) 10%, transparent)'
@@ -274,6 +284,7 @@ export const builtInThemes: Theme[] = [
       textTertiary: 'oklch(70% 0.01 82)',
       accent: 'oklch(58% 0.08 38)',
       accentHover: 'oklch(54% 0.078 38)',
+      textOnAccent: 'oklch(25% 0.012 74)',
       accentMuted: 'color-mix(in oklch, oklch(58% 0.08 38) 12%, transparent)',
       accentRose: 'color-mix(in oklch, oklch(58% 0.08 38) 72%, oklch(67% 0.032 28) 28%)',
       accentBlush: 'color-mix(in oklch, oklch(58% 0.08 38) 24%, oklch(88% 0.012 40) 76%)',
@@ -287,6 +298,7 @@ export const builtInThemes: Theme[] = [
       success: 'oklch(55% 0.078 162)',
       warning: 'oklch(65% 0.08 80)',
       error: 'oklch(56% 0.145 24)',
+      textOnError: 'oklch(25% 0.012 74)',
       glow: 'color-mix(in oklch, oklch(58% 0.08 38) 10%, transparent)',
       glassBg: 'rgba(255, 255, 255, 0.88)',
       glassBorder: 'rgba(24, 28, 36, 0.08)'
@@ -309,6 +321,7 @@ export const builtInThemes: Theme[] = [
       textTertiary: 'oklch(56% 0.01 245)',
       accent: 'oklch(62% 0.085 30)',
       accentHover: 'oklch(66% 0.08 30)',
+      textOnAccent: 'oklch(16% 0.01 245)',
       accentMuted: 'color-mix(in oklch, oklch(62% 0.085 30) 14%, transparent)',
       accentRose: 'color-mix(in oklch, oklch(62% 0.085 30) 74%, oklch(66% 0.04 36) 26%)',
       accentBlush: 'color-mix(in oklch, oklch(62% 0.085 30) 32%, oklch(84% 0.018 42) 68%)',
@@ -322,6 +335,7 @@ export const builtInThemes: Theme[] = [
       success: 'oklch(65% 0.07 165)',
       warning: 'oklch(72% 0.075 78)',
       error: 'oklch(57% 0.145 24)',
+      textOnError: 'oklch(16% 0.01 245)',
       glow: 'color-mix(in oklch, oklch(62% 0.085 30) 14%, transparent)',
       glassBg: 'color-mix(in oklch, oklch(18% 0.01 245 / 0.88) 94%, transparent)',
       glassBorder: 'color-mix(in oklch, oklch(92% 0.006 245) 16%, transparent)'
@@ -337,7 +351,11 @@ export const builtInThemes: Theme[] = [
 export function cloneTheme(theme: Theme): Theme {
   return {
     ...theme,
-    colors: { ...theme.colors },
+    colors: {
+      ...theme.colors,
+      textOnAccent: theme.colors.textOnAccent ?? theme.colors.bgPrimary,
+      textOnError: theme.colors.textOnError ?? theme.colors.bgPrimary
+    },
     effects: theme.effects ? { ...theme.effects } : undefined
   }
 }

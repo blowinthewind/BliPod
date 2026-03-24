@@ -433,7 +433,7 @@
 
   .playlist-item.added .playlist-icon {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .playlist-info {
@@ -583,7 +583,7 @@
 
   .create-btn.confirm {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .create-btn.confirm:hover:not(:disabled) {

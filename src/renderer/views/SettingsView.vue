@@ -1424,7 +1424,7 @@
     gap: 8px;
     padding: 10px 20px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: 8px;
     font-size: var(--text-sm);
@@ -1473,7 +1473,7 @@
     gap: 6px;
     padding: 8px 14px;
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: 8px;
     font-size: var(--text-xs);
@@ -1613,7 +1613,7 @@
 
   .theme-action-btn.danger:hover {
     background: var(--error);
-    color: white;
+    color: var(--text-on-error);
   }
 
   .volume-control {
@@ -2128,7 +2128,7 @@
 
   .modal-btn.confirm {
     background: var(--accent);
-    color: white;
+    color: var(--text-on-accent);
   }
 
   .modal-btn.confirm:hover {
