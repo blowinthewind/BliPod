@@ -68,6 +68,7 @@ let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
+let searchViewLoadMode: 'search' | 'manual' = 'search'
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -80,6 +81,9 @@ const BILIBILI_DESKTOP_REFERRER = 'https://www.bilibili.com/'
 const SEARCH_VIEW_DESKTOP_BOUNDS = { x: 0, y: 0, width: 1280, height: 900 }
 const SPACE_PAGE_ORIGIN = 'https://space.bilibili.com'
 const UPLOADER_API_PAGE_SIZE = 40
+const SHOW_UPLOADER_DOM_FALLBACK_VIEW = true
+const UPLOADER_NOT_LOGGED_IN_ERROR = '账号未登录'
+const UPLOADER_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了 UP 主投稿接口访问'
 const WBI_MIXIN_KEY_INDEXES = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35,
   27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13,
@@ -301,6 +305,7 @@ function destroySearchView() {
       }
       searchView.webContents.close()
       searchView = null
+      searchViewLoadMode = 'search'
     } catch (error) {
       logger.error('Error destroying search view:', error)
       searchView = null
@@ -505,6 +510,17 @@ function setupBilibiliImageReferer() {
   })
 }
 
+function showSearchViewInMainWindow(view: BrowserView) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return
+  }
+
+  const bounds = mainWindow.getContentBounds()
+  mainWindow.setBrowserView(view)
+  view.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height })
+  view.setAutoResize({ width: true, height: true })
+}
+
 async function createSearchView(): Promise<BrowserView> {
   if (searchView && mainWindow) {
     searchViewLastUsed = Date.now()
@@ -533,35 +549,15 @@ async function createSearchView(): Promise<BrowserView> {
     logger.info('Search page finished loading')
     searchViewLastUsed = Date.now()
 
+    if (searchViewLoadMode !== 'search') {
+      logger.info('Search view auto extraction skipped for manual load')
+      return
+    }
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const result = await extractSearchResultsFromView(searchView!)
 
-      const script = getExtractorScript()
-      if (!script) {
-        throw new Error('Extractor script not found')
-      }
-
-      await searchView!.webContents.executeJavaScript(script)
-      logger.info('Extractor script injected')
-
-      const result = (await searchView!.webContents.executeJavaScript(
-        'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
-      )) as SearchResult | null
-
-      if (result?.pageUrl?.includes('m.bilibili.com')) {
-        logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl.split('?')[0] })
-      }
-
-      if (result) {
-        logger.info('Search results extracted', {
-          videoCount: result.videos.length,
-          hasMore: result.hasMore,
-          currentPage: result.currentPage,
-          nextOffset: result.nextOffset
-        })
-      }
-
-      if (result && mainWindow) {
+      if (mainWindow) {
         mainWindow.webContents.send('search:result', result)
       }
     } catch (error) {
@@ -749,6 +745,88 @@ function normalizeUploaderPage(page: number) {
   return page
 }
 
+function getUploaderPageUrl(mid: string, page: number) {
+  return `${SPACE_PAGE_ORIGIN}/${mid}/upload/video?p=${page}`
+}
+
+function normalizeBilibiliAssetUrl(url?: string) {
+  if (!url) {
+    return ''
+  }
+
+  if (url.startsWith('https://')) {
+    return url
+  }
+
+  if (url.startsWith('http://')) {
+    return `https://${url.slice('http://'.length)}`
+  }
+
+  if (url.startsWith('//')) {
+    return `https:${url}`
+  }
+
+  if (url.startsWith('/')) {
+    return `https://i0.hdslb.com${url}`
+  }
+
+  return url
+}
+
+async function hasBilibiliLoginSession() {
+  const bilibiliSession = getBilibiliSession()
+  const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
+  return cookies.some((cookie) => cookie.name === 'SESSDATA' && Boolean(cookie.value))
+}
+
+function shouldFallbackToUploaderDom(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.message === UPLOADER_RISK_BLOCKED_ERROR ||
+    error.message.includes('风控') ||
+    error.message === UPLOADER_NOT_LOGGED_IN_ERROR ||
+    error.message.includes(UPLOADER_NOT_LOGGED_IN_ERROR)
+  )
+}
+
+async function extractSearchResultsFromView(view: BrowserView): Promise<SearchResult> {
+  searchViewLastUsed = Date.now()
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  const script = getExtractorScript()
+  if (!script) {
+    throw new Error('Extractor script not found')
+  }
+
+  await view.webContents.executeJavaScript(script)
+  logger.info('Extractor script injected')
+
+  const result = (await view.webContents.executeJavaScript(
+    'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
+  )) as SearchResult | null
+
+  if (!result) {
+    throw new Error('Failed to extract search results')
+  }
+
+  if (result.pageUrl?.includes('m.bilibili.com')) {
+    logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl.split('?')[0] })
+  }
+
+  logger.info('Search results extracted', {
+    videoCount: result.videos.length,
+    hasMore: result.hasMore,
+    currentPage: result.currentPage,
+    nextOffset: result.nextOffset
+  })
+
+  searchViewLastUsed = Date.now()
+  return result
+}
+
 function mapUploaderInfo(mid: string, data?: BilibiliUploaderInfoData): UploaderInfo | undefined {
   if (!data?.name) {
     return undefined
@@ -768,7 +846,7 @@ function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: Upload
 
   const authorMid = item.mid ?? uploaderInfo?.mid ?? ''
   const author = item.author || uploaderInfo?.name || '未知UP主'
-  const cover = item.pic ? (item.pic.startsWith('//') ? `https:${item.pic}` : item.pic) : ''
+  const cover = normalizeBilibiliAssetUrl(item.pic)
 
   return {
     bvid: item.bvid,
@@ -798,7 +876,7 @@ async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<S
     mixinKey
   )
   const infoParams = signWbiParams({ mid: normalizedMid }, mixinKey)
-  const pageUrl = `${SPACE_PAGE_ORIGIN}/${normalizedMid}/upload/video?p=${normalizedPage}`
+  const pageUrl = getUploaderPageUrl(normalizedMid, normalizedPage)
 
   const [videoResponse, uploaderResponse] = await Promise.all([
     fetchBilibiliJson<BilibiliUploaderVideoListData>(
@@ -817,7 +895,7 @@ async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<S
 
   const videoData = videoResponse.data
   if (videoData?.is_risk || videoData?.gaia_res_type || videoData?.gaia_data) {
-    throw new Error('Bilibili 风控校验阻止了 UP 主投稿接口访问')
+    throw new Error(UPLOADER_RISK_BLOCKED_ERROR)
   }
 
   const uploader = uploaderResponse.code === 0 ? mapUploaderInfo(normalizedMid, uploaderResponse.data) : undefined
@@ -839,6 +917,77 @@ async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<S
     currentPage,
     nextOffset: hasMore ? currentPage + 1 : null,
     uploader
+  }
+}
+
+async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<SearchResult> {
+  const normalizedMid = normalizeUploaderMid(mid)
+  const normalizedPage = normalizeUploaderPage(page)
+  const pageUrl = getUploaderPageUrl(normalizedMid, normalizedPage)
+
+  searchViewLoadMode = 'manual'
+
+  try {
+    const view = await createSearchView()
+    logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
+
+    if (SHOW_UPLOADER_DOM_FALLBACK_VIEW) {
+      showSearchViewInMainWindow(view)
+    }
+
+    await loadSearchViewUrl(view, pageUrl)
+
+    const result = await extractSearchResultsFromView(view)
+    return {
+      ...result,
+      currentPage: normalizedPage,
+      nextOffset: result.hasMore ? normalizedPage + 1 : null,
+      uploader:
+        result.uploader ||
+        (result.videos.length > 0
+          ? {
+              name: result.videos[0].author,
+              avatar: '',
+              mid: normalizedMid
+            }
+          : undefined)
+    }
+  } finally {
+    searchViewLoadMode = 'search'
+  }
+}
+
+async function loadUploaderVideos(mid: string, page: number = 1): Promise<SearchResult> {
+  const normalizedMid = normalizeUploaderMid(mid)
+  const normalizedPage = normalizeUploaderPage(page)
+
+  if (!(await hasBilibiliLoginSession())) {
+    logger.info('Uploader request uses DOM fallback because user is not logged in')
+    return loadUploaderVideosByDom(normalizedMid, normalizedPage)
+  }
+
+  try {
+    logger.info('Uploader request uses API mode', `${normalizedMid} page: ${normalizedPage}`)
+    return await loadUploaderVideosByApi(normalizedMid, normalizedPage)
+  } catch (error) {
+    if (!shouldFallbackToUploaderDom(error)) {
+      throw error
+    }
+
+    logger.warn('Uploader API fallback to DOM', {
+      mid: normalizedMid,
+      page: normalizedPage,
+      reason: error instanceof Error ? error.message : 'unknown'
+    })
+
+    try {
+      return await loadUploaderVideosByDom(normalizedMid, normalizedPage)
+    } catch (domError) {
+      if (domError instanceof Error && error instanceof Error) {
+        throw new Error(`${error.message}；降级 DOM 抓取也失败：${domError.message}`)
+      }
+      throw domError
+    }
   }
 }
 
@@ -1087,6 +1236,7 @@ function setupIPC() {
       lastSearchQuery = query
 
       try {
+        searchViewLoadMode = 'search'
         const view = await createSearchView()
         const encodedQuery = encodeURIComponent(query)
         let searchUrl: string
@@ -1135,7 +1285,7 @@ function setupIPC() {
     try {
       normalizedMid = normalizeUploaderMid(mid)
       normalizedPage = normalizeUploaderPage(page)
-      return await loadUploaderVideosByApi(normalizedMid, normalizedPage)
+      return await loadUploaderVideos(normalizedMid, normalizedPage)
     } catch (error) {
       logger.error('Uploader videos error:', error)
       return {
@@ -1144,7 +1294,7 @@ function setupIPC() {
         hasMore: false,
         error: error instanceof Error ? error.message : 'Failed to load uploader videos',
         extractedAt: Date.now(),
-        pageUrl: `${SPACE_PAGE_ORIGIN}/${normalizedMid}/upload/video?p=${normalizedPage}`,
+        pageUrl: getUploaderPageUrl(normalizedMid, normalizedPage),
         currentPage: normalizedPage,
         nextOffset: null
       }
