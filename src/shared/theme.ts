@@ -1,4 +1,4 @@
-export const BUILT_IN_THEME_IDS = ['dark', 'light', 'sunset', 'ocean', 'glass'] as const
+export const BUILT_IN_THEME_IDS = ['dark', 'sunset', 'ocean', 'light', 'glass'] as const
 
 export type BuiltInThemeId = (typeof BUILT_IN_THEME_IDS)[number]
 
@@ -180,41 +180,6 @@ export const builtInThemes: Theme[] = [
     }
   },
   {
-    id: 'light',
-    name: 'Light',
-    description: 'Clean light theme',
-    isBuiltIn: true,
-    colors: {
-      bgPrimary: '#f6f5f2',
-      bgSecondary: '#eeece7',
-      bgCard: '#ffffff',
-      bgElevated: '#ffffff',
-      bgOverlay: 'rgba(21, 23, 28, 0.35)',
-      textPrimary: '#1b1e25',
-      textSecondary: '#5f6673',
-      textSecondaryStrong: '#495060',
-      textTertiary: '#9aa2b1',
-      accent: '#cc3944',
-      accentHover: '#b8323d',
-      accentMuted: 'rgba(204, 57, 68, 0.12)',
-      accentRose: '#ba7b61',
-      accentBlush: '#dcc0b2',
-      accentLilac: '#b7a1a0',
-      accentViolet: '#9f8d90',
-      accentSky: '#95a0ad',
-      accentAmber: '#bf8b52',
-      accentMint: '#8ba090',
-      border: '#d9d6cf',
-      borderSubtle: '#efede8',
-      success: '#2a8d73',
-      warning: '#b77b34',
-      error: '#c84747',
-      glow: 'rgba(204, 57, 68, 0.16)',
-      glassBg: 'rgba(255, 255, 255, 0.88)',
-      glassBorder: 'rgba(24, 28, 36, 0.08)'
-    }
-  },
-  {
     id: 'sunset',
     name: 'Sunset',
     description: 'Warm ember gradient theme',
@@ -290,6 +255,41 @@ export const builtInThemes: Theme[] = [
     effects: {
       bgGradient:
         'linear-gradient(180deg, oklch(15% 0.02 220) 0%, oklch(19% 0.024 220) 50%, oklch(23% 0.028 220) 100%)'
+    }
+  },
+  {
+    id: 'light',
+    name: 'Light',
+    description: 'Clean light theme',
+    isBuiltIn: true,
+    colors: {
+      bgPrimary: '#f6f5f2',
+      bgSecondary: '#eeece7',
+      bgCard: '#ffffff',
+      bgElevated: '#ffffff',
+      bgOverlay: 'rgba(21, 23, 28, 0.35)',
+      textPrimary: '#1b1e25',
+      textSecondary: '#5f6673',
+      textSecondaryStrong: '#495060',
+      textTertiary: '#9aa2b1',
+      accent: '#cc3944',
+      accentHover: '#b8323d',
+      accentMuted: 'rgba(204, 57, 68, 0.12)',
+      accentRose: '#ba7b61',
+      accentBlush: '#dcc0b2',
+      accentLilac: '#b7a1a0',
+      accentViolet: '#9f8d90',
+      accentSky: '#95a0ad',
+      accentAmber: '#bf8b52',
+      accentMint: '#8ba090',
+      border: '#d9d6cf',
+      borderSubtle: '#efede8',
+      success: '#2a8d73',
+      warning: '#b77b34',
+      error: '#c84747',
+      glow: 'rgba(204, 57, 68, 0.16)',
+      glassBg: 'rgba(255, 255, 255, 0.88)',
+      glassBorder: 'rgba(24, 28, 36, 0.08)'
     }
   },
   {
