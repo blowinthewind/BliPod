@@ -72,6 +72,10 @@ const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
 const isMac = process.platform === 'darwin'
 const isDevelopment = Boolean(process.env.NODE_ENV === 'development' || process.env.VITE_DEV_SERVER_URL)
 const DISABLED_CHROMIUM_FEATURES = ['HardwareMediaKeyHandling']
+const BILIBILI_DESKTOP_USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+const BILIBILI_DESKTOP_REFERRER = 'https://www.bilibili.com/'
+const SEARCH_VIEW_DESKTOP_BOUNDS = { x: 0, y: 0, width: 1280, height: 900 }
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
 app.setName('BliPod')
@@ -156,6 +160,13 @@ void createTray
 
 function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
+}
+
+async function loadSearchViewUrl(view: BrowserView, url: string) {
+  return view.webContents.loadURL(url, {
+    userAgent: BILIBILI_DESKTOP_USER_AGENT,
+    httpReferrer: BILIBILI_DESKTOP_REFERRER
+  })
 }
 
 function getExtractorScript(): string {
@@ -449,6 +460,8 @@ async function createSearchView(): Promise<BrowserView> {
   })
 
   searchViewLastUsed = Date.now()
+  searchView.setBounds(SEARCH_VIEW_DESKTOP_BOUNDS)
+  searchView.webContents.setUserAgent(BILIBILI_DESKTOP_USER_AGENT)
 
   if (mainWindow) {
     mainWindow.setBrowserView(null)
@@ -472,6 +485,10 @@ async function createSearchView(): Promise<BrowserView> {
       const result = (await searchView!.webContents.executeJavaScript(
         'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
       )) as SearchResult | null
+
+      if (result?.pageUrl?.includes('m.bilibili.com')) {
+        logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl })
+      }
 
       logger.info('Extract result:', JSON.stringify(result, null, 2))
 
@@ -862,7 +879,7 @@ function setupIPC() {
         }
 
         logger.info('Loading search URL:', searchUrl)
-        await view.webContents.loadURL(searchUrl)
+        await loadSearchViewUrl(view, searchUrl)
 
         return {
           success: true,
@@ -897,7 +914,7 @@ function setupIPC() {
       const uploaderUrl = `https://space.bilibili.com/${mid}/upload/video`
 
       logger.info('Loading uploader URL:', uploaderUrl)
-      await view.webContents.loadURL(uploaderUrl)
+      await loadSearchViewUrl(view, uploaderUrl)
 
       return {
         success: true,
