@@ -623,13 +623,13 @@
                   />
                   <span class="user-name-small">{{ authStore.userInfo.name }}</span>
                 </div>
-                <Button class="logout-btn" variant="outline" @click="handleLogout">
+                <Button variant="outline" size="sm" @click="handleLogout">
                   <LogOut :size="16" />
                   退出登录
                 </Button>
               </template>
               <template v-else>
-                <Button class="login-btn" @click="openLoginDialog">
+                <Button @click="openLoginDialog">
                   <LogIn :size="18" />
                   登录
                 </Button>
@@ -645,7 +645,7 @@
             <Palette :size="18" />
             主题
           </h2>
-          <Button v-if="showCreateThemeEntry" class="add-theme-btn" @click="openCreateTheme">
+          <Button v-if="showCreateThemeEntry" size="sm" @click="openCreateTheme">
             <Plus :size="16" />
             新建主题
           </Button>
@@ -780,14 +780,12 @@
               <Button
                 v-if="showMemoryStatusEntry"
                 ref="memoryStatsViewBtnRef"
-                class="action-btn"
                 variant="secondary"
+                size="sm"
                 @click="showMemoryStats"
                 >查看状态</Button
               >
-              <Button class="action-btn" variant="secondary" @click="cleanupMemoryNow"
-                >立即清理</Button
-              >
+              <Button variant="secondary" size="sm" @click="cleanupMemoryNow">立即清理</Button>
             </div>
           </div>
         </div>
@@ -810,20 +808,8 @@
               <div class="category-header">
                 <span class="setting-label">导出数据</span>
                 <div class="category-actions" v-if="showExportOptions">
-                  <Button
-                    class="small-btn"
-                    variant="secondary"
-                    size="sm"
-                    @click="selectAllExportCategories"
-                    >全选</Button
-                  >
-                  <Button
-                    class="small-btn"
-                    variant="secondary"
-                    size="sm"
-                    @click="deselectAllExportCategories"
-                    >取消全选</Button
-                  >
+                  <Button variant="secondary" size="sm" @click="selectAllExportCategories">全选</Button>
+                  <Button variant="secondary" size="sm" @click="deselectAllExportCategories">取消全选</Button>
                 </div>
               </div>
               <span class="setting-desc">选择要导出的数据分类</span>
@@ -850,12 +836,7 @@
                 </span>
               </label>
             </div>
-            <Button
-              class="action-btn"
-              variant="secondary"
-              :disabled="isExporting"
-              @click="handleExportAction"
-            >
+            <Button variant="secondary" size="sm" :disabled="isExporting" @click="handleExportAction">
               <Download :size="18" :class="{ 'animate-spin': isExporting }" />
               {{ isExporting ? '正在导出...' : showExportOptions ? '导出已选内容' : '导出' }}
             </Button>
@@ -893,12 +874,7 @@
                 </span>
               </label>
             </div>
-            <Button
-              class="action-btn"
-              variant="secondary"
-              :disabled="isImporting"
-              @click="handleImportAction"
-            >
+            <Button variant="secondary" size="sm" :disabled="isImporting" @click="handleImportAction">
               <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
               {{ isImporting ? '正在导入...' : showImportOptions ? '导入已选内容' : '导入' }}
             </Button>
@@ -1067,19 +1043,8 @@
         </div>
 
         <div class="modal-actions">
-          <Button
-            class="modal-btn cancel"
-            variant="secondary"
-            type="button"
-            @click="closeCreateTheme"
-            >取消</Button
-          >
-          <Button
-            class="modal-btn confirm"
-            variant="default"
-            type="button"
-            @click="createCustomTheme"
-          >
+          <Button variant="secondary" type="button" @click="closeCreateTheme">取消</Button>
+          <Button variant="default" type="button" @click="createCustomTheme">
             创建主题
           </Button>
         </div>
@@ -1236,12 +1201,8 @@
         </div>
 
         <div class="modal-actions">
-          <Button class="modal-btn cancel" variant="secondary" type="button" @click="closeEditTheme"
-            >取消</Button
-          >
-          <Button class="modal-btn confirm" variant="default" type="button" @click="saveEditedTheme"
-            >保存修改</Button
-          >
+          <Button variant="secondary" type="button" @click="closeEditTheme">取消</Button>
+          <Button variant="default" type="button" @click="saveEditedTheme">保存修改</Button>
         </div>
       </div>
     </div>
@@ -1418,78 +1379,6 @@
     color: var(--text-primary);
   }
 
-  .login-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .login-btn:hover {
-    background: var(--accent-hover);
-  }
-
-  .logout-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: transparent;
-    color: var(--text-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .logout-btn:hover {
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border-color: var(--error);
-    color: var(--error);
-  }
-
-  .add-theme-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: var(--accent);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-xs);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .add-theme-btn:hover {
-    background: var(--accent-hover);
-  }
-
   .theme-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1589,7 +1478,7 @@
   }
 
   .theme-action-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 28px;
@@ -1698,28 +1587,6 @@
     background: white;
   }
 
-  .action-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .action-btn:hover {
-    background: var(--bg-primary);
-  }
-
   .rotate-180 {
     transform: rotate(180deg);
   }
@@ -1746,26 +1613,6 @@
   .category-actions {
     display: flex;
     gap: 8px;
-  }
-
-  .small-btn {
-    padding: 4px 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s,
-      transform 0.2s;
-  }
-
-  .small-btn:hover {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
   }
 
   .category-list {
@@ -2101,38 +1948,6 @@
     gap: 12px;
     padding-top: 16px;
     border-top: 1px solid var(--border);
-  }
-
-  .modal-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s,
-      transform 0.2s;
-  }
-
-  .modal-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .modal-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .modal-btn.confirm {
-    background: var(--accent);
-    color: var(--text-on-accent);
-  }
-
-  .modal-btn.confirm:hover {
-    background: var(--accent-hover);
   }
 
   @media (max-width: 768px) {
