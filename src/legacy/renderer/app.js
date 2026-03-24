@@ -17,6 +17,7 @@ const webviewPlaceholder = document.getElementById('webviewPlaceholder')
 
 let isPlaying = false
 let stateUpdateInterval = null
+let hasLoggedStateUpdateError = false
 
 const injectScript = `
 (function() {
@@ -212,6 +213,7 @@ progressBar.addEventListener('click', (e) => {
 
 function loadVideo(url) {
   statusText.textContent = '正在加载视频...'
+  statusText.title = ''
   
   if (!url.includes('bilibili.com')) {
     const bvMatch = url.match(/BV\w+/)
@@ -219,6 +221,7 @@ function loadVideo(url) {
       url = `https://www.bilibili.com/video/${bvMatch[0]}`
     } else {
       statusText.textContent = '请输入有效的B站视频链接'
+      statusText.title = ''
       return
     }
   }
@@ -243,17 +246,28 @@ function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
+function reportError(message, error) {
+  statusText.textContent = message
+  statusText.title = getErrorMessage(error)
+}
+
 function startStateUpdates() {
   if (stateUpdateInterval) clearInterval(stateUpdateInterval)
   
   stateUpdateInterval = setInterval(() => {
     webview.executeJavaScript('window.bliPodControls.getPlayerState()')
       .then(state => {
+        hasLoggedStateUpdateError = false
         if (state) {
           updatePlayerUI(state)
         }
       })
-      .catch(err => console.error('Failed to get player state:', getErrorMessage(err)))
+      .catch(err => {
+        if (!hasLoggedStateUpdateError) {
+          reportError('播放器状态同步失败', err)
+          hasLoggedStateUpdateError = true
+        }
+      })
   }, 500)
 }
 
@@ -294,6 +308,7 @@ function updateVideoInfo(info) {
     coverUrl = coverUrl.split('@')[0]
 
     statusText.textContent = '视频已加载'
+    statusText.title = ''
     coverContainer.innerHTML = `<img src="${coverUrl}" alt="封面">`
   }
   if (info.duration) {
@@ -301,12 +316,13 @@ function updateVideoInfo(info) {
   }
   if (!info.cover) {
     statusText.textContent = '视频已加载'
+    statusText.title = ''
   }
 }
 
 webview.addEventListener('dom-ready', () => {
   webview.executeJavaScript(injectScript)
-    .catch(err => console.error('Failed to inject script:', getErrorMessage(err)))
+    .catch(err => reportError('播放器脚本注入失败', err))
   
   setTimeout(() => {
     webview.executeJavaScript('window.bliPodControls.getVideoInfo()')
@@ -315,7 +331,7 @@ webview.addEventListener('dom-ready', () => {
           updateVideoInfo(info)
         }
       })
-      .catch(err => console.error('Early getVideoInfo failed:', getErrorMessage(err)))
+      .catch(() => undefined)
   }, 500)
 })
 
@@ -334,11 +350,12 @@ webview.addEventListener('did-finish-load', () => {
         }
       })
       .catch(err => {
-        console.error('Failed to get video info:', getErrorMessage(err))
         if (retryCount < maxRetries) {
           retryCount++
           setTimeout(fetchVideoInfo, 1000)
+          return
         }
+        reportError('获取视频信息失败', err)
       })
   }
   
@@ -348,5 +365,6 @@ webview.addEventListener('did-finish-load', () => {
 webview.addEventListener('did-fail-load', (event) => {
   if (event.errorCode !== -3) {
     statusText.textContent = `加载失败: ${event.errorDescription}`
+    statusText.title = ''
   }
 })
