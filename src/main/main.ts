@@ -1,4 +1,5 @@
 import { app, BrowserWindow, session, ipcMain, BrowserView, dialog, nativeImage } from 'electron'
+import { createHash } from 'crypto'
 import { join, resolve } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
@@ -6,6 +7,7 @@ import type {
   UserInfo,
   BiliAuthStatus,
   ExtractedVideo,
+  UploaderInfo,
   AppSettings,
   AppStore,
   NativePlaybackState,
@@ -76,6 +78,66 @@ const BILIBILI_DESKTOP_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 const BILIBILI_DESKTOP_REFERRER = 'https://www.bilibili.com/'
 const SEARCH_VIEW_DESKTOP_BOUNDS = { x: 0, y: 0, width: 1280, height: 900 }
+const SPACE_PAGE_ORIGIN = 'https://space.bilibili.com'
+const UPLOADER_API_PAGE_SIZE = 40
+const WBI_MIXIN_KEY_INDEXES = [
+  46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35,
+  27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13,
+  37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4,
+  22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52
+]
+
+interface BilibiliApiResponse<T> {
+  code: number
+  message: string
+  data?: T
+}
+
+interface BilibiliNavData {
+  isLogin?: boolean
+  mid?: number
+  uname?: string
+  face?: string
+  sign?: string
+  vipType?: number
+  level_info?: {
+    current_level?: number
+  }
+  wbi_img?: {
+    img_url?: string
+    sub_url?: string
+  }
+}
+
+interface BilibiliUploaderInfoData {
+  mid?: number
+  name?: string
+  face?: string
+}
+
+interface BilibiliUploaderVideoItem {
+  bvid?: string
+  title?: string
+  pic?: string
+  author?: string
+  mid?: number | string
+  length?: string
+  play?: number | string
+}
+
+interface BilibiliUploaderVideoListData {
+  list?: {
+    vlist?: BilibiliUploaderVideoItem[]
+  }
+  page?: {
+    pn?: number
+    ps?: number
+    count?: number
+  }
+  is_risk?: boolean
+  gaia_res_type?: number
+  gaia_data?: unknown
+}
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
 app.setName('BliPod')
@@ -593,6 +655,193 @@ async function createPlayerView(): Promise<BrowserView> {
   return playerView
 }
 
+function getCookieHeader(cookies: Electron.Cookie[]) {
+  return cookies.map((c) => `${c.name}=${c.value}`).join('; ')
+}
+
+async function getBilibiliCookieHeader() {
+  const bilibiliSession = getBilibiliSession()
+  const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
+  return getCookieHeader(cookies)
+}
+
+async function fetchBilibiliJson<T>(url: string, referer: string): Promise<BilibiliApiResponse<T>> {
+  const cookieHeader = await getBilibiliCookieHeader()
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json, text/plain, */*',
+      Referer: referer,
+      Origin: new URL(referer).origin,
+      Cookie: cookieHeader,
+      'User-Agent': BILIBILI_DESKTOP_USER_AGENT
+    }
+  })
+
+  return response.json() as Promise<BilibiliApiResponse<T>>
+}
+
+function getWbiKeyPart(url?: string) {
+  if (!url) return ''
+
+  const pathname = new URL(url).pathname
+  const filename = pathname.split('/').pop() || ''
+  const dotIndex = filename.lastIndexOf('.')
+  return dotIndex >= 0 ? filename.slice(0, dotIndex) : filename
+}
+
+function getWbiMixinKey(imgKey: string, subKey: string) {
+  const raw = `${imgKey}${subKey}`
+  return WBI_MIXIN_KEY_INDEXES.map((index) => raw[index] || '').join('').slice(0, 32)
+}
+
+function sanitizeWbiValue(value: string) {
+  return value.replace(/[!'()*]/g, '')
+}
+
+function signWbiParams(params: Record<string, string | number>, mixinKey: string) {
+  const wts = Math.floor(Date.now() / 1000)
+  const searchParams = new URLSearchParams()
+
+  Object.entries({ ...params, wts })
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    .forEach(([key, value]) => {
+      searchParams.set(key, sanitizeWbiValue(String(value)))
+    })
+
+  const query = searchParams.toString()
+  const wRid = createHash('md5').update(`${query}${mixinKey}`).digest('hex')
+  searchParams.set('w_rid', wRid)
+  return searchParams
+}
+
+async function getWbiMixinKeyForSession() {
+  const navData = await fetchBilibiliJson<BilibiliNavData>(
+    'https://api.bilibili.com/x/web-interface/nav',
+    BILIBILI_DESKTOP_REFERRER
+  )
+
+  if (!navData.data?.wbi_img) {
+    throw new Error(navData.message || 'Failed to fetch WBI keys')
+  }
+
+  const imgKey = getWbiKeyPart(navData.data.wbi_img.img_url)
+  const subKey = getWbiKeyPart(navData.data.wbi_img.sub_url)
+
+  if (!imgKey || !subKey) {
+    throw new Error('Failed to resolve WBI keys')
+  }
+
+  return getWbiMixinKey(imgKey, subKey)
+}
+
+function normalizeUploaderMid(mid: string) {
+  const normalizedMid = mid.trim()
+  if (!/^\d+$/.test(normalizedMid)) {
+    throw new Error('Invalid uploader mid')
+  }
+  return normalizedMid
+}
+
+function normalizeUploaderPage(page: number) {
+  if (!Number.isInteger(page) || page < 1) {
+    throw new Error('Invalid uploader page')
+  }
+  return page
+}
+
+function mapUploaderInfo(mid: string, data?: BilibiliUploaderInfoData): UploaderInfo | undefined {
+  if (!data?.name) {
+    return undefined
+  }
+
+  return {
+    mid: String(data.mid ?? mid),
+    name: data.name,
+    avatar: data.face || ''
+  }
+}
+
+function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: UploaderInfo): ExtractedVideo | null {
+  if (!item.bvid || !item.title) {
+    return null
+  }
+
+  const authorMid = item.mid ?? uploaderInfo?.mid ?? ''
+  const author = item.author || uploaderInfo?.name || '未知UP主'
+  const cover = item.pic ? (item.pic.startsWith('//') ? `https:${item.pic}` : item.pic) : ''
+
+  return {
+    bvid: item.bvid,
+    title: item.title,
+    cover,
+    author,
+    authorLink: authorMid ? `https://space.bilibili.com/${authorMid}` : '',
+    duration: item.length || '',
+    playCount: item.play != null ? String(item.play) : '',
+    videoLink: `https://www.bilibili.com/video/${item.bvid}`
+  }
+}
+
+async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<SearchResult> {
+  const normalizedMid = normalizeUploaderMid(mid)
+  const normalizedPage = normalizeUploaderPage(page)
+  const mixinKey = await getWbiMixinKeyForSession()
+  const pageParams = signWbiParams(
+    {
+      mid: normalizedMid,
+      pn: normalizedPage,
+      ps: UPLOADER_API_PAGE_SIZE,
+      order: 'pubdate',
+      tid: 0,
+      keyword: ''
+    },
+    mixinKey
+  )
+  const infoParams = signWbiParams({ mid: normalizedMid }, mixinKey)
+  const pageUrl = `${SPACE_PAGE_ORIGIN}/${normalizedMid}/upload/video?p=${normalizedPage}`
+
+  const [videoResponse, uploaderResponse] = await Promise.all([
+    fetchBilibiliJson<BilibiliUploaderVideoListData>(
+      `https://api.bilibili.com/x/space/wbi/arc/search?${pageParams.toString()}`,
+      pageUrl
+    ),
+    fetchBilibiliJson<BilibiliUploaderInfoData>(
+      `https://api.bilibili.com/x/space/wbi/acc/info?${infoParams.toString()}`,
+      pageUrl
+    )
+  ])
+
+  if (videoResponse.code !== 0) {
+    throw new Error(videoResponse.message || 'Failed to load uploader videos')
+  }
+
+  const videoData = videoResponse.data
+  if (videoData?.is_risk || videoData?.gaia_res_type || videoData?.gaia_data) {
+    throw new Error('Bilibili 风控校验阻止了 UP 主投稿接口访问')
+  }
+
+  const uploader = uploaderResponse.code === 0 ? mapUploaderInfo(normalizedMid, uploaderResponse.data) : undefined
+  const rawVideos = videoData?.list?.vlist || []
+  const videos = rawVideos
+    .map((item) => mapUploaderVideo(item, uploader))
+    .filter((item): item is ExtractedVideo => item !== null)
+  const currentPage = videoData?.page?.pn || normalizedPage
+  const pageSize = videoData?.page?.ps || UPLOADER_API_PAGE_SIZE
+  const total = videoData?.page?.count || videos.length
+  const hasMore = currentPage * pageSize < total
+
+  return {
+    success: true,
+    videos,
+    hasMore,
+    extractedAt: Date.now(),
+    pageUrl,
+    currentPage,
+    nextOffset: hasMore ? currentPage + 1 : null,
+    uploader
+  }
+}
+
 async function fetchUserInfo(): Promise<UserInfo | null> {
   try {
     const bilibiliSession = getBilibiliSession()
@@ -603,26 +852,18 @@ async function fetchUserInfo(): Promise<UserInfo | null> {
       return null
     }
 
-    const cookieString = cookies.map((c) => `${c.name}=${c.value}`).join('; ')
-
-    const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
-      headers: {
-        Referer: 'https://www.bilibili.com/',
-        Cookie: cookieString,
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    })
-
-    const data = await response.json()
+    const data = await fetchBilibiliJson<BilibiliNavData>(
+      'https://api.bilibili.com/x/web-interface/nav',
+      BILIBILI_DESKTOP_REFERRER
+    )
 
     logger.info('fetchUserInfo response:', `${data.code} ${data.message || 'ok'}`)
 
     if (data.code === 0 && data.data?.isLogin) {
       return {
-        mid: data.data.mid,
-        name: data.data.uname,
-        face: data.data.face,
+        mid: data.data.mid || 0,
+        name: data.data.uname || '',
+        face: data.data.face || '',
         sign: data.data.sign || '',
         level: data.data.level_info?.current_level || 0,
         vipType: data.data.vipType || 0
@@ -885,25 +1126,16 @@ function setupIPC() {
     }
   )
 
-  ipcMain.handle('search:uploader', async (_event, mid: string): Promise<SearchResult> => {
-    logger.info('Uploader videos request received:', mid)
+  ipcMain.handle('search:uploader', async (_event, mid: string, page: number = 1): Promise<SearchResult> => {
+    logger.info('Uploader videos request received:', `${mid} page: ${page}`)
+
+    let normalizedMid = mid
+    let normalizedPage = page
 
     try {
-      const view = await createSearchView()
-      const uploaderUrl = `https://space.bilibili.com/${mid}/upload/video`
-
-      logger.info('Loading uploader URL:', uploaderUrl)
-      await loadSearchViewUrl(view, uploaderUrl)
-
-      return {
-        success: true,
-        videos: [],
-        hasMore: false,
-        extractedAt: Date.now(),
-        pageUrl: uploaderUrl,
-        currentPage: 1,
-        nextOffset: null
-      }
+      normalizedMid = normalizeUploaderMid(mid)
+      normalizedPage = normalizeUploaderPage(page)
+      return await loadUploaderVideosByApi(normalizedMid, normalizedPage)
     } catch (error) {
       logger.error('Uploader videos error:', error)
       return {
@@ -912,8 +1144,8 @@ function setupIPC() {
         hasMore: false,
         error: error instanceof Error ? error.message : 'Failed to load uploader videos',
         extractedAt: Date.now(),
-        pageUrl: '',
-        currentPage: 1,
+        pageUrl: `${SPACE_PAGE_ORIGIN}/${normalizedMid}/upload/video?p=${normalizedPage}`,
+        currentPage: normalizedPage,
         nextOffset: null
       }
     }

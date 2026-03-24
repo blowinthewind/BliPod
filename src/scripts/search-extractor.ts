@@ -145,7 +145,7 @@ function extractUploaderInfo(): UploaderInfo | undefined {
   const url = new URL(window.location.href)
   const pathParts = url.pathname.split('/')
   const mid = pathParts[1] || ''
-  
+
   const nameSelectors = [
     '#h-name',
     '.h-name',
@@ -154,14 +154,14 @@ function extractUploaderInfo(): UploaderInfo | undefined {
     '[class*="up-name"]',
     '[class*="uploader-name"]',
   ]
-  
+
   const avatarSelectors = [
     '.h-avatar img',
     '.avatar img',
     '.up-avatar img',
     '[class*="avatar"] img',
   ]
-  
+
   let name = ''
   for (const selector of nameSelectors) {
     const el = document.querySelector(selector)
@@ -170,7 +170,7 @@ function extractUploaderInfo(): UploaderInfo | undefined {
       break
     }
   }
-  
+
   let avatar = ''
   for (const selector of avatarSelectors) {
     const img = document.querySelector(selector) as HTMLImageElement
@@ -179,7 +179,7 @@ function extractUploaderInfo(): UploaderInfo | undefined {
       break
     }
   }
-  
+
   if (name) {
     return {
       name,
@@ -187,7 +187,7 @@ function extractUploaderInfo(): UploaderInfo | undefined {
       mid,
     }
   }
-  
+
   return undefined
 }
 
@@ -248,7 +248,7 @@ export function extractSearchResults(): SearchResult {
 
 export async function clickNextPageAndExtract(): Promise<SearchResult> {
   const pageUrl = window.location.href
-  
+
   try {
     let btn: HTMLElement | null = null
     

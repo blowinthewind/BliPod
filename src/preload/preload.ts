@@ -239,7 +239,7 @@ export interface StoreAPI {
 
 export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
-  loadUploaderVideos: (mid: string) => Promise<SearchResult>
+  loadUploaderVideos: (mid: string, page?: number) => Promise<SearchResult>
   clickNextPage: () => void
   playVideo: (bvid: string, autoplay?: boolean) => void
   pauseVideo: () => void
@@ -266,8 +266,8 @@ const searchAPI: SearchAPI = {
   search: (query: string, offset?: number) => {
     return ipcRenderer.invoke('search:query', query, offset)
   },
-  loadUploaderVideos: (mid: string) => {
-    return ipcRenderer.invoke('search:uploader', mid)
+  loadUploaderVideos: (mid: string, page?: number) => {
+    return ipcRenderer.invoke('search:uploader', mid, page)
   },
   clickNextPage: () => {
     ipcRenderer.send('search:clickNextPage')

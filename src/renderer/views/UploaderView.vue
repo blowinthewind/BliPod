@@ -14,7 +14,7 @@
   import Button from '../components/ui/Button.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
-  import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
+  import { ref, onMounted, computed, watch, toRaw } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { usePlayerStore } from '../stores/player'
   import { useFavoritesStore } from '../stores/favorites'
@@ -40,19 +40,10 @@
   const mid = computed(() => route.params.mid as string)
   const hasResults = computed(() => videos.value.length > 0)
 
-  let unsubscribe: (() => void) | null = null
-
   onMounted(() => {
     loadUploaderVideos()
-    setupListeners()
     favoritesStore.loadFavorites()
     playlistsStore.loadPlaylists()
-  })
-
-  onUnmounted(() => {
-    if (unsubscribe) {
-      unsubscribe()
-    }
   })
 
   watch(mid, () => {
@@ -61,57 +52,45 @@
     }
   })
 
-  function setupListeners() {
-    unsubscribe = window.electronAPI.search.onSearchResult((result: SearchResult) => {
+  async function loadUploaderVideos(page = 1) {
+    if (!mid.value) return
+
+    if (page > 1) {
+      isLoadingMore.value = true
+    } else {
+      isLoading.value = true
+      videos.value = []
+      currentPage.value = 1
+      uploaderInfo.value = null
+    }
+
+    error.value = null
+
+    try {
+      const result = await window.electronAPI.search.loadUploaderVideos(mid.value, page)
+
       if (result.success) {
-        if (isLoadingMore.value) {
+        if (page > 1) {
           const newVideos = result.videos.filter(
             (v: ExtractedVideo) => !videos.value.find((r) => r.bvid === v.bvid)
           )
           videos.value = [...videos.value, ...newVideos]
         } else {
           videos.value = result.videos
-          currentPage.value = 1
         }
 
-        if (result.uploader && !uploaderInfo.value) {
-          uploaderInfo.value = result.uploader
-        }
-
-        currentPage.value = result.currentPage
-        hasMore.value = result.videos.length >= 20
-      } else {
-        error.value = result.error || 'Failed to load videos'
-      }
-      isLoading.value = false
-      isLoadingMore.value = false
-    })
-  }
-
-  async function loadUploaderVideos() {
-    if (!mid.value) return
-
-    isLoading.value = true
-    error.value = null
-    videos.value = []
-    currentPage.value = 1
-    uploaderInfo.value = null
-
-    try {
-      const result = await window.electronAPI.search.loadUploaderVideos(mid.value)
-
-      if (result.success) {
-        videos.value = result.videos
         if (result.uploader) {
           uploaderInfo.value = result.uploader
-        } else if (result.videos.length > 0) {
+        } else if (result.videos.length > 0 && !uploaderInfo.value) {
           uploaderInfo.value = {
             name: result.videos[0].author,
             avatar: '',
             mid: mid.value
           }
         }
-        hasMore.value = result.videos.length >= 20
+
+        currentPage.value = result.currentPage
+        hasMore.value = result.hasMore
       } else {
         error.value = result.error || 'Failed to load videos'
       }
@@ -119,14 +98,14 @@
       error.value = e instanceof Error ? e.message : 'Unknown error occurred'
     } finally {
       isLoading.value = false
+      isLoadingMore.value = false
     }
   }
 
   async function handleLoadMore() {
     if (isLoadingMore.value || !hasMore.value) return
 
-    isLoadingMore.value = true
-    window.electronAPI.search.clickNextPage()
+    await loadUploaderVideos(currentPage.value + 1)
   }
 
   function handlePlay(bvid: string) {
