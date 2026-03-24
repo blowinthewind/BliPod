@@ -229,28 +229,28 @@ export const builtInThemes: Theme[] = [
       textSecondary: 'oklch(72% 0.02 30)',
       textSecondaryStrong: 'oklch(82% 0.02 30)',
       textTertiary: 'oklch(55% 0.02 30)',
-      accent: 'oklch(64% 0.13 38)',
-      accentHover: 'oklch(69% 0.12 38)',
-      accentMuted: 'color-mix(in oklch, oklch(64% 0.13 38) 18%, transparent)',
-      accentRose: 'color-mix(in oklch, oklch(64% 0.13 38) 82%, oklch(69% 0.07 30) 18%)',
-      accentBlush: 'color-mix(in oklch, oklch(64% 0.13 38) 46%, oklch(84% 0.03 42) 54%)',
-      accentLilac: 'color-mix(in oklch, oklch(64% 0.13 38) 58%, oklch(62% 0.03 18) 42%)',
-      accentViolet: 'color-mix(in oklch, oklch(64% 0.13 38) 68%, oklch(57% 0.04 18) 32%)',
-      accentSky: 'color-mix(in oklch, oklch(64% 0.13 38) 46%, oklch(63% 0.015 230) 54%)',
-      accentAmber: 'color-mix(in oklch, oklch(64% 0.13 38) 80%, oklch(71% 0.07 72) 20%)',
-      accentMint: 'color-mix(in oklch, oklch(64% 0.13 38) 42%, oklch(69% 0.03 160) 58%)',
+      accent: 'oklch(61% 0.11 36)',
+      accentHover: 'oklch(66% 0.105 36)',
+      accentMuted: 'color-mix(in oklch, oklch(61% 0.11 36) 16%, transparent)',
+      accentRose: 'color-mix(in oklch, oklch(61% 0.11 36) 80%, oklch(67% 0.055 30) 20%)',
+      accentBlush: 'color-mix(in oklch, oklch(61% 0.11 36) 40%, oklch(84% 0.025 42) 60%)',
+      accentLilac: 'color-mix(in oklch, oklch(61% 0.11 36) 48%, oklch(62% 0.018 18) 52%)',
+      accentViolet: 'color-mix(in oklch, oklch(61% 0.11 36) 62%, oklch(57% 0.028 18) 38%)',
+      accentSky: 'color-mix(in oklch, oklch(61% 0.11 36) 36%, oklch(63% 0.01 230) 64%)',
+      accentAmber: 'color-mix(in oklch, oklch(61% 0.11 36) 72%, oklch(71% 0.06 72) 28%)',
+      accentMint: 'color-mix(in oklch, oklch(61% 0.11 36) 34%, oklch(69% 0.02 160) 66%)',
       border: 'oklch(30% 0.02 30)',
       borderSubtle: 'oklch(24% 0.02 30)',
       success: 'oklch(66% 0.09 160)',
-      warning: 'oklch(72% 0.09 80)',
+      warning: 'oklch(73% 0.08 88)',
       error: 'oklch(58% 0.16 24)',
-      glow: 'color-mix(in oklch, oklch(64% 0.13 38) 24%, transparent)',
+      glow: 'color-mix(in oklch, oklch(61% 0.11 36) 18%, transparent)',
       glassBg: 'color-mix(in oklch, oklch(24% 0.03 30) 88%, transparent)',
       glassBorder: 'color-mix(in oklch, oklch(96% 0.01 30) 10%, transparent)'
     },
     effects: {
       bgGradient:
-        'linear-gradient(135deg, oklch(16% 0.02 30) 0%, oklch(20% 0.03 30) 50%, oklch(22% 0.035 30) 100%)'
+        'linear-gradient(135deg, oklch(16% 0.018 30) 0%, oklch(19% 0.022 30) 52%, oklch(21% 0.026 30) 100%)'
     }
   },
   {
