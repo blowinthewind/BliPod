@@ -41,8 +41,6 @@
   const hasResults = computed(() => videos.value.length > 0)
 
   let unsubscribe: (() => void) | null = null
-  let playerUnsubscribe: (() => void) | null = null
-  let progressUnsubscribe: (() => void) | null = null
 
   onMounted(() => {
     loadUploaderVideos()
@@ -54,12 +52,6 @@
   onUnmounted(() => {
     if (unsubscribe) {
       unsubscribe()
-    }
-    if (playerUnsubscribe) {
-      playerUnsubscribe()
-    }
-    if (progressUnsubscribe) {
-      progressUnsubscribe()
     }
   })
 
@@ -94,9 +86,6 @@
       isLoading.value = false
       isLoadingMore.value = false
     })
-
-    playerUnsubscribe = playerStore.setReadyListener()
-    progressUnsubscribe = playerStore.setProgressListener()
   }
 
   async function loadUploaderVideos() {

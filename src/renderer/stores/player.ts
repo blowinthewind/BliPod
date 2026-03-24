@@ -123,6 +123,10 @@ export const usePlayerStore = defineStore('player', () => {
   let sessionQualified = false
   let sessionLastProgressAt: number | null = null
   let sessionLastCountedAt: number | null = null
+  let readyListenerUnsubscribe: (() => void) | null = null
+  let progressListenerUnsubscribe: (() => void) | null = null
+  let readyListenerRefCount = 0
+  let progressListenerRefCount = 0
 
   function syncNativePlaybackState() {
     window.electronAPI.nativePlayer.updateState({
@@ -885,102 +889,122 @@ export const usePlayerStore = defineStore('player', () => {
   // ========== 事件监听 ==========
 
   function setReadyListener() {
-    const unsubscribe = window.electronAPI.search.onPlayerReady(() => {
-      isLoading.value = false
-      isPlaying.value = true
-      window.electronAPI.search.setVolume(volume.value)
-      syncNativePlaybackState()
+    if (!readyListenerUnsubscribe) {
+      readyListenerUnsubscribe = window.electronAPI.search.onPlayerReady(() => {
+        isLoading.value = false
+        isPlaying.value = true
+        window.electronAPI.search.setVolume(volume.value)
+        syncNativePlaybackState()
 
-      // 恢复播放位置
-      if (pendingResumeTime !== null) {
-        const targetTime = pendingResumeTime
-        pendingResumeTime = null
+        // 恢复播放位置
+        if (pendingResumeTime !== null) {
+          const targetTime = pendingResumeTime
+          pendingResumeTime = null
 
-        // 使用 requestAnimationFrame 确保 DOM 已更新
-        requestAnimationFrame(() => {
-          window.electronAPI.search.seekVideo(targetTime)
-          logger.info(`Resumed playback at ${targetTime}s`)
-        })
+          // 使用 requestAnimationFrame 确保 DOM 已更新
+          requestAnimationFrame(() => {
+            window.electronAPI.search.seekVideo(targetTime)
+            logger.info(`Resumed playback at ${targetTime}s`)
+          })
+        }
+      })
+    }
+
+    readyListenerRefCount += 1
+
+    return () => {
+      readyListenerRefCount = Math.max(0, readyListenerRefCount - 1)
+      if (readyListenerRefCount === 0 && readyListenerUnsubscribe) {
+        readyListenerUnsubscribe()
+        readyListenerUnsubscribe = null
       }
-    })
-
-    return unsubscribe
+    }
   }
 
   function setProgressListener() {
-    const unsubscribe = window.electronAPI.search.onPlayerProgress((progress: PlayerProgress) => {
-      // 如果没有当前视频，不更新进度（避免stop()后进度被重新设置）
-      if (!currentVideo.value) return
+    if (!progressListenerUnsubscribe) {
+      progressListenerUnsubscribe = window.electronAPI.search.onPlayerProgress((progress: PlayerProgress) => {
+        // 如果没有当前视频，不更新进度（避免stop()后进度被重新设置）
+        if (!currentVideo.value) return
 
-      currentTime.value = progress.currentTime
-      duration.value = progress.duration || 0
-      isPlaying.value = !progress.paused
-      syncNativePlaybackState()
+        currentTime.value = progress.currentTime
+        duration.value = progress.duration || 0
+        isPlaying.value = !progress.paused
+        syncNativePlaybackState()
 
-      if (progress.duration > 0) {
-        updateVideoDuration(currentVideo.value.bvid, progress.duration)
-      }
-
-      const now = Date.now()
-      let activePlayback = false
-      if (sessionLastProgressAt === null) {
-        sessionLastProgressAt = now
-      } else {
-        const deltaSeconds = Math.min(
-          (now - sessionLastProgressAt) / 1000,
-          PLAY_STATS_CONFIG.MAX_DELTA_SECONDS
-        )
-        sessionLastProgressAt = now
-        if (!progress.paused && deltaSeconds > 0) {
-          activePlayback = true
-          sessionWatchSeconds += deltaSeconds
-          void window.electronAPI.store.updateWatchTime(
-            currentVideo.value.bvid,
-            deltaSeconds,
-            progress.duration || 0,
-            progress.currentTime
-          )
+        if (progress.duration > 0) {
+          updateVideoDuration(currentVideo.value.bvid, progress.duration)
         }
-      }
 
-      if (!sessionQualified && progress.duration > 0 && activePlayback) {
-        const progressRatio = progress.currentTime / progress.duration
-        if (
-          sessionWatchSeconds >= PLAY_STATS_CONFIG.MIN_WATCH_SECONDS ||
-          progressRatio >= PLAY_STATS_CONFIG.MIN_PROGRESS_RATIO
-        ) {
-          sessionQualified = true
-          const shouldCount =
-            !sessionLastCountedAt || now - sessionLastCountedAt > PLAY_STATS_CONFIG.DEDUP_WINDOW_MS
-          if (shouldCount) {
-            sessionLastCountedAt = now
-            void window.electronAPI.store.incrementPlayCount(
+        const now = Date.now()
+        let activePlayback = false
+        if (sessionLastProgressAt === null) {
+          sessionLastProgressAt = now
+        } else {
+          const deltaSeconds = Math.min(
+            (now - sessionLastProgressAt) / 1000,
+            PLAY_STATS_CONFIG.MAX_DELTA_SECONDS
+          )
+          sessionLastProgressAt = now
+          if (!progress.paused && deltaSeconds > 0) {
+            activePlayback = true
+            sessionWatchSeconds += deltaSeconds
+            void window.electronAPI.store.updateWatchTime(
               currentVideo.value.bvid,
+              deltaSeconds,
               progress.duration || 0,
               progress.currentTime
             )
           }
         }
-      }
 
-      // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
-      if (
-        progress.duration > 0 &&
-        progress.currentTime >= progress.duration * 0.99 &&
-        progress.paused
-      ) {
-        // 如果开启了循环播放，则重新播放当前视频
-        if (isRepeat.value) {
-          seek(0)
-          play()
-        } else {
-          // 播放完成，处理下一首
-          handleVideoComplete()
+        if (!sessionQualified && progress.duration > 0 && activePlayback) {
+          const progressRatio = progress.currentTime / progress.duration
+          if (
+            sessionWatchSeconds >= PLAY_STATS_CONFIG.MIN_WATCH_SECONDS ||
+            progressRatio >= PLAY_STATS_CONFIG.MIN_PROGRESS_RATIO
+          ) {
+            sessionQualified = true
+            const shouldCount =
+              !sessionLastCountedAt || now - sessionLastCountedAt > PLAY_STATS_CONFIG.DEDUP_WINDOW_MS
+            if (shouldCount) {
+              sessionLastCountedAt = now
+              void window.electronAPI.store.incrementPlayCount(
+                currentVideo.value.bvid,
+                progress.duration || 0,
+                progress.currentTime
+              )
+            }
+          }
         }
-      }
-    })
 
-    return unsubscribe
+        // 检测视频是否播放完成（播放进度超过99%且处于暂停状态）
+        if (
+          progress.duration > 0 &&
+          progress.currentTime >= progress.duration * 0.99 &&
+          progress.paused
+        ) {
+          // 如果开启了循环播放，则重新播放当前视频
+          if (isRepeat.value) {
+            seek(0)
+            play()
+          } else {
+            // 播放完成，处理下一首
+            handleVideoComplete()
+          }
+        }
+      })
+    }
+
+    progressListenerRefCount += 1
+
+    return () => {
+      progressListenerRefCount = Math.max(0, progressListenerRefCount - 1)
+      if (progressListenerRefCount === 0 && progressListenerUnsubscribe) {
+        progressListenerUnsubscribe()
+        progressListenerUnsubscribe = null
+      }
+    }
   }
 
   async function getCurrentPlayStats() {
