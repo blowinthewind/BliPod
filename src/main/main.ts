@@ -81,7 +81,6 @@ const BILIBILI_DESKTOP_REFERRER = 'https://www.bilibili.com/'
 const SEARCH_VIEW_DESKTOP_BOUNDS = { x: 0, y: 0, width: 1280, height: 900 }
 const SPACE_PAGE_ORIGIN = 'https://space.bilibili.com'
 const UPLOADER_API_PAGE_SIZE = 40
-const SHOW_UPLOADER_DOM_FALLBACK_VIEW = true
 const UPLOADER_NOT_LOGGED_IN_ERROR = '账号未登录'
 const UPLOADER_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了 UP 主投稿接口访问'
 const WBI_MIXIN_KEY_INDEXES = [
@@ -510,17 +509,6 @@ function setupBilibiliImageReferer() {
   })
 }
 
-function showSearchViewInMainWindow(view: BrowserView) {
-  if (!mainWindow || mainWindow.isDestroyed()) {
-    return
-  }
-
-  const bounds = mainWindow.getContentBounds()
-  mainWindow.setBrowserView(view)
-  view.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height })
-  view.setAutoResize({ width: true, height: true })
-}
-
 async function createSearchView(): Promise<BrowserView> {
   if (searchView && mainWindow) {
     searchViewLastUsed = Date.now()
@@ -930,10 +918,6 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   try {
     const view = await createSearchView()
     logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
-
-    if (SHOW_UPLOADER_DOM_FALLBACK_VIEW) {
-      showSearchViewInMainWindow(view)
-    }
 
     await loadSearchViewUrl(view, pageUrl)
 
