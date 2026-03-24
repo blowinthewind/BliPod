@@ -523,15 +523,19 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: white;
+    color: var(--bg-primary);
     border: none;
     border-radius: var(--radius-full);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .continue-play-btn:hover {
     transform: scale(1.1);
+    box-shadow: var(--shadow-md);
   }
 
   .continue-progress {
@@ -576,7 +580,7 @@
   }
 
   .continue-time {
-    color: var(--accent);
+    color: var(--text-secondary-strong, var(--text-secondary));
     font-weight: 500;
   }
 
@@ -678,15 +682,19 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: white;
+    color: var(--bg-primary);
     border: none;
     border-radius: var(--radius-full);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .play-btn-overlay:hover {
     transform: scale(1.1);
+    box-shadow: var(--shadow-md);
   }
 
   .video-info {

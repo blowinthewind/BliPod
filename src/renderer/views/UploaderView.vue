@@ -392,7 +392,7 @@
   }
 
   .uploader-icon {
-    color: var(--accent);
+    color: var(--text-secondary-strong, var(--text-secondary));
   }
 
   .uploader-text {
@@ -540,15 +540,19 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: white;
+    color: var(--bg-primary);
     border: none;
     border-radius: var(--radius-full);
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .play-btn-overlay:hover {
     transform: scale(1.1);
+    box-shadow: var(--shadow-md);
   }
 
   .cover-placeholder {
@@ -624,6 +628,7 @@
   }
 
   .favorite-btn:hover {
+    background: var(--accent-muted);
     color: var(--accent);
   }
 
@@ -659,7 +664,7 @@
 
   .queue-btn:hover {
     color: var(--accent);
-    background: var(--bg-primary);
+    background: var(--accent-muted);
   }
 
   .playlist-btn {
