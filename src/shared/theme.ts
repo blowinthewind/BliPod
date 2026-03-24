@@ -185,18 +185,18 @@ export const builtInThemes: Theme[] = [
     description: 'Warm ember gradient theme',
     isBuiltIn: true,
     colors: {
-      bgPrimary: 'oklch(16% 0.02 30)',
-      bgSecondary: 'oklch(20% 0.025 30)',
-      bgCard: 'oklch(24% 0.03 30)',
-      bgElevated: 'oklch(28% 0.035 30)',
-      bgOverlay: 'color-mix(in oklch, #000 60%, transparent)',
-      textPrimary: 'oklch(96% 0.01 30)',
-      textSecondary: 'oklch(72% 0.02 30)',
-      textSecondaryStrong: 'oklch(82% 0.02 30)',
-      textTertiary: 'oklch(55% 0.02 30)',
-      accent: 'oklch(61% 0.11 36)',
-      accentHover: 'oklch(66% 0.105 36)',
-      accentMuted: 'color-mix(in oklch, oklch(61% 0.11 36) 16%, transparent)',
+      bgPrimary: 'oklch(17% 0.018 34)',
+      bgSecondary: 'oklch(20.5% 0.02 34)',
+      bgCard: 'oklch(24.5% 0.022 34)',
+      bgElevated: 'oklch(28.5% 0.024 34)',
+      bgOverlay: 'color-mix(in oklch, #000 58%, transparent)',
+      textPrimary: 'oklch(96% 0.008 38)',
+      textSecondary: 'oklch(71% 0.014 38)',
+      textSecondaryStrong: 'oklch(81% 0.012 38)',
+      textTertiary: 'oklch(56% 0.012 38)',
+      accent: 'oklch(60% 0.085 36)',
+      accentHover: 'oklch(64% 0.078 36)',
+      accentMuted: 'color-mix(in oklch, oklch(60% 0.085 36) 13%, transparent)',
       accentRose: 'color-mix(in oklch, oklch(61% 0.11 36) 80%, oklch(67% 0.055 30) 20%)',
       accentBlush: 'color-mix(in oklch, oklch(61% 0.11 36) 40%, oklch(84% 0.025 42) 60%)',
       accentLilac: 'color-mix(in oklch, oklch(61% 0.11 36) 48%, oklch(62% 0.018 18) 52%)',
@@ -204,18 +204,18 @@ export const builtInThemes: Theme[] = [
       accentSky: 'color-mix(in oklch, oklch(61% 0.11 36) 36%, oklch(63% 0.01 230) 64%)',
       accentAmber: 'color-mix(in oklch, oklch(61% 0.11 36) 72%, oklch(71% 0.06 72) 28%)',
       accentMint: 'color-mix(in oklch, oklch(61% 0.11 36) 34%, oklch(69% 0.02 160) 66%)',
-      border: 'oklch(30% 0.02 30)',
-      borderSubtle: 'oklch(24% 0.02 30)',
-      success: 'oklch(66% 0.09 160)',
-      warning: 'oklch(73% 0.08 88)',
-      error: 'oklch(58% 0.16 24)',
-      glow: 'color-mix(in oklch, oklch(61% 0.11 36) 18%, transparent)',
-      glassBg: 'color-mix(in oklch, oklch(24% 0.03 30) 88%, transparent)',
-      glassBorder: 'color-mix(in oklch, oklch(96% 0.01 30) 10%, transparent)'
+      border: 'oklch(31% 0.016 34)',
+      borderSubtle: 'oklch(25% 0.014 34)',
+      success: 'oklch(65% 0.07 156)',
+      warning: 'oklch(74% 0.065 82)',
+      error: 'oklch(56% 0.14 24)',
+      glow: 'color-mix(in oklch, oklch(60% 0.085 36) 12%, transparent)',
+      glassBg: 'color-mix(in oklch, oklch(24.5% 0.022 34) 88%, transparent)',
+      glassBorder: 'color-mix(in oklch, oklch(96% 0.008 38) 10%, transparent)'
     },
     effects: {
       bgGradient:
-        'linear-gradient(135deg, oklch(16% 0.018 30) 0%, oklch(19% 0.022 30) 52%, oklch(21% 0.026 30) 100%)'
+        'linear-gradient(135deg, oklch(17% 0.016 34) 0%, oklch(19.5% 0.018 34) 48%, oklch(22% 0.02 34) 100%)'
     }
   },
   {
