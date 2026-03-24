@@ -134,7 +134,7 @@ export const useSearchStore = defineStore('search', () => {
         }
         currentPage.value = result.currentPage
         nextOffset.value = result.nextOffset
-        hasMore.value = result.videos.length >= 20
+        hasMore.value = result.hasMore
         lastSearchTime.value = result.extractedAt
       } else {
         const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
