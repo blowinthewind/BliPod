@@ -59,6 +59,7 @@ export default [
       }
     },
     rules: {
+      'no-undef': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/attributes-order': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
