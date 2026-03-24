@@ -555,7 +555,7 @@
       setTimeout(() => {
         memorySettings.value.cleanupMessage = null
       }, 3000)
-    } catch (error) {
+    } catch {
       memorySettings.value.cleanupMessage = '保存失败'
     }
   }
@@ -568,7 +568,7 @@
       setTimeout(() => {
         memorySettings.value.cleanupMessage = null
       }, 3000)
-    } catch (error) {
+    } catch {
       memorySettings.value.cleanupMessage = '清理失败'
     }
   }

@@ -81,7 +81,7 @@ export function optimizeImageSize(url: string, width: number = 320): string {
   }
 
   // 移除已有的尺寸参数（匹配 @ 开头的所有参数，如 @672w_378h_1c_!web-search-common-cover）
-  let cleanUrl = url.replace(/@[^?]+/, '')
+  const cleanUrl = url.replace(/@[^?]+/, '')
 
   // 处理 URL 中的查询参数，将尺寸参数插入到查询参数之前
   const queryIndex = cleanUrl.indexOf('?')

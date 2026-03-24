@@ -925,12 +925,11 @@ export const usePlayerStore = defineStore('player', () => {
       }
 
       const now = Date.now()
-      let deltaSeconds = 0
       let activePlayback = false
       if (sessionLastProgressAt === null) {
         sessionLastProgressAt = now
       } else {
-        deltaSeconds = Math.min(
+        const deltaSeconds = Math.min(
           (now - sessionLastProgressAt) / 1000,
           PLAY_STATS_CONFIG.MAX_DELTA_SECONDS
         )
