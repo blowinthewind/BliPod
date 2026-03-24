@@ -2,6 +2,7 @@
   import { computed, ref } from 'vue'
   import { History, Play, Trash2, Clock } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Button from '../components/ui/Button.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import { useDialogFocusTrap } from '../composables/useDialogFocusTrap'
@@ -90,10 +91,10 @@
         <h1 class="page-title">播放历史</h1>
         <p class="page-desc">{{ history.length }} 个视频</p>
       </div>
-      <button v-if="history.length > 0" ref="clearBtnRef" class="clear-btn" @click="clearAllHistory">
+      <Button v-if="history.length > 0" ref="clearBtnRef" variant="secondary" @click="clearAllHistory">
         <Trash2 :size="16" />
         清空历史
-      </button>
+      </Button>
     </div>
 
     <div class="history-list" v-if="history.length > 0">
@@ -170,10 +171,8 @@
           确定要清空所有播放历史吗？此操作不可撤销。
         </p>
         <div class="confirm-actions">
-          <button ref="cancelClearBtnRef" class="confirm-btn cancel" @click="cancelClearHistory">
-            取消
-          </button>
-          <button class="confirm-btn clear" @click="confirmClearHistory">清空</button>
+          <Button ref="cancelClearBtnRef" variant="secondary" @click="cancelClearHistory">取消</Button>
+          <Button variant="destructive" @click="confirmClearHistory">清空</Button>
         </div>
       </div>
     </div>
@@ -221,31 +220,6 @@
     line-height: 1.45;
   }
 
-  .clear-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      opacity 0.2s;
-  }
-
-  .clear-btn:hover {
-    background: color-mix(in srgb, var(--error) 12%, transparent);
-    border-color: color-mix(in srgb, var(--error) 32%, transparent);
-    color: var(--error);
-  }
 
   .history-list {
     display: flex;
@@ -484,34 +458,7 @@
     margin-top: 4px;
   }
 
-  .confirm-btn {
+  :deep(.confirm-actions .button-base) {
     flex: 1;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      opacity 0.2s;
-  }
-
-  .confirm-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .confirm-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .confirm-btn.clear {
-    background: var(--error);
-    color: var(--text-on-error);
-  }
-
-  .confirm-btn.clear:hover {
-    opacity: 0.9;
   }
 </style>

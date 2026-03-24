@@ -2,6 +2,7 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import { useAuthStore } from '@/stores/auth'
   import { X, QrCode, Loader2, CheckCircle, AlertCircle } from 'lucide-vue-next'
+  import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
 
   const authStore = useAuthStore()
@@ -90,7 +91,7 @@
               <span class="user-level">Lv.{{ authStore.userInfo.level }}</span>
             </div>
           </div>
-          <button class="logout-btn" @click="handleLogout">退出登录</button>
+          <Button variant="secondary" @click="handleLogout">退出登录</Button>
         </div>
 
         <div v-else-if="authStore.isLoggingIn" class="login-progress">
@@ -117,10 +118,10 @@
             <QrCode :size="64" />
           </div>
           <p class="prompt-text">登录后可同步你的收藏、历史记录和个性化推荐</p>
-          <button class="login-btn" @click="handleLogin">
+          <Button class="login-btn" @click="handleLogin">
             <QrCode :size="18" />
             扫码登录
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -255,25 +256,6 @@
     font-weight: 500;
   }
 
-  .logout-btn {
-    padding: 10px 24px;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s,
-      transform 0.2s;
-  }
-
-  .logout-btn:hover {
-    background: var(--bg-primary);
-    border-color: var(--accent);
-  }
 
   .login-progress {
     display: flex;
@@ -391,27 +373,9 @@
   }
 
   .login-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 28px;
-    background: var(--accent);
-    color: var(--text-on-accent);
-    border: none;
+    min-height: 48px;
+    padding-inline: 28px;
     border-radius: 10px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s;
-  }
-
-  .login-btn:hover {
-    background: var(--accent-hover);
-    transform: translateY(-1px);
   }
 
   .dialog-footer {

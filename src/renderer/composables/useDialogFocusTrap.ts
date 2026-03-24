@@ -1,6 +1,5 @@
 import { nextTick, onBeforeUnmount, ref, watch, type ComponentPublicInstance, type Ref } from 'vue'
 
-type MaybeHTMLElement = HTMLElement | null
 type MaybeContainer = HTMLElement | ComponentPublicInstance | null
 
 function toEl(val: MaybeContainer | undefined): HTMLElement | null {
@@ -12,15 +11,15 @@ function toEl(val: MaybeContainer | undefined): HTMLElement | null {
 interface UseDialogFocusTrapOptions {
   open: Ref<boolean>
   containerRef: Ref<MaybeContainer>
-  initialFocusRef?: Ref<MaybeHTMLElement>
-  restoreFocusRef?: Ref<MaybeHTMLElement>
+  initialFocusRef?: Ref<MaybeContainer>
+  restoreFocusRef?: Ref<MaybeContainer>
   excludeRef?: Ref<MaybeContainer>
   onClose: () => void
   restoreFocusWhen?: () => boolean
 }
 
 export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
-  const lastFocusedElement = ref<MaybeHTMLElement>(null)
+  const lastFocusedElement = ref<HTMLElement | null>(null)
 
   function getFocusableElements() {
     const containerEl = toEl(options.containerRef.value)
@@ -48,8 +47,9 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
   async function focusInitialElement() {
     await nextTick()
 
-    if (options.initialFocusRef?.value) {
-      options.initialFocusRef.value.focus()
+    const initialFocusEl = toEl(options.initialFocusRef?.value)
+    if (initialFocusEl) {
+      initialFocusEl.focus()
       return
     }
 
@@ -68,8 +68,9 @@ export function useDialogFocusTrap(options: UseDialogFocusTrapOptions) {
 
     await nextTick()
 
-    if (options.restoreFocusRef?.value?.isConnected) {
-      options.restoreFocusRef.value.focus()
+    const restoreFocusEl = toEl(options.restoreFocusRef?.value)
+    if (restoreFocusEl?.isConnected) {
+      restoreFocusEl.focus()
       return
     }
 

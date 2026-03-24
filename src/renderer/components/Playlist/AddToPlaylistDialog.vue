@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref, toRaw } from 'vue'
   import { ListMusic, Plus, Check, X } from 'lucide-vue-next'
+  import { cn } from '@/lib/utils'
   import Button from '../ui/Button.vue'
   import DialogOverlay from '../ui/DialogOverlay.vue'
   import DialogPanel from '../ui/DialogPanel.vue'
@@ -159,10 +160,15 @@
       </div>
 
       <div class="playlists-section">
-        <button class="create-new-btn" type="button" @click="openCreateModal">
+        <Button
+          :class="cn('create-new-btn', showCreateModal && 'create-new-btn--active')"
+          variant="outline"
+          type="button"
+          @click="openCreateModal"
+        >
           <Plus :size="18" />
           新建播放列表
-        </button>
+        </Button>
 
         <div class="playlists-list" v-if="sortedPlaylists.length > 0">
           <button
@@ -345,27 +351,15 @@
   }
 
   .create-new-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
     width: 100%;
-    padding: 12px;
-    border: 2px dashed var(--border);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: var(--text-sm);
-    cursor: pointer;
-    transition:
-      border-color 0.2s,
-      color 0.2s,
-      background-color 0.2s,
-      transform 0.2s;
     margin-bottom: 12px;
+    border-style: dashed;
+    border-width: 2px;
+    color: var(--text-secondary);
   }
 
-  .create-new-btn:hover {
+  .create-new-btn:hover,
+  .create-new-btn--active {
     border-color: var(--accent);
     color: var(--accent);
   }

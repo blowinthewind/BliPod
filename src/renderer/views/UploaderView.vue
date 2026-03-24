@@ -11,6 +11,7 @@
     Check
   } from 'lucide-vue-next'
   import LazyImage from '../components/ui/LazyImage.vue'
+  import Button from '../components/ui/Button.vue'
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { ref, onMounted, onUnmounted, computed, watch, toRaw } from 'vue'
@@ -294,12 +295,9 @@
       </div>
 
       <div v-if="hasMore" class="load-more-container">
-        <button class="load-more-btn" @click="handleLoadMore" :disabled="isLoadingMore">
-          <Loader2 v-if="isLoadingMore" :size="18" class="animate-spin" />
-          <template v-else>
-            <span>加载更多</span>
-          </template>
-        </button>
+        <Button class="load-more-btn" variant="secondary" :loading="isLoadingMore" @click="handleLoadMore">
+          加载更多
+        </Button>
       </div>
     </div>
 
@@ -709,34 +707,7 @@
   }
 
   .load-more-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-primary);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      border-color 0.2s,
-      transform 0.2s,
-      box-shadow 0.2s,
-      opacity 0.2s;
-  }
-
-  .load-more-btn:hover:not(:disabled) {
-    background: var(--bg-card);
-    border-color: var(--accent);
-  }
-
-  .load-more-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+    padding-inline: 24px;
   }
 
   .loading-state {

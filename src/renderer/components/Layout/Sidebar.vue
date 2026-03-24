@@ -3,6 +3,7 @@
   import { useNavigationStore, type NavItem } from '@/stores/navigation'
   import { useAuthStore } from '@/stores/auth'
   import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+  import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
   import {
     Home,
@@ -183,10 +184,8 @@
           退出后将停止同步当前账号的登录状态。
         </p>
         <div class="confirm-actions">
-          <button ref="cancelLogoutButtonRef" class="confirm-btn cancel" @click="cancelLogout">
-            取消
-          </button>
-          <button class="confirm-btn logout" @click="confirmLogout">退出登录</button>
+          <Button ref="cancelLogoutButtonRef" variant="secondary" @click="cancelLogout">取消</Button>
+          <Button variant="destructive" @click="confirmLogout">退出登录</Button>
         </div>
       </div>
     </div>
@@ -521,37 +520,8 @@
     gap: 12px;
   }
 
-  .confirm-btn {
+  :deep(.confirm-actions .button-base) {
     flex: 1;
-    min-height: 40px;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition:
-      background-color 0.2s,
-      color 0.2s,
-      opacity 0.2s;
-  }
-
-  .confirm-btn.cancel {
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .confirm-btn.cancel:hover {
-    background: var(--bg-primary);
-  }
-
-  .confirm-btn.logout {
-    background: var(--error);
-    color: var(--text-on-error);
-  }
-
-  .confirm-btn.logout:hover {
-    opacity: 0.9;
   }
 
   .sidebar-overlay {

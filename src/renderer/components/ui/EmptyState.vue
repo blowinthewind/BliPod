@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { cn } from '@/lib/utils'
   import type { Component } from 'vue'
+  import Button from './Button.vue'
 
   interface Props {
     icon?: Component
@@ -29,9 +30,9 @@
     <p class="empty-state-description" v-if="props.description">
       {{ props.description }}
     </p>
-    <button v-if="props.action" class="btn btn-primary empty-state-action" @click="emit('action')">
+    <Button v-if="props.action" class="empty-state-action" @click="emit('action')">
       {{ props.action }}
-    </button>
+    </Button>
   </div>
 </template>
 

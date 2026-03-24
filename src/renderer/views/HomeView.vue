@@ -7,6 +7,7 @@
   import { useFavoritesStore } from '../stores/favorites'
   import { usePlaylistsStore } from '../stores/playlists'
   import { useNavigationStore } from '../stores/navigation'
+  import Button from '../components/ui/Button.vue'
   import LazyImage from '../components/ui/LazyImage.vue'
   import type { HistoryVideo } from '../stores/player'
   import { formatDuration } from '../utils/format'
@@ -228,7 +229,7 @@
           <Heart :size="20" />
           最近收藏
         </h2>
-        <button class="see-more-btn" @click="goToFavorites">查看全部</button>
+        <Button variant="outline" size="sm" @click="goToFavorites">查看全部</Button>
       </div>
       <div class="video-grid">
         <button
@@ -407,26 +408,6 @@
     justify-content: space-between;
   }
 
-  .see-more-btn {
-    padding: 6px 12px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    font-size: var(--text-xs);
-    cursor: pointer;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease,
-      transform 0.2s ease;
-  }
-
-  .see-more-btn:hover {
-    background: var(--bg-card);
-    color: var(--accent);
-    border-color: var(--accent);
-  }
 
   .section-title {
     display: flex;
