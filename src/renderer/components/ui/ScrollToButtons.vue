@@ -55,7 +55,6 @@
   onMounted(() => {
     container = getScrollContainer()
     if (!container) {
-      console.warn('ScrollToButtons: scroll container not found')
       return
     }
 

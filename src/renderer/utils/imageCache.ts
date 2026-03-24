@@ -5,6 +5,8 @@
  * 缓存过期时间：7天
  */
 
+import { logger } from './logger'
+
 const DB_NAME = 'BliPodImageCache'
 const DB_VERSION = 1
 const STORE_NAME = 'images'
@@ -161,7 +163,7 @@ export async function getCachedImage(url: string): Promise<Blob | null> {
       request.onerror = () => reject(request.error)
     })
   } catch (error) {
-    console.warn('[ImageCache] Failed to get cached image:', error)
+    logger.warn('Failed to get cached image', error instanceof Error ? error.message : String(error))
     return null
   }
 }
@@ -197,7 +199,7 @@ export async function cacheImage(url: string, blob: Blob): Promise<void> {
       request.onerror = () => reject(request.error)
     })
   } catch (error) {
-    console.warn('[ImageCache] Failed to cache image:', error)
+    logger.warn('Failed to cache image', error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -234,7 +236,7 @@ export async function getImage(url: string): Promise<string> {
 
     return URL.createObjectURL(blob)
   } catch (error) {
-    console.warn('[ImageCache] Failed to load image:', error)
+    logger.warn('Failed to load image', error instanceof Error ? error.message : String(error))
     return url // 返回原始 URL 作为 fallback
   }
 }
@@ -293,7 +295,7 @@ export async function clearCache(): Promise<void> {
       request.onerror = () => reject(request.error)
     })
   } catch (err) {
-    console.warn('[ImageCache] Failed to clear cache:', err)
+    logger.warn('Failed to clear image cache', err instanceof Error ? err.message : String(err))
   }
 }
 
