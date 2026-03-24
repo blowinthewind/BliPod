@@ -817,12 +817,9 @@ export const usePlayerStore = defineStore('player', () => {
   // 加载用户队列
   async function loadUserQueue() {
     try {
-      logger.info('Loading user queue from store...')
-      const queue = await window.electronAPI.store.getUserQueue()
-      logger.info(`Loaded user queue: ${queue.length} items`)
-      userQueue.value = queue
+      userQueue.value = await window.electronAPI.store.getUserQueue()
     } catch (e) {
-      logger.warn('Failed to load user queue:', e)
+      logger.warn('Failed to load user queue', e instanceof Error ? e.message : String(e))
       userQueue.value = []
     }
 
