@@ -11,6 +11,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    class: '',
     loading: false,
     error: false,
     empty: false,

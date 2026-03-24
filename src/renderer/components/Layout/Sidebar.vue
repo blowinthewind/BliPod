@@ -97,6 +97,7 @@
   >
     <div class="sidebar-header">
       <div class="logo" v-if="!navStore.sidebarCollapsed" role="img" aria-label="BliPod">
+        <!-- eslint-disable-next-line vue/no-v-html -->
         <span class="logo-wordmark logo-asset" aria-hidden="true" v-html="appLogoWordmarkRaw"></span>
       </div>
       <button

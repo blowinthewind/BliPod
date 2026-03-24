@@ -13,7 +13,7 @@ export default [
       'src/renderer/app.js',
       'src/main/main.js',
       'src/preload/preload.js',
-      '*.d.ts',
+      '**/*.d.ts',
       'src/renderer/auto-imports.d.ts',
       'src/renderer/components.d.ts'
     ]
