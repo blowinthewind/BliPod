@@ -297,6 +297,7 @@
 
   const themeColorGroups = THEME_COLOR_GROUPS
   const themeEffectGroups = THEME_EFFECT_GROUPS
+  const visibleThemes = computed(() => themeStore.allThemes.filter((theme) => theme.id !== 'glass'))
   const newTheme = ref<EditableTheme>(createCustomThemeDraft())
   const editingTheme = ref<EditableTheme | null>(null)
 
@@ -653,7 +654,7 @@
 
         <div class="theme-grid">
           <div
-            v-for="theme in themeStore.allThemes"
+            v-for="theme in visibleThemes"
             :key="theme.id"
             class="theme-card"
             :class="{ active: appSettingsStore.currentThemeId === theme.id }"

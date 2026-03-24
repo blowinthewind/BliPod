@@ -1,4 +1,4 @@
-export const BUILT_IN_THEME_IDS = ['dark', 'sunset', 'ocean', 'light', 'glass'] as const
+export const BUILT_IN_THEME_IDS = ['dark', 'studio', 'sunset', 'ocean', 'light', 'glass'] as const
 
 export type BuiltInThemeId = (typeof BUILT_IN_THEME_IDS)[number]
 
@@ -150,7 +150,7 @@ export const THEME_EFFECT_GROUPS: ThemeTokenGroup<ThemeEffectKey>[] = [
 export const builtInThemes: Theme[] = [
   {
     id: 'dark',
-    name: 'Dark',
+    name: '深色',
     description: 'Classic dark theme',
     isBuiltIn: true,
     colors: {
@@ -186,8 +186,49 @@ export const builtInThemes: Theme[] = [
     }
   },
   {
+    id: 'studio',
+    name: '录音室',
+    description: 'Quiet graphite focus theme',
+    isBuiltIn: true,
+    colors: {
+      bgPrimary: 'oklch(15.5% 0.008 255)',
+      bgSecondary: 'oklch(18.5% 0.009 255)',
+      bgCard: 'oklch(22.5% 0.01 255)',
+      bgElevated: 'oklch(26% 0.011 255)',
+      bgOverlay: 'color-mix(in oklch, #000 60%, transparent)',
+      textPrimary: 'oklch(95.5% 0.004 255)',
+      textSecondary: 'oklch(72% 0.008 255)',
+      textSecondaryStrong: 'oklch(82% 0.007 255)',
+      textTertiary: 'oklch(55% 0.008 255)',
+      accent: 'oklch(63% 0.055 272)',
+      accentHover: 'oklch(67% 0.06 272)',
+      textOnAccent: 'oklch(15.5% 0.008 255)',
+      accentMuted: 'color-mix(in oklch, oklch(63% 0.055 272) 14%, transparent)',
+      accentRose: 'color-mix(in oklch, oklch(63% 0.055 272) 58%, oklch(66% 0.028 340) 42%)',
+      accentBlush: 'color-mix(in oklch, oklch(63% 0.055 272) 20%, oklch(84% 0.01 320) 80%)',
+      accentLilac: 'color-mix(in oklch, oklch(63% 0.055 272) 54%, oklch(70% 0.02 300) 46%)',
+      accentViolet: 'color-mix(in oklch, oklch(63% 0.055 272) 62%, oklch(58% 0.022 285) 38%)',
+      accentSky: 'color-mix(in oklch, oklch(63% 0.055 272) 32%, oklch(73% 0.012 230) 68%)',
+      accentAmber: 'color-mix(in oklch, oklch(63% 0.055 272) 30%, oklch(72% 0.035 72) 70%)',
+      accentMint: 'color-mix(in oklch, oklch(63% 0.055 272) 26%, oklch(72% 0.012 170) 74%)',
+      border: 'oklch(30% 0.009 255)',
+      borderSubtle: 'oklch(24% 0.008 255)',
+      success: 'oklch(64% 0.06 160)',
+      warning: 'oklch(72% 0.06 82)',
+      error: 'oklch(58% 0.13 24)',
+      textOnError: 'oklch(15.5% 0.008 255)',
+      glow: 'color-mix(in oklch, oklch(63% 0.055 272) 10%, transparent)',
+      glassBg: 'color-mix(in oklch, oklch(22.5% 0.01 255) 90%, transparent)',
+      glassBorder: 'color-mix(in oklch, oklch(95.5% 0.004 255) 9%, transparent)'
+    },
+    effects: {
+      bgGradient:
+        'linear-gradient(180deg, oklch(15.5% 0.008 255) 0%, oklch(18% 0.009 252) 52%, oklch(21.5% 0.011 248) 100%)'
+    }
+  },
+  {
     id: 'sunset',
-    name: 'Sunset',
+    name: '日落',
     description: 'Warm ember gradient theme',
     isBuiltIn: true,
     colors: {
@@ -228,7 +269,7 @@ export const builtInThemes: Theme[] = [
   },
   {
     id: 'ocean',
-    name: 'Ocean',
+    name: '海洋',
     description: 'Deep teal gradient theme',
     isBuiltIn: true,
     colors: {
@@ -269,7 +310,7 @@ export const builtInThemes: Theme[] = [
   },
   {
     id: 'light',
-    name: 'Light',
+    name: '浅色',
     description: 'Clean light theme',
     isBuiltIn: true,
     colors: {
@@ -306,7 +347,7 @@ export const builtInThemes: Theme[] = [
   },
   {
     id: 'glass',
-    name: 'Glass',
+    name: '玻璃',
     description: 'Frosted slate glass theme',
     isBuiltIn: true,
     colors: {
