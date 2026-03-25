@@ -100,8 +100,31 @@ export const store = new Store<AppStore>({
 
 store.set('settings', normalizeAppSettings(store.get('settings')))
 
+function normalizeCoverUrl(cover: string): string {
+  if (!cover) return cover
+  if (cover.startsWith('https://')) return cover
+  if (cover.startsWith('http://')) return `https://${cover.slice('http://'.length)}`
+  if (cover.startsWith('//')) return `https:${cover}`
+  return cover
+}
+
+function normalizeVideo<T extends ExtractedVideo>(video: T): T {
+  return {
+    ...video,
+    cover: normalizeCoverUrl(video.cover)
+  }
+}
+
+function normalizePlaylist(playlist: Playlist): Playlist {
+  return {
+    ...playlist,
+    cover: typeof playlist.cover === 'string' ? normalizeCoverUrl(playlist.cover) : playlist.cover,
+    videos: playlist.videos.map((video) => normalizeVideo(video))
+  }
+}
+
 export function getFavorites(): FavoriteVideo[] {
-  return safeClone(store.get('favorites'))
+  return safeClone(store.get('favorites')).map((video) => normalizeVideo(video))
 }
 
 export function addFavorite(video: ExtractedVideo): boolean {
@@ -110,7 +133,7 @@ export function addFavorite(video: ExtractedVideo): boolean {
   if (exists) return false
 
   const favoriteVideo: FavoriteVideo = {
-    ...video,
+    ...normalizeVideo(video),
     addedAt: Date.now()
   }
   store.set('favorites', [...favorites, favoriteVideo])
@@ -145,7 +168,7 @@ export function updateFavoriteDuration(bvid: string, duration: string): boolean 
 }
 
 export function getPlaylists(): Playlist[] {
-  return safeClone(store.get('playlists'))
+  return safeClone(store.get('playlists')).map((playlist) => normalizePlaylist(playlist))
 }
 
 export function createPlaylist(name: string, description?: string): Playlist {
@@ -198,7 +221,7 @@ export function addVideoToPlaylist(playlistId: string, video: ExtractedVideo): b
   if (exists) return false
 
   const playlistVideo: PlaylistVideo = {
-    ...video,
+    ...normalizeVideo(video),
     addedAt: Date.now()
   }
   playlists[playlistIndex].videos.push(playlistVideo)
@@ -354,11 +377,14 @@ export function incrementPlayCount(
 const MAX_USER_QUEUE_SIZE = 50
 
 export function getUserQueue(): ExtractedVideo[] {
-  return safeClone(store.get('userQueue'))
+  return safeClone(store.get('userQueue')).map((video) => normalizeVideo(video))
 }
 
 export function setUserQueue(queue: ExtractedVideo[]): void {
-  store.set('userQueue', queue.slice(0, MAX_USER_QUEUE_SIZE))
+  store.set(
+    'userQueue',
+    queue.slice(0, MAX_USER_QUEUE_SIZE).map((video) => normalizeVideo(video))
+  )
 }
 
 export function addToUserQueue(video: ExtractedVideo): boolean {
@@ -369,7 +395,7 @@ export function addToUserQueue(video: ExtractedVideo): boolean {
   if (queue.length >= MAX_USER_QUEUE_SIZE) {
     return false
   }
-  store.set('userQueue', [...queue, video])
+  store.set('userQueue', [...queue, normalizeVideo(video)])
   return true
 }
 
@@ -404,21 +430,21 @@ function safeClone<T>(data: T): T {
 
 export function exportData(): AppStore {
   return {
-    favorites: safeClone(store.get('favorites')),
-    playlists: safeClone(store.get('playlists')),
+    favorites: getFavorites(),
+    playlists: getPlaylists(),
     settings: getSettings(),
     playPositions: safeClone(store.get('playPositions')),
-    userQueue: safeClone(store.get('userQueue')),
+    userQueue: getUserQueue(),
     lastVolume: store.get('lastVolume')
   }
 }
 
 export function importData(data: Partial<AppStore>): void {
   if (data.favorites) {
-    store.set('favorites', data.favorites)
+    store.set('favorites', data.favorites.map((video) => normalizeVideo(video)))
   }
   if (data.playlists) {
-    store.set('playlists', data.playlists)
+    store.set('playlists', data.playlists.map((playlist) => normalizePlaylist(playlist)))
   }
   if (data.settings) {
     store.set('settings', normalizeAppSettings({ ...store.get('settings'), ...data.settings }))
@@ -427,7 +453,7 @@ export function importData(data: Partial<AppStore>): void {
     store.set('playPositions', data.playPositions)
   }
   if (data.userQueue) {
-    store.set('userQueue', data.userQueue)
+    store.set('userQueue', data.userQueue.map((video) => normalizeVideo(video)))
   }
   if (typeof data.lastVolume === 'number') {
     store.set('lastVolume', data.lastVolume)

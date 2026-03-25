@@ -38,7 +38,10 @@ function loadHistoryFromStorage(): HistoryVideo[] {
   try {
     const stored = localStorage.getItem('playHistory')
     if (stored) {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) {
+        return parsed.map((video) => normalizeVideo(video as HistoryVideo))
+      }
     }
   } catch (e) {
     logger.warn('Failed to load play history:', e)
@@ -51,6 +54,21 @@ function saveHistoryToStorage(history: HistoryVideo[]) {
     localStorage.setItem('playHistory', JSON.stringify(history))
   } catch (e) {
     logger.warn('Failed to save play history:', e)
+  }
+}
+
+function normalizeCoverUrl(cover: string): string {
+  if (!cover) return cover
+  if (cover.startsWith('https://')) return cover
+  if (cover.startsWith('http://')) return `https://${cover.slice('http://'.length)}`
+  if (cover.startsWith('//')) return `https:${cover}`
+  return cover
+}
+
+function normalizeVideo<T extends ExtractedVideo>(video: T): T {
+  return {
+    ...video,
+    cover: normalizeCoverUrl(video.cover)
   }
 }
 
@@ -163,7 +181,7 @@ export const usePlayerStore = defineStore('player', () => {
     isFromUserQueue: boolean = false
   ): QueueVideo {
     return {
-      ...video,
+      ...normalizeVideo(video),
       source,
       isFromUserQueue
     }

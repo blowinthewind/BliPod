@@ -102,6 +102,12 @@ export function extractSrc(element: Element | null): string | null {
   const img = element as HTMLImageElement
   const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-original')
   if (!src) return null
+  if (src.startsWith('https://')) {
+    return src
+  }
+  if (src.startsWith('http://')) {
+    return 'https://' + src.slice('http://'.length)
+  }
   if (src.startsWith('//')) {
     return 'https:' + src
   }
