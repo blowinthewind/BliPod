@@ -69,6 +69,7 @@ let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
 let searchViewLoadMode: 'search' | 'manual' = 'search'
+let searchSessionState: SearchSessionState | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -175,6 +176,12 @@ interface BilibiliSearchApiData {
 interface SearchPaginationState {
   page: number
   offset: number
+}
+
+interface SearchSessionState {
+  query: string
+  mode: 'api' | 'dom'
+  pagination: SearchPaginationState
 }
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
@@ -773,6 +780,15 @@ function normalizeSearchOffset(offset?: number | null) {
   return offset
 }
 
+function getNextSearchPaginationState(currentPage: number): SearchPaginationState {
+  const normalizedPage = Number.isInteger(currentPage) && currentPage > 0 ? currentPage : 1
+
+  return {
+    page: normalizedPage + 1,
+    offset: normalizedPage * SEARCH_API_DYNAMIC_OFFSET_STEP
+  }
+}
+
 function resolveSearchPaginationState(offset?: number | null): SearchPaginationState {
   const normalizedOffset = normalizeSearchOffset(offset)
 
@@ -929,6 +945,14 @@ function shouldFallbackToUploaderDom(error: unknown) {
   )
 }
 
+function updateSearchSessionState(query: string, mode: 'api' | 'dom', pagination: SearchPaginationState) {
+  searchSessionState = {
+    query,
+    mode,
+    pagination
+  }
+}
+
 async function extractSearchResultsFromView(view: BrowserView): Promise<SearchResult> {
   searchViewLastUsed = Date.now()
   await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -1080,7 +1104,12 @@ async function loadSearchResultsByDom(query: string, offset?: number | null): Pr
 
     await loadSearchViewUrl(view, searchUrl)
 
-    return await extractSearchResultsFromView(view)
+    const result = await extractSearchResultsFromView(view)
+    updateSearchSessionState(normalizedQuery, 'dom', {
+      page: result.currentPage,
+      offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : pagination.offset
+    })
+    return result
   } finally {
     searchViewLoadMode = 'search'
   }
@@ -1108,6 +1137,7 @@ async function loadSearchResults(query: string, offset?: number | null): Promise
   try {
     logger.info('Search request uses API mode', `${normalizedQuery} page: ${pagination.page}`)
     const result = await loadSearchResultsByApi(normalizedQuery, pagination.offset)
+    updateSearchSessionState(normalizedQuery, 'api', pagination)
 
     void prepareSearchViewForPagination(normalizedQuery, pagination.offset).catch((viewError) => {
       logger.warn('Failed to prepare search view for DOM pagination:', viewError)
@@ -1612,6 +1642,53 @@ function setupIPC() {
   ipcMain.on('search:clickNextPage', async () => {
     logger.info('Clicking next page button')
 
+    const sessionState = searchSessionState
+    if (!sessionState) {
+      logger.info('No active search session, notifying user to search again')
+      if (mainWindow) {
+        mainWindow.webContents.send('search:viewDestroyed', {
+          message: '搜索页面已超时关闭，请重新搜索',
+          lastQuery: lastSearchQuery
+        })
+      }
+      return
+    }
+
+    // 更新最后使用时间，防止翻页过程中被清理
+    searchViewLastUsed = Date.now()
+
+    if (sessionState.mode === 'api') {
+      const nextPagination = getNextSearchPaginationState(sessionState.pagination.page)
+
+      try {
+        const result = await loadSearchResultsByApi(sessionState.query, nextPagination.offset)
+        updateSearchSessionState(sessionState.query, 'api', nextPagination)
+
+        void prepareSearchViewForPagination(sessionState.query, nextPagination.offset).catch((viewError) => {
+          logger.warn('Failed to prepare search view for DOM pagination:', viewError)
+        })
+
+        if (mainWindow) {
+          mainWindow.webContents.send('search:result', result)
+        }
+      } catch (error) {
+        logger.error('Failed to load next search page via API:', error)
+        if (mainWindow) {
+          mainWindow.webContents.send('search:result', {
+            success: false,
+            videos: [],
+            hasMore: false,
+            error: error instanceof Error ? error.message : 'Search request failed',
+            extractedAt: Date.now(),
+            pageUrl: getSearchPageUrl(sessionState.query, nextPagination),
+            currentPage: nextPagination.page,
+            nextOffset: null
+          } as SearchResult)
+        }
+      }
+      return
+    }
+
     // 如果 searchView 已被销毁（超时清理），提示用户重新搜索
     if (!searchView) {
       logger.info('Search view was destroyed due to timeout, notifying user')
@@ -1624,9 +1701,6 @@ function setupIPC() {
       }
       return
     }
-
-    // 更新最后使用时间，防止翻页过程中被清理
-    searchViewLastUsed = Date.now()
 
     try {
       const hasFunction = await searchView.webContents.executeJavaScript(
@@ -1643,9 +1717,13 @@ function setupIPC() {
 
       const result = await searchView.webContents.executeJavaScript(
         'window.__BILI_CLICK_NEXT_PAGE__()'
-      )
+      ) as SearchResult
 
       logger.info('Click next page result:', JSON.stringify(result, null, 2))
+      updateSearchSessionState(sessionState.query, 'dom', {
+        page: result.currentPage,
+        offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : sessionState.pagination.offset
+      })
 
       if (mainWindow) {
         mainWindow.webContents.send('search:result', result)
