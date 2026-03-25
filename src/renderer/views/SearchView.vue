@@ -367,6 +367,13 @@
     </div>
 
     <EmptyState
+      v-else-if="!searchStore.isSearching && !hasError && searchStore.hasSearched"
+      :icon="Search"
+      title="暂时没有获取到相关内容"
+      description="当前无法获取搜索结果，请稍候再试"
+    />
+
+    <EmptyState
       v-else-if="!searchStore.isSearching && !hasError"
       :icon="Search"
       title="搜索哔哩哔哩内容"

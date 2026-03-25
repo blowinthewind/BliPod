@@ -24,7 +24,9 @@ const SEARCH_ERRORS: Record<string, string> = {
   'failed to click next page': '翻页失败，请重新搜索',
   'search view was destroyed': '搜索页面已超时关闭，请重新搜索',
   'search request failed': '搜索请求失败，请稍后重试',
-  'search request timeout': '搜索请求超时，请检查网络后重试'
+  'search request timeout': '搜索请求超时，请检查网络后重试',
+  'failed to load uploader videos': '当前无法获取该 UP 主的相关内容，请稍候再试',
+  '风控': '当前无法获取相关内容，请稍候再试'
 }
 
 // 播放相关错误

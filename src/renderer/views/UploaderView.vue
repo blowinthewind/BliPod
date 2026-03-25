@@ -19,6 +19,7 @@
   import { usePlayerStore } from '../stores/player'
   import { useFavoritesStore } from '../stores/favorites'
   import { usePlaylistsStore } from '../stores/playlists'
+  import { getUserFriendlyErrorMessage } from '../utils/errorMessages'
   import AddToPlaylistDialog from '../components/Playlist/AddToPlaylistDialog.vue'
 
   const router = useRouter()
@@ -92,10 +93,10 @@
         currentPage.value = result.currentPage
         hasMore.value = result.hasMore
       } else {
-        error.value = result.error || 'Failed to load videos'
+        error.value = getUserFriendlyErrorMessage(result.error, '当前无法获取该 UP 主的相关内容，请稍候再试')
       }
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Unknown error occurred'
+      error.value = getUserFriendlyErrorMessage(e, '当前无法获取该 UP 主的相关内容，请稍候再试')
     } finally {
       isLoading.value = false
       isLoadingMore.value = false

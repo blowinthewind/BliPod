@@ -15,6 +15,7 @@ export const useSearchStore = defineStore('search', () => {
   const currentPage = ref(1)
   const nextOffset = ref<number | null>(null)
   const lastSearchTime = ref<number | null>(null)
+  const hasSearched = ref(false)
   const searchHistory = ref<string[]>([])
   const maxHistorySize = 20
 
@@ -77,6 +78,7 @@ export const useSearchStore = defineStore('search', () => {
     query.value = searchQuery.trim()
     isSearching.value = true
     error.value = null
+    hasSearched.value = true
     results.value = []
     currentPage.value = 1
     nextOffset.value = null
@@ -118,6 +120,7 @@ export const useSearchStore = defineStore('search', () => {
     currentPage.value = 1
     nextOffset.value = null
     lastSearchTime.value = null
+    hasSearched.value = false
   }
 
   function setResultListener() {
@@ -182,6 +185,7 @@ export const useSearchStore = defineStore('search', () => {
     currentPage,
     nextOffset,
     lastSearchTime,
+    hasSearched,
     searchHistory,
     hasResults,
     resultCount,
