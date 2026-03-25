@@ -1067,6 +1067,75 @@ async function loadSearchResultsByApi(query: string, offset?: number | null): Pr
   }
 }
 
+async function loadSearchResultsByDom(query: string, offset?: number | null): Promise<SearchResult> {
+  const normalizedQuery = normalizeSearchQuery(query)
+  const pagination = resolveSearchPaginationState(offset)
+  const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
+
+  searchViewLoadMode = 'manual'
+
+  try {
+    const view = await createSearchView()
+    logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
+
+    await loadSearchViewUrl(view, searchUrl)
+
+    return await extractSearchResultsFromView(view)
+  } finally {
+    searchViewLoadMode = 'search'
+  }
+}
+
+async function prepareSearchViewForPagination(query: string, offset?: number | null): Promise<void> {
+  const normalizedQuery = normalizeSearchQuery(query)
+  const pagination = resolveSearchPaginationState(offset)
+  const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
+
+  searchViewLoadMode = 'manual'
+
+  try {
+    const view = await createSearchView()
+    await loadSearchViewUrl(view, searchUrl)
+  } finally {
+    searchViewLoadMode = 'search'
+  }
+}
+
+async function loadSearchResults(query: string, offset?: number | null): Promise<SearchResult> {
+  const normalizedQuery = normalizeSearchQuery(query)
+  const pagination = resolveSearchPaginationState(offset)
+
+  try {
+    logger.info('Search request uses API mode', `${normalizedQuery} page: ${pagination.page}`)
+    const result = await loadSearchResultsByApi(normalizedQuery, pagination.offset)
+
+    void prepareSearchViewForPagination(normalizedQuery, pagination.offset).catch((viewError) => {
+      logger.warn('Failed to prepare search view for DOM pagination:', viewError)
+    })
+
+    return result
+  } catch (error) {
+    if (!shouldFallbackToSearchDom(error)) {
+      throw error
+    }
+
+    logger.warn('Search API fallback to DOM', {
+      query: normalizedQuery,
+      offset: pagination.offset,
+      reason: error instanceof Error ? error.message : 'unknown'
+    })
+
+    try {
+      return await loadSearchResultsByDom(normalizedQuery, pagination.offset)
+    } catch (domError) {
+      if (domError instanceof Error && error instanceof Error) {
+        throw new Error(`${error.message}；降级 DOM 抓取也失败：${domError.message}`)
+      }
+      throw domError
+    }
+  }
+}
+
 async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<SearchResult> {
   const normalizedMid = normalizeUploaderMid(mid)
   const normalizedPage = normalizeUploaderPage(page)
@@ -1455,85 +1524,28 @@ function setupIPC() {
         }
       }
 
-      const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
-
       // 保存搜索词，用于超时后提示用户
       lastSearchQuery = normalizedQuery
 
       try {
-        logger.info('Search request uses API mode', `${normalizedQuery} page: ${pagination.page}`)
-        const result = await loadSearchResultsByApi(normalizedQuery, pagination.offset)
+        const result = await loadSearchResults(normalizedQuery, pagination.offset)
 
         if (mainWindow) {
           mainWindow.webContents.send('search:result', result)
         }
 
-        void (async () => {
-          searchViewLoadMode = 'manual'
-          try {
-            const view = await createSearchView()
-            await loadSearchViewUrl(view, searchUrl)
-          } catch (viewError) {
-            logger.warn('Failed to prepare search view for DOM pagination:', viewError)
-          } finally {
-            searchViewLoadMode = 'search'
-          }
-        })()
-
         return result
       } catch (error) {
-        if (!shouldFallbackToSearchDom(error)) {
-          logger.error('Search API error:', error)
-          return {
-            success: false,
-            videos: [],
-            hasMore: false,
-            error: error instanceof Error ? error.message : 'Search request failed',
-            extractedAt: Date.now(),
-            pageUrl: searchUrl,
-            currentPage: pagination.page,
-            nextOffset: null
-          }
-        }
-
-        logger.warn('Search API fallback to DOM', {
-          query: normalizedQuery,
-          offset: pagination.offset,
-          reason: error instanceof Error ? error.message : 'unknown'
-        })
-
-        try {
-          searchViewLoadMode = 'search'
-          const view = await createSearchView()
-          logger.info('Loading search URL via DOM fallback:', searchUrl)
-          await loadSearchViewUrl(view, searchUrl)
-
-          return {
-            success: true,
-            videos: [],
-            hasMore: false,
-            extractedAt: Date.now(),
-            pageUrl: searchUrl,
-            currentPage: pagination.page,
-            nextOffset: pagination.offset > 0 ? pagination.offset : null
-          }
-        } catch (domError) {
-          logger.error('Search DOM fallback error:', domError)
-          return {
-            success: false,
-            videos: [],
-            hasMore: false,
-            error:
-              domError instanceof Error
-                ? domError.message
-                : error instanceof Error
-                  ? error.message
-                  : 'Search request failed',
-            extractedAt: Date.now(),
-            pageUrl: searchUrl,
-            currentPage: pagination.page,
-            nextOffset: null
-          }
+        logger.error('Search error:', error)
+        return {
+          success: false,
+          videos: [],
+          hasMore: false,
+          error: error instanceof Error ? error.message : 'Search request failed',
+          extractedAt: Date.now(),
+          pageUrl: getSearchPageUrl(normalizedQuery, pagination),
+          currentPage: pagination.page,
+          nextOffset: null
         }
       }
     }
