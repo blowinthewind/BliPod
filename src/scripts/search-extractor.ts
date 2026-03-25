@@ -42,6 +42,7 @@ function extractVideoFromCard(card: Element): ExtractedVideo | null {
   const coverResult = extractWithFallback(card, BILIBILI_SELECTORS.cover, extractSrc)
   const authorResult = extractWithFallback(card, BILIBILI_SELECTORS.author, extractText)
   const authorLinkResult = extractWithFallback(card, BILIBILI_SELECTORS.authorLink, extractHref)
+  const durationResult = extractWithFallback(card, BILIBILI_SELECTORS.duration, extractText)
   const playCountResult = extractWithFallback(card, BILIBILI_SELECTORS.playCount, extractText)
   const videoLinkResult = extractWithFallback(card, BILIBILI_SELECTORS.videoLink, extractHref)
   const bvidResult = extractWithFallback(card, BILIBILI_SELECTORS.bvid, extractBvidFromElement)
@@ -61,7 +62,7 @@ function extractVideoFromCard(card: Element): ExtractedVideo | null {
     cover: coverResult.value || '',
     author: authorResult.value || '未知UP主',
     authorLink: authorLinkResult.value || '',
-    duration: '',
+    duration: durationResult.value || '',
     playCount: playCountResult.value || '',
     videoLink: videoLinkResult.value || `https://www.bilibili.com/video/${bvid}`,
   }

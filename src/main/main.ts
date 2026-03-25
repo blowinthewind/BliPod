@@ -880,7 +880,19 @@ function stripHtmlTags(value?: string) {
     return ''
   }
 
-  return value.replace(/<[^>]+>/g, '').trim()
+  return value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+}
+
+function formatSearchPlayCount(value?: number | string) {
+  if (value == null || value === '') {
+    return ''
+  }
+
+  if (typeof value === 'string') {
+    return value.trim()
+  }
+
+  return String(value)
 }
 
 function getSearchVideoUrl(item: BilibiliSearchApiItem) {
@@ -900,7 +912,8 @@ function mapSearchApiVideo(item: BilibiliSearchApiItem): ExtractedVideo | null {
   }
 
   const title = stripHtmlTags(item.title)
-  if (!title) {
+  const videoLink = getSearchVideoUrl(item)
+  if (!title || !videoLink) {
     return null
   }
 
@@ -912,9 +925,9 @@ function mapSearchApiVideo(item: BilibiliSearchApiItem): ExtractedVideo | null {
     cover: normalizeBilibiliAssetUrl(item.pic),
     author: item.author || '未知UP主',
     authorLink: authorMid ? `https://space.bilibili.com/${authorMid}` : '',
-    duration: item.duration || '',
-    playCount: item.play != null ? String(item.play) : '',
-    videoLink: getSearchVideoUrl(item)
+    duration: item.duration?.trim() || '',
+    playCount: formatSearchPlayCount(item.play),
+    videoLink
   }
 }
 
