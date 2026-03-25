@@ -369,8 +369,8 @@
     <EmptyState
       v-else-if="!searchStore.isSearching && !hasError && searchStore.hasSearched"
       :icon="Search"
-      title="暂时没有获取到相关内容"
-      description="当前无法获取搜索结果，请稍候再试"
+      title="没有找到相关内容"
+      description="试试更换关键词，或稍后再试"
     />
 
     <EmptyState

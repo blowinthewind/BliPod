@@ -1660,7 +1660,7 @@ function setupIPC() {
       logger.info('No active search session, notifying user to search again')
       if (mainWindow) {
         mainWindow.webContents.send('search:viewDestroyed', {
-          message: '搜索页面已超时关闭，请重新搜索',
+          message: '当前搜索已失效，请重新搜索',
           lastQuery: lastSearchQuery
         })
       }
@@ -1708,7 +1708,7 @@ function setupIPC() {
       logger.debug('lastSearchQuery:', lastSearchQuery)
       if (mainWindow) {
         mainWindow.webContents.send('search:viewDestroyed', {
-          message: '搜索页面已超时关闭，请重新搜索',
+          message: '当前搜索已失效，请重新搜索',
           lastQuery: lastSearchQuery
         })
       }

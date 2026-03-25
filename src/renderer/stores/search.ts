@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useToast } from '../composables/useToast'
-import { getUserFriendlyErrorMessage } from '../utils/errorMessages'
+import { getSearchFriendlyErrorMessage } from '../utils/errorMessages'
 import { logger } from '../utils/logger'
 
 export const useSearchStore = defineStore('search', () => {
@@ -89,15 +89,19 @@ export const useSearchStore = defineStore('search', () => {
       const result = await window.electronAPI.search.search(query.value)
 
       if (!result.success) {
-        const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
+        const friendlyError = getSearchFriendlyErrorMessage(result.error, '当前无法获取搜索结果，请稍候再试')
         error.value = friendlyError
+        hasMore.value = false
+        nextOffset.value = null
         toast.error(friendlyError)
         logger.error('Search failed:', result.error)
         isSearching.value = false
       }
     } catch (e) {
-      const friendlyError = getUserFriendlyErrorMessage(e, '搜索失败')
+      const friendlyError = getSearchFriendlyErrorMessage(e, '当前无法获取搜索结果，请稍候再试')
       error.value = friendlyError
+      hasMore.value = false
+      nextOffset.value = null
       toast.error(friendlyError)
       logger.error('Search error:', e)
       isSearching.value = false
@@ -126,6 +130,7 @@ export const useSearchStore = defineStore('search', () => {
   function setResultListener() {
     const unsubscribe = window.electronAPI.search.onSearchResult((result: SearchResult) => {
       if (result.success) {
+        error.value = null
         if (isLoadingMore.value) {
           const newVideos = result.videos.filter(
             (v: ExtractedVideo) => !results.value.find((r) => r.bvid === v.bvid)
@@ -140,8 +145,10 @@ export const useSearchStore = defineStore('search', () => {
         hasMore.value = result.hasMore
         lastSearchTime.value = result.extractedAt
       } else {
-        const friendlyError = getUserFriendlyErrorMessage(result.error, '搜索失败')
+        const friendlyError = getSearchFriendlyErrorMessage(result.error, '当前无法获取搜索结果，请稍候再试')
         error.value = friendlyError
+        hasMore.value = false
+        nextOffset.value = null
         toast.error(friendlyError)
         logger.error('Search result error:', result.error)
       }
@@ -157,7 +164,9 @@ export const useSearchStore = defineStore('search', () => {
   ) {
     const unsubscribe = window.electronAPI.search.onViewDestroyed((data) => {
       // searchView 被销毁，显示提示并保存上次搜索词
-      error.value = data.message
+      error.value = getSearchFriendlyErrorMessage(data.message, '当前搜索已失效，请重新搜索')
+      hasMore.value = false
+      nextOffset.value = null
       // 将上次搜索词填入搜索栏（即使已有搜索词也更新，确保是最新的）
       if (data.lastQuery) {
         query.value = data.lastQuery

@@ -67,6 +67,22 @@ const MEMORY_ERRORS: Record<string, string> = {
   'out of memory': '内存不足，请关闭一些页面后重试'
 }
 
+const SEARCH_CONTEXT_ERRORS: Record<string, string> = {
+  'extractor script not found': '当前无法获取搜索结果，请稍候再试',
+  'failed to extract search results': '当前无法获取搜索结果，请稍候再试',
+  'failed to click next page': '当前无法继续加载搜索结果，请重新搜索后再试',
+  'no next page button found or button is disabled': '当前无法继续加载搜索结果，请重新搜索后再试',
+  'search view was destroyed': '当前搜索已失效，请重新搜索',
+  '搜索页面已超时关闭，请重新搜索': '当前搜索已失效，请重新搜索',
+  '当前搜索已失效，请重新搜索': '当前搜索已失效，请重新搜索',
+  'search request failed': '当前无法获取搜索结果，请稍候再试',
+  'search request timeout': '搜索请求超时，请检查网络后重试',
+  'bilibili 搜索接口返回异常': '当前无法获取搜索结果，请稍候再试',
+  '账号未登录': '当前无法获取搜索结果，请稍候再试',
+  '风控': '当前无法获取搜索结果，请稍候再试',
+  '降级 dom 抓取也失败': '当前无法获取搜索结果，请稍候再试'
+}
+
 // 所有错误映射
 const ALL_ERROR_MAPPINGS: Record<string, string> = {
   ...NETWORK_ERRORS,
@@ -118,6 +134,28 @@ export function getUserFriendlyErrorMessage(
   return errorMessage.length > 100
     ? fallbackMessage
     : errorMessage
+}
+
+export function getSearchFriendlyErrorMessage(
+  error: unknown,
+  fallbackMessage: string = '当前无法获取搜索结果，请稍候再试'
+): string {
+  if (!error) {
+    return fallbackMessage
+  }
+
+  const errorMessage = error instanceof Error
+    ? error.message
+    : String(error)
+  const lowerMessage = errorMessage.toLowerCase()
+
+  for (const [key, value] of Object.entries(SEARCH_CONTEXT_ERRORS)) {
+    if (lowerMessage.includes(key.toLowerCase())) {
+      return value
+    }
+  }
+
+  return getUserFriendlyErrorMessage(error, fallbackMessage)
 }
 
 /**
