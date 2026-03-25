@@ -68,14 +68,11 @@ let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 type SearchViewContext = 'search' | 'uploader'
 
-type PendingManualSearchViewLoad = {
-  context: SearchViewContext
-}
-
 let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
-let pendingManualSearchViewLoads: PendingManualSearchViewLoad[] = []
 let searchSessionState: SearchSessionState | null = null
+let searchViewLoadContext: SearchViewContext = 'search'
+let searchViewAutoExtractEnabled = false
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -275,30 +272,27 @@ function getBilibiliSession() {
   return session.fromPartition(BILIBILI_SESSION)
 }
 
-async function loadSearchViewUrl(view: BrowserView, url: string) {
+async function loadSearchViewUrl(
+  view: BrowserView,
+  url: string,
+  context: SearchViewContext = 'search',
+  options: { autoExtract?: boolean } = {}
+) {
+  searchViewLoadContext = context
+  searchViewAutoExtractEnabled = options.autoExtract ?? false
+
   return view.webContents.loadURL(url, {
     userAgent: BILIBILI_DESKTOP_USER_AGENT,
     httpReferrer: BILIBILI_DESKTOP_REFERRER
   })
 }
 
-function getSearchViewContextLabel(context: SearchViewContext): string {
-  return context === 'uploader' ? 'Uploader' : 'Search'
+function isNavigationAbortedError(error: unknown) {
+  return error instanceof Error && 'code' in error && error.code === 'ERR_ABORTED'
 }
 
-async function loadSearchViewUrlManually(view: BrowserView, url: string, context: SearchViewContext) {
-  const pendingLoad: PendingManualSearchViewLoad = { context }
-  pendingManualSearchViewLoads.push(pendingLoad)
-
-  try {
-    await loadSearchViewUrl(view, url)
-  } catch (error) {
-    const pendingLoadIndex = pendingManualSearchViewLoads.indexOf(pendingLoad)
-    if (pendingLoadIndex !== -1) {
-      pendingManualSearchViewLoads.splice(pendingLoadIndex, 1)
-    }
-    throw error
-  }
+function getSearchViewContextLabel(context: SearchViewContext): string {
+  return context === 'uploader' ? 'Uploader' : 'Search'
 }
 
 function getExtractorScript(): string {
@@ -371,11 +365,13 @@ function destroySearchView() {
       }
       searchView.webContents.close()
       searchView = null
-      pendingManualSearchViewLoads = []
+      searchViewLoadContext = 'search'
+      searchViewAutoExtractEnabled = false
     } catch (error) {
       logger.error('Error destroying search view:', error)
       searchView = null
-      pendingManualSearchViewLoads = []
+      searchViewLoadContext = 'search'
+      searchViewAutoExtractEnabled = false
     }
   }
 }
@@ -605,11 +601,12 @@ async function createSearchView(): Promise<BrowserView> {
     logger.info('Search view page finished loading')
     searchViewLastUsed = Date.now()
 
-    if (pendingManualSearchViewLoads.length > 0) {
-      const pendingLoad = pendingManualSearchViewLoads.shift()
-      logger.info(`${getSearchViewContextLabel(pendingLoad?.context || 'search')} view auto extraction skipped for manual load`)
+    if (searchViewLoadContext !== 'search' || !searchViewAutoExtractEnabled) {
+      logger.info(`${getSearchViewContextLabel(searchViewLoadContext)} view auto extraction skipped for manual load`)
       return
     }
+
+    searchViewAutoExtractEnabled = false
 
     try {
       const result = await extractSearchResultsFromView(searchView!, 'search')
@@ -1142,7 +1139,7 @@ async function loadSearchResultsByDom(query: string, offset?: number | null): Pr
   const view = await createSearchView()
 
   logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
-  await loadSearchViewUrlManually(view, searchUrl, 'search')
+  await loadSearchViewUrl(view, searchUrl, 'search', { autoExtract: false })
 
   const result = await extractSearchResultsFromView(view, 'search')
   updateSearchSessionState(normalizedQuery, 'dom', {
@@ -1158,7 +1155,15 @@ async function prepareSearchViewForPagination(query: string, offset?: number | n
   const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
   const view = await createSearchView()
 
-  await loadSearchViewUrlManually(view, searchUrl, 'search')
+  try {
+    await loadSearchViewUrl(view, searchUrl, 'search', { autoExtract: false })
+  } catch (error) {
+    if (isNavigationAbortedError(error) && searchViewLoadContext !== 'search') {
+      logger.info('Search view preparation aborted by a newer non-search load')
+      return
+    }
+    throw error
+  }
 }
 
 async function loadSearchResults(query: string, offset?: number | null): Promise<SearchResult> {
@@ -1284,7 +1289,7 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   const view = await createSearchView()
 
   logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
-  await loadSearchViewUrlManually(view, pageUrl, 'uploader')
+  await loadSearchViewUrl(view, pageUrl, 'uploader', { autoExtract: false })
 
   const result = await extractSearchResultsFromView(view, 'uploader')
   const uploader =
