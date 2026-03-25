@@ -1,5 +1,5 @@
 import { app, BrowserWindow, session, ipcMain, BrowserView, dialog, nativeImage } from 'electron'
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { join, resolve } from 'path'
 import { readFileSync } from 'fs'
 import type { SearchResult } from '../scripts/search-extractor'
@@ -80,7 +80,14 @@ const BILIBILI_DESKTOP_USER_AGENT =
 const BILIBILI_DESKTOP_REFERRER = 'https://www.bilibili.com/'
 const SEARCH_VIEW_DESKTOP_BOUNDS = { x: 0, y: 0, width: 1280, height: 900 }
 const SPACE_PAGE_ORIGIN = 'https://space.bilibili.com'
+const SEARCH_PAGE_ORIGIN = 'https://search.bilibili.com'
+const SEARCH_PAGE_PATH = '/video'
+const SEARCH_API_PAGE_SIZE = 42
+const SEARCH_API_DYNAMIC_OFFSET_STEP = 30
+const SEARCH_API_DEFAULT_WEB_LOCATION = 1430654
 const UPLOADER_API_PAGE_SIZE = 40
+const SEARCH_API_RESPONSE_ERROR = 'Bilibili 搜索接口返回异常'
+const SEARCH_API_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了搜索接口访问'
 const UPLOADER_NOT_LOGGED_IN_ERROR = '账号未登录'
 const UPLOADER_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了 UP 主投稿接口访问'
 const WBI_MIXIN_KEY_INDEXES = [
@@ -140,6 +147,34 @@ interface BilibiliUploaderVideoListData {
   is_risk?: boolean
   gaia_res_type?: number
   gaia_data?: unknown
+}
+
+interface BilibiliSearchApiItem {
+  type?: string
+  author?: string
+  mid?: number | string
+  arcurl?: string
+  bvid?: string
+  title?: string
+  pic?: string
+  play?: number | string
+  duration?: string
+}
+
+interface BilibiliSearchApiData {
+  page?: number
+  pagesize?: number
+  numResults?: number
+  numPages?: number
+  result?: BilibiliSearchApiItem[]
+  is_risk?: boolean
+  gaia_res_type?: number
+  gaia_data?: unknown
+}
+
+interface SearchPaginationState {
+  page: number
+  offset: number
 }
 
 app.commandLine.appendSwitch('disable-features', DISABLED_CHROMIUM_FEATURES.join(','))
@@ -718,6 +753,59 @@ async function getWbiMixinKeyForSession() {
   return getWbiMixinKey(imgKey, subKey)
 }
 
+function normalizeSearchQuery(query: string) {
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) {
+    throw new Error('Invalid search query')
+  }
+  return normalizedQuery
+}
+
+function normalizeSearchOffset(offset?: number | null) {
+  if (offset == null) {
+    return 0
+  }
+
+  if (!Number.isInteger(offset) || offset < 0) {
+    throw new Error('Invalid search offset')
+  }
+
+  return offset
+}
+
+function resolveSearchPaginationState(offset?: number | null): SearchPaginationState {
+  const normalizedOffset = normalizeSearchOffset(offset)
+
+  if (normalizedOffset <= 0) {
+    return {
+      page: 1,
+      offset: 0
+    }
+  }
+
+  if (normalizedOffset % SEARCH_API_DYNAMIC_OFFSET_STEP === 0) {
+    return {
+      page: Math.floor(normalizedOffset / SEARCH_API_DYNAMIC_OFFSET_STEP) + 1,
+      offset: normalizedOffset
+    }
+  }
+
+  return {
+    page: Math.floor(normalizedOffset / 20) + 1,
+    offset: normalizedOffset
+  }
+}
+
+function getSearchPageUrl(query: string, pagination: SearchPaginationState) {
+  const normalizedQuery = encodeURIComponent(normalizeSearchQuery(query))
+
+  if (pagination.page <= 1 && pagination.offset === 0) {
+    return `${SEARCH_PAGE_ORIGIN}${SEARCH_PAGE_PATH}?keyword=${normalizedQuery}&search_source=1`
+  }
+
+  return `${SEARCH_PAGE_ORIGIN}${SEARCH_PAGE_PATH}?keyword=${normalizedQuery}&search_source=1&page=${pagination.page}&o=${pagination.offset}`
+}
+
 function normalizeUploaderMid(mid: string) {
   const normalizedMid = mid.trim()
   if (!/^\d+$/.test(normalizedMid)) {
@@ -765,6 +853,67 @@ async function hasBilibiliLoginSession() {
   const bilibiliSession = getBilibiliSession()
   const cookies = await bilibiliSession.cookies.get({ url: 'https://www.bilibili.com' })
   return cookies.some((cookie) => cookie.name === 'SESSDATA' && Boolean(cookie.value))
+}
+
+function createSearchQvId() {
+  return randomBytes(16).toString('base64url')
+}
+
+function stripHtmlTags(value?: string) {
+  if (!value) {
+    return ''
+  }
+
+  return value.replace(/<[^>]+>/g, '').trim()
+}
+
+function getSearchVideoUrl(item: BilibiliSearchApiItem) {
+  if (item.arcurl) {
+    const normalizedArcurl = normalizeBilibiliAssetUrl(item.arcurl)
+    if (normalizedArcurl) {
+      return normalizedArcurl
+    }
+  }
+
+  return item.bvid ? `https://www.bilibili.com/video/${item.bvid}` : ''
+}
+
+function mapSearchApiVideo(item: BilibiliSearchApiItem): ExtractedVideo | null {
+  if (item.type !== 'video' || !item.bvid || !item.title) {
+    return null
+  }
+
+  const title = stripHtmlTags(item.title)
+  if (!title) {
+    return null
+  }
+
+  const authorMid = item.mid != null ? String(item.mid) : ''
+
+  return {
+    bvid: item.bvid,
+    title,
+    cover: normalizeBilibiliAssetUrl(item.pic),
+    author: item.author || '未知UP主',
+    authorLink: authorMid ? `https://space.bilibili.com/${authorMid}` : '',
+    duration: item.duration || '',
+    playCount: item.play != null ? String(item.play) : '',
+    videoLink: getSearchVideoUrl(item)
+  }
+}
+
+function shouldFallbackToSearchDom(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.message === SEARCH_API_RISK_BLOCKED_ERROR ||
+    error.message.includes('风控') ||
+    error.message === UPLOADER_NOT_LOGGED_IN_ERROR ||
+    error.message.includes(UPLOADER_NOT_LOGGED_IN_ERROR) ||
+    error.message === SEARCH_API_RESPONSE_ERROR
+  )
 }
 
 function shouldFallbackToUploaderDom(error: unknown) {
@@ -845,6 +994,76 @@ function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: Upload
     duration: item.length || '',
     playCount: item.play != null ? String(item.play) : '',
     videoLink: `https://www.bilibili.com/video/${item.bvid}`
+  }
+}
+
+async function loadSearchResultsByApi(query: string, offset?: number | null): Promise<SearchResult> {
+  const normalizedQuery = normalizeSearchQuery(query)
+  const pagination = resolveSearchPaginationState(offset)
+  const mixinKey = await getWbiMixinKeyForSession()
+  const pageUrl = getSearchPageUrl(normalizedQuery, pagination)
+  const params = signWbiParams(
+    {
+      category_id: '',
+      search_type: 'video',
+      ad_resource: 5654,
+      __refresh__: 'true',
+      _extra: '',
+      context: '',
+      page: pagination.page,
+      page_size: SEARCH_API_PAGE_SIZE,
+      pubtime_begin_s: 0,
+      pubtime_end_s: 0,
+      from_source: '',
+      from_spmid: '333.337',
+      platform: 'pc',
+      highlight: 1,
+      single_column: 0,
+      keyword: normalizedQuery,
+      qv_id: createSearchQvId(),
+      source_tag: 3,
+      gaia_vtoken: '',
+      dynamic_offset: pagination.offset,
+      web_roll_page: 1,
+      web_location: SEARCH_API_DEFAULT_WEB_LOCATION
+    },
+    mixinKey
+  )
+
+  const response = await fetchBilibiliJson<BilibiliSearchApiData>(
+    `https://api.bilibili.com/x/web-interface/wbi/search/type?${params.toString()}`,
+    pageUrl
+  )
+
+  if (response.code !== 0) {
+    throw new Error(response.message || SEARCH_API_RESPONSE_ERROR)
+  }
+
+  const data = response.data
+  if (!data) {
+    throw new Error(SEARCH_API_RESPONSE_ERROR)
+  }
+
+  if (data.is_risk || data.gaia_res_type || data.gaia_data) {
+    throw new Error(SEARCH_API_RISK_BLOCKED_ERROR)
+  }
+
+  const videos = (data.result || [])
+    .map((item) => mapSearchApiVideo(item))
+    .filter((item): item is ExtractedVideo => item !== null)
+  const currentPage = data.page || pagination.page
+  const numPages = data.numPages || currentPage
+  const hasMore = currentPage < numPages
+  const nextOffset = hasMore ? currentPage * SEARCH_API_DYNAMIC_OFFSET_STEP : null
+
+  return {
+    success: true,
+    videos,
+    hasMore,
+    extractedAt: Date.now(),
+    pageUrl,
+    currentPage,
+    nextOffset
   }
 }
 
@@ -1216,36 +1435,14 @@ function setupIPC() {
     async (_event, query: string, offset?: number): Promise<SearchResult> => {
       logger.info('Search query received:', `${query} offset: ${offset}`)
 
-      // 保存搜索词，用于超时后提示用户
-      lastSearchQuery = query
+      let normalizedQuery = query
+      let pagination: SearchPaginationState = { page: 1, offset: 0 }
 
       try {
-        searchViewLoadMode = 'search'
-        const view = await createSearchView()
-        const encodedQuery = encodeURIComponent(query)
-        let searchUrl: string
-
-        if (offset && offset > 0) {
-          const page = Math.floor(offset / 20) + 1
-          searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1&page=${page}&o=${offset}`
-        } else {
-          searchUrl = `https://search.bilibili.com/video?keyword=${encodedQuery}&search_source=1`
-        }
-
-        logger.info('Loading search URL:', searchUrl)
-        await loadSearchViewUrl(view, searchUrl)
-
-        return {
-          success: true,
-          videos: [],
-          hasMore: false,
-          extractedAt: Date.now(),
-          pageUrl: searchUrl,
-          currentPage: 1,
-          nextOffset: null
-        }
+        normalizedQuery = normalizeSearchQuery(query)
+        pagination = resolveSearchPaginationState(offset)
       } catch (error) {
-        logger.error('Search error:', error)
+        logger.error('Search query validation error:', error)
         return {
           success: false,
           videos: [],
@@ -1255,6 +1452,88 @@ function setupIPC() {
           pageUrl: '',
           currentPage: 1,
           nextOffset: null
+        }
+      }
+
+      const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
+
+      // 保存搜索词，用于超时后提示用户
+      lastSearchQuery = normalizedQuery
+
+      try {
+        logger.info('Search request uses API mode', `${normalizedQuery} page: ${pagination.page}`)
+        const result = await loadSearchResultsByApi(normalizedQuery, pagination.offset)
+
+        if (mainWindow) {
+          mainWindow.webContents.send('search:result', result)
+        }
+
+        void (async () => {
+          searchViewLoadMode = 'manual'
+          try {
+            const view = await createSearchView()
+            await loadSearchViewUrl(view, searchUrl)
+          } catch (viewError) {
+            logger.warn('Failed to prepare search view for DOM pagination:', viewError)
+          } finally {
+            searchViewLoadMode = 'search'
+          }
+        })()
+
+        return result
+      } catch (error) {
+        if (!shouldFallbackToSearchDom(error)) {
+          logger.error('Search API error:', error)
+          return {
+            success: false,
+            videos: [],
+            hasMore: false,
+            error: error instanceof Error ? error.message : 'Search request failed',
+            extractedAt: Date.now(),
+            pageUrl: searchUrl,
+            currentPage: pagination.page,
+            nextOffset: null
+          }
+        }
+
+        logger.warn('Search API fallback to DOM', {
+          query: normalizedQuery,
+          offset: pagination.offset,
+          reason: error instanceof Error ? error.message : 'unknown'
+        })
+
+        try {
+          searchViewLoadMode = 'search'
+          const view = await createSearchView()
+          logger.info('Loading search URL via DOM fallback:', searchUrl)
+          await loadSearchViewUrl(view, searchUrl)
+
+          return {
+            success: true,
+            videos: [],
+            hasMore: false,
+            extractedAt: Date.now(),
+            pageUrl: searchUrl,
+            currentPage: pagination.page,
+            nextOffset: pagination.offset > 0 ? pagination.offset : null
+          }
+        } catch (domError) {
+          logger.error('Search DOM fallback error:', domError)
+          return {
+            success: false,
+            videos: [],
+            hasMore: false,
+            error:
+              domError instanceof Error
+                ? domError.message
+                : error instanceof Error
+                  ? error.message
+                  : 'Search request failed',
+            extractedAt: Date.now(),
+            pageUrl: searchUrl,
+            currentPage: pagination.page,
+            nextOffset: null
+          }
         }
       }
     }
