@@ -1244,12 +1244,32 @@ async function loadUploaderVideosByApi(mid: string, page: number = 1): Promise<S
   const pageSize = videoData?.page?.ps || UPLOADER_API_PAGE_SIZE
   const total = videoData?.page?.count || videos.length
   const hasMore = currentPage * pageSize < total
+  const extractedAt = Date.now()
+
+  if (normalizedPage === 1 && videos.length === 0 && !uploader) {
+    logger.warn('Uploader API returned no uploader metadata or videos', {
+      mid: normalizedMid,
+      page: normalizedPage,
+      pageUrl: pageUrl.split('?')[0]
+    })
+
+    return {
+      success: false,
+      videos: [],
+      hasMore: false,
+      error: 'Failed to load uploader videos',
+      extractedAt,
+      pageUrl,
+      currentPage,
+      nextOffset: null
+    }
+  }
 
   return {
     success: true,
     videos,
     hasMore,
-    extractedAt: Date.now(),
+    extractedAt,
     pageUrl,
     currentPage,
     nextOffset: hasMore ? currentPage + 1 : null,
@@ -1267,19 +1287,40 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   await loadSearchViewUrlManually(view, pageUrl, 'uploader')
 
   const result = await extractSearchResultsFromView(view, 'uploader')
+  const uploader =
+    result.uploader ||
+    (result.videos.length > 0
+      ? {
+          name: result.videos[0].author,
+          avatar: '',
+          mid: normalizedMid
+        }
+      : undefined)
+
+  if (result.success && normalizedPage === 1 && result.videos.length === 0 && !uploader) {
+    logger.warn('Uploader DOM fallback returned no uploader metadata or videos', {
+      mid: normalizedMid,
+      page: normalizedPage,
+      pageUrl: result.pageUrl.split('?')[0]
+    })
+
+    return {
+      success: false,
+      videos: [],
+      hasMore: false,
+      error: 'Failed to load uploader videos',
+      extractedAt: result.extractedAt,
+      pageUrl: result.pageUrl,
+      currentPage: normalizedPage,
+      nextOffset: null
+    }
+  }
+
   return {
     ...result,
     currentPage: normalizedPage,
     nextOffset: result.hasMore ? normalizedPage + 1 : null,
-    uploader:
-      result.uploader ||
-      (result.videos.length > 0
-        ? {
-            name: result.videos[0].author,
-            avatar: '',
-            mid: normalizedMid
-          }
-        : undefined)
+    uploader
   }
 }
 
