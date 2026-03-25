@@ -68,7 +68,7 @@ let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
 let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
-let searchViewLoadMode: 'search' | 'manual' = 'search'
+let pendingManualSearchViewLoads = 0
 let searchSessionState: SearchSessionState | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
@@ -276,6 +276,17 @@ async function loadSearchViewUrl(view: BrowserView, url: string) {
   })
 }
 
+async function loadSearchViewUrlManually(view: BrowserView, url: string) {
+  pendingManualSearchViewLoads += 1
+
+  try {
+    await loadSearchViewUrl(view, url)
+  } catch (error) {
+    pendingManualSearchViewLoads = Math.max(pendingManualSearchViewLoads - 1, 0)
+    throw error
+  }
+}
+
 function getExtractorScript(): string {
   if (!extractorScript) {
     try {
@@ -346,10 +357,11 @@ function destroySearchView() {
       }
       searchView.webContents.close()
       searchView = null
-      searchViewLoadMode = 'search'
+      pendingManualSearchViewLoads = 0
     } catch (error) {
       logger.error('Error destroying search view:', error)
       searchView = null
+      pendingManualSearchViewLoads = 0
     }
   }
 }
@@ -579,7 +591,8 @@ async function createSearchView(): Promise<BrowserView> {
     logger.info('Search page finished loading')
     searchViewLastUsed = Date.now()
 
-    if (searchViewLoadMode !== 'search') {
+    if (pendingManualSearchViewLoads > 0) {
+      pendingManualSearchViewLoads = Math.max(pendingManualSearchViewLoads - 1, 0)
       logger.info('Search view auto extraction skipped for manual load')
       return
     }
@@ -1108,39 +1121,26 @@ async function loadSearchResultsByDom(query: string, offset?: number | null): Pr
   const normalizedQuery = normalizeSearchQuery(query)
   const pagination = resolveSearchPaginationState(offset)
   const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
+  const view = await createSearchView()
 
-  searchViewLoadMode = 'manual'
+  logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
+  await loadSearchViewUrlManually(view, searchUrl)
 
-  try {
-    const view = await createSearchView()
-    logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
-
-    await loadSearchViewUrl(view, searchUrl)
-
-    const result = await extractSearchResultsFromView(view)
-    updateSearchSessionState(normalizedQuery, 'dom', {
-      page: result.currentPage,
-      offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : pagination.offset
-    })
-    return result
-  } finally {
-    searchViewLoadMode = 'search'
-  }
+  const result = await extractSearchResultsFromView(view)
+  updateSearchSessionState(normalizedQuery, 'dom', {
+    page: result.currentPage,
+    offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : pagination.offset
+  })
+  return result
 }
 
 async function prepareSearchViewForPagination(query: string, offset?: number | null): Promise<void> {
   const normalizedQuery = normalizeSearchQuery(query)
   const pagination = resolveSearchPaginationState(offset)
   const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
+  const view = await createSearchView()
 
-  searchViewLoadMode = 'manual'
-
-  try {
-    const view = await createSearchView()
-    await loadSearchViewUrl(view, searchUrl)
-  } finally {
-    searchViewLoadMode = 'search'
-  }
+  await loadSearchViewUrlManually(view, searchUrl)
 }
 
 async function loadSearchResults(query: string, offset?: number | null): Promise<SearchResult> {
@@ -1243,32 +1243,25 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   const normalizedMid = normalizeUploaderMid(mid)
   const normalizedPage = normalizeUploaderPage(page)
   const pageUrl = getUploaderPageUrl(normalizedMid, normalizedPage)
+  const view = await createSearchView()
 
-  searchViewLoadMode = 'manual'
+  logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
+  await loadSearchViewUrlManually(view, pageUrl)
 
-  try {
-    const view = await createSearchView()
-    logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
-
-    await loadSearchViewUrl(view, pageUrl)
-
-    const result = await extractSearchResultsFromView(view)
-    return {
-      ...result,
-      currentPage: normalizedPage,
-      nextOffset: result.hasMore ? normalizedPage + 1 : null,
-      uploader:
-        result.uploader ||
-        (result.videos.length > 0
-          ? {
-              name: result.videos[0].author,
-              avatar: '',
-              mid: normalizedMid
-            }
-          : undefined)
-    }
-  } finally {
-    searchViewLoadMode = 'search'
+  const result = await extractSearchResultsFromView(view)
+  return {
+    ...result,
+    currentPage: normalizedPage,
+    nextOffset: result.hasMore ? normalizedPage + 1 : null,
+    uploader:
+      result.uploader ||
+      (result.videos.length > 0
+        ? {
+            name: result.videos[0].author,
+            avatar: '',
+            mid: normalizedMid
+          }
+        : undefined)
   }
 }
 
