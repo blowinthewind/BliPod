@@ -66,9 +66,15 @@ let qrPollInterval: NodeJS.Timeout | null = null
 let memoryCleanupInterval: NodeJS.Timeout | null = null
 let searchViewLastUsed: number = 0
 let playerViewLastUsed: number = 0
+type SearchViewContext = 'search' | 'uploader'
+
+type PendingManualSearchViewLoad = {
+  context: SearchViewContext
+}
+
 let viewIdleTimeout: number = DEFAULT_RUNTIME_CONFIG.behavior.memory.searchViewIdleTimeoutMinutes * 60 * 1000
 let lastSearchQuery: string = ''
-let pendingManualSearchViewLoads = 0
+let pendingManualSearchViewLoads: PendingManualSearchViewLoad[] = []
 let searchSessionState: SearchSessionState | null = null
 
 const BILIBILI_SESSION = 'persist:bilibili'
@@ -276,13 +282,21 @@ async function loadSearchViewUrl(view: BrowserView, url: string) {
   })
 }
 
-async function loadSearchViewUrlManually(view: BrowserView, url: string) {
-  pendingManualSearchViewLoads += 1
+function getSearchViewContextLabel(context: SearchViewContext): string {
+  return context === 'uploader' ? 'Uploader' : 'Search'
+}
+
+async function loadSearchViewUrlManually(view: BrowserView, url: string, context: SearchViewContext) {
+  const pendingLoad: PendingManualSearchViewLoad = { context }
+  pendingManualSearchViewLoads.push(pendingLoad)
 
   try {
     await loadSearchViewUrl(view, url)
   } catch (error) {
-    pendingManualSearchViewLoads = Math.max(pendingManualSearchViewLoads - 1, 0)
+    const pendingLoadIndex = pendingManualSearchViewLoads.indexOf(pendingLoad)
+    if (pendingLoadIndex !== -1) {
+      pendingManualSearchViewLoads.splice(pendingLoadIndex, 1)
+    }
     throw error
   }
 }
@@ -357,11 +371,11 @@ function destroySearchView() {
       }
       searchView.webContents.close()
       searchView = null
-      pendingManualSearchViewLoads = 0
+      pendingManualSearchViewLoads = []
     } catch (error) {
       logger.error('Error destroying search view:', error)
       searchView = null
-      pendingManualSearchViewLoads = 0
+      pendingManualSearchViewLoads = []
     }
   }
 }
@@ -588,17 +602,17 @@ async function createSearchView(): Promise<BrowserView> {
   }
 
   searchView.webContents.on('did-finish-load', async () => {
-    logger.info('Search page finished loading')
+    logger.info('Search view page finished loading')
     searchViewLastUsed = Date.now()
 
-    if (pendingManualSearchViewLoads > 0) {
-      pendingManualSearchViewLoads = Math.max(pendingManualSearchViewLoads - 1, 0)
-      logger.info('Search view auto extraction skipped for manual load')
+    if (pendingManualSearchViewLoads.length > 0) {
+      const pendingLoad = pendingManualSearchViewLoads.shift()
+      logger.info(`${getSearchViewContextLabel(pendingLoad?.context || 'search')} view auto extraction skipped for manual load`)
       return
     }
 
     try {
-      const result = await extractSearchResultsFromView(searchView!)
+      const result = await extractSearchResultsFromView(searchView!, 'search')
 
       if (mainWindow) {
         mainWindow.webContents.send('search:result', result)
@@ -979,17 +993,21 @@ function updateSearchSessionState(query: string, mode: 'api' | 'dom', pagination
   }
 }
 
-async function extractSearchResultsFromView(view: BrowserView): Promise<SearchResult> {
+async function extractSearchResultsFromView(
+  view: BrowserView,
+  context: SearchViewContext = 'search'
+): Promise<SearchResult> {
   searchViewLastUsed = Date.now()
   await new Promise((resolve) => setTimeout(resolve, 2000))
 
+  const contextLabel = getSearchViewContextLabel(context)
   const script = getExtractorScript()
   if (!script) {
     throw new Error('Extractor script not found')
   }
 
   await view.webContents.executeJavaScript(script)
-  logger.info('Extractor script injected')
+  logger.info(`${contextLabel} extractor script injected`)
 
   const result = (await view.webContents.executeJavaScript(
     'window.__BILI_EXTRACT_SEARCH__ ? window.__BILI_EXTRACT_SEARCH__() : null'
@@ -1000,10 +1018,10 @@ async function extractSearchResultsFromView(view: BrowserView): Promise<SearchRe
   }
 
   if (result.pageUrl?.includes('m.bilibili.com')) {
-    logger.warn('Search view redirected to mobile site', { pageUrl: result.pageUrl.split('?')[0] })
+    logger.warn(`${contextLabel} view redirected to mobile site`, { pageUrl: result.pageUrl.split('?')[0] })
   }
 
-  logger.info('Search results extracted', {
+  logger.info(`${contextLabel} results extracted`, {
     videoCount: result.videos.length,
     hasMore: result.hasMore,
     currentPage: result.currentPage,
@@ -1124,9 +1142,9 @@ async function loadSearchResultsByDom(query: string, offset?: number | null): Pr
   const view = await createSearchView()
 
   logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
-  await loadSearchViewUrlManually(view, searchUrl)
+  await loadSearchViewUrlManually(view, searchUrl, 'search')
 
-  const result = await extractSearchResultsFromView(view)
+  const result = await extractSearchResultsFromView(view, 'search')
   updateSearchSessionState(normalizedQuery, 'dom', {
     page: result.currentPage,
     offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : pagination.offset
@@ -1140,7 +1158,7 @@ async function prepareSearchViewForPagination(query: string, offset?: number | n
   const searchUrl = getSearchPageUrl(normalizedQuery, pagination)
   const view = await createSearchView()
 
-  await loadSearchViewUrlManually(view, searchUrl)
+  await loadSearchViewUrlManually(view, searchUrl, 'search')
 }
 
 async function loadSearchResults(query: string, offset?: number | null): Promise<SearchResult> {
@@ -1246,9 +1264,9 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   const view = await createSearchView()
 
   logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
-  await loadSearchViewUrlManually(view, pageUrl)
+  await loadSearchViewUrlManually(view, pageUrl, 'uploader')
 
-  const result = await extractSearchResultsFromView(view)
+  const result = await extractSearchResultsFromView(view, 'uploader')
   return {
     ...result,
     currentPage: normalizedPage,
