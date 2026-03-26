@@ -54,7 +54,6 @@
     get: () => appSettingsStore.rememberPosition,
     set: (value) => appSettingsStore.setRememberPosition(value)
   })
-  const showLoginEntry = computed(() => runtimeConfigStore.ui.auth.showLoginEntry)
   const showMemoryStatusEntry = computed(() => runtimeConfigStore.ui.memory.showStatus)
   const showSearchViewTimeoutControl = computed(() => runtimeConfigStore.ui.memory.showSearchViewTimeoutControl)
   const showCreateThemeEntry = computed(() => runtimeConfigStore.ui.theme.showCreate)
@@ -605,7 +604,7 @@
     </div>
 
     <div class="settings-sections">
-      <section v-if="showLoginEntry" class="settings-section">
+      <section class="settings-section">
         <h2 class="section-title">账号</h2>
         <div class="settings-card">
           <div class="setting-item">

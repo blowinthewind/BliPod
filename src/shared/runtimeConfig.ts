@@ -1,8 +1,5 @@
 export interface RuntimeConfig {
   ui: {
-    auth: {
-      showLoginEntry: boolean
-    }
     memory: {
       showStatus: boolean
       showSearchViewTimeoutControl: boolean
@@ -21,9 +18,6 @@ export interface RuntimeConfig {
 
 export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   ui: {
-    auth: {
-      showLoginEntry: false
-    },
     memory: {
       showStatus: false,
       showSearchViewTimeoutControl: false
@@ -83,7 +77,6 @@ function normalizePositiveInteger(value: unknown, fallback: number): number {
 export function normalizeRuntimeConfig(input: unknown): RuntimeConfig {
   const root = isRecord(input) ? input : {}
   const ui = isRecord(root.ui) ? root.ui : {}
-  const auth = isRecord(ui.auth) ? ui.auth : {}
   const memory = isRecord(ui.memory) ? ui.memory : {}
   const theme = isRecord(ui.theme) ? ui.theme : {}
   const behavior = isRecord(root.behavior) ? root.behavior : {}
@@ -91,9 +84,6 @@ export function normalizeRuntimeConfig(input: unknown): RuntimeConfig {
 
   return {
     ui: {
-      auth: {
-        showLoginEntry: normalizeBoolean(auth.showLoginEntry, DEFAULT_RUNTIME_CONFIG.ui.auth.showLoginEntry)
-      },
       memory: {
         showStatus: normalizeBoolean(memory.showStatus, DEFAULT_RUNTIME_CONFIG.ui.memory.showStatus),
         showSearchViewTimeoutControl: normalizeBoolean(

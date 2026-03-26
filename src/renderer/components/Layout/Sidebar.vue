@@ -1,8 +1,7 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useNavigationStore, type NavItem } from '@/stores/navigation'
   import { useAuthStore } from '@/stores/auth'
-  import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
   import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
   import {
@@ -22,9 +21,6 @@
 
   const navStore = useNavigationStore()
   const authStore = useAuthStore()
-  const runtimeConfigStore = useRuntimeConfigStore()
-
-  const showLoginEntry = computed(() => runtimeConfigStore.ui.auth.showLoginEntry)
   const showLogoutConfirm = ref(false)
   const logoutButtonRef = ref<HTMLButtonElement | null>(null)
   const logoutDialogRef = ref<HTMLDivElement | null>(null)
@@ -71,12 +67,6 @@
     navStore.setActiveItem(itemId)
     navStore.closeMobileMenu()
   }
-
-  watch(showLoginEntry, (visible) => {
-    if (!visible) {
-      showLogoutConfirm.value = false
-    }
-  })
 
   const { handleKeydown: handleLogoutDialogKeydown } = useDialogFocusTrap({
     open: showLogoutConfirm,
@@ -138,7 +128,7 @@
       </router-link>
     </nav>
 
-    <div class="sidebar-footer" v-if="showLoginEntry && !navStore.sidebarCollapsed && authStore.isLoggedIn">
+    <div class="sidebar-footer" v-if="!navStore.sidebarCollapsed && authStore.isLoggedIn">
       <div class="user-info">
         <div class="user-avatar">
           <img
@@ -170,7 +160,7 @@
       </div>
     </div>
 
-    <div class="logout-confirm-overlay" v-if="showLoginEntry && showLogoutConfirm" @click.self="cancelLogout">
+    <div class="logout-confirm-overlay" v-if="showLogoutConfirm" @click.self="cancelLogout">
       <div
         ref="logoutDialogRef"
         class="logout-confirm-dialog"
