@@ -31,7 +31,8 @@ const PLAY_STATS_CONFIG = {
   MIN_WATCH_SECONDS: 30,
   MIN_PROGRESS_RATIO: 0.1,
   DEDUP_WINDOW_MS: 10 * 60 * 1000,
-  MAX_DELTA_SECONDS: 5
+  MAX_DELTA_SECONDS: 5,
+  FLUSH_INTERVAL_SECONDS: 5
 } as const
 
 function loadHistoryFromStorage(): HistoryVideo[] {
@@ -141,6 +142,8 @@ export const usePlayerStore = defineStore('player', () => {
   let sessionQualified = false
   let sessionLastProgressAt: number | null = null
   let sessionLastCountedAt: number | null = null
+  let pendingWatchFlushSeconds = 0
+  let lastDurationWriteByBvid: { bvid: string; duration: string } | null = null
   let readyListenerUnsubscribe: (() => void) | null = null
   let progressListenerUnsubscribe: (() => void) | null = null
   let readyListenerRefCount = 0
@@ -226,6 +229,9 @@ export const usePlayerStore = defineStore('player', () => {
     time: number = currentTime.value,
     dur: number = duration.value
   ) {
+    if (video?.bvid === currentVideo.value?.bvid) {
+      await flushPendingWatchTime(time, dur)
+    }
     if (!video || !appSettings.rememberPosition) return
     if (time > 0 && dur > 0) {
       try {
@@ -287,6 +293,32 @@ export const usePlayerStore = defineStore('player', () => {
     sessionQualified = false
     sessionLastProgressAt = null
     sessionLastCountedAt = null
+    pendingWatchFlushSeconds = 0
+  }
+
+  function clearDurationWriteCache(bvid?: string) {
+    if (!bvid || lastDurationWriteByBvid?.bvid === bvid) {
+      lastDurationWriteByBvid = null
+    }
+  }
+
+  async function flushPendingWatchTime(position: number = currentTime.value, dur: number = duration.value) {
+    if (!currentVideo.value || pendingWatchFlushSeconds <= 0) return
+
+    const flushSeconds = pendingWatchFlushSeconds
+    pendingWatchFlushSeconds = 0
+
+    try {
+      await window.electronAPI.store.updateWatchTime(
+        currentVideo.value.bvid,
+        flushSeconds,
+        dur,
+        position
+      )
+    } catch (e) {
+      pendingWatchFlushSeconds += flushSeconds
+      logger.warn('Failed to flush watch time:', e)
+    }
   }
 
   async function loadPlaySessionStats(bvid: string) {
@@ -386,7 +418,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 只有在切换不同视频时才保存上一个视频的位置
     if (previousVideo && previousVideo.bvid !== video.bvid && previousTime > 0) {
+      await flushPendingWatchTime(previousTime, previousDuration)
       await saveCurrentPosition(previousVideo, previousTime, previousDuration)
+      clearDurationWriteCache(previousVideo.bvid)
     }
 
     // 构建实际播放队列
@@ -430,6 +464,7 @@ export const usePlayerStore = defineStore('player', () => {
       window.electronAPI.search.pauseVideo()
       isPlaying.value = false
       syncNativePlaybackState()
+      await flushPendingWatchTime()
       await saveCurrentPosition()
     }
   }
@@ -444,7 +479,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   async function stop() {
     stopAutoSave()
+    await flushPendingWatchTime()
     await saveCurrentPosition()
+    clearDurationWriteCache(currentVideo.value?.bvid)
     window.electronAPI.search.pauseVideo()
     currentVideo.value = null
     isPlaying.value = false
@@ -567,7 +604,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 保存上一个视频的位置
     if (previousVideo && previousVideo.bvid !== video.bvid && previousTime > 0) {
+      await flushPendingWatchTime(previousTime, previousDuration)
       await saveCurrentPosition(previousVideo, previousTime, previousDuration)
+      clearDurationWriteCache(previousVideo.bvid)
     }
 
     currentVideo.value = video
@@ -597,7 +636,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 保存上一个视频的位置
     if (previousVideo && previousVideo.bvid !== video.bvid && previousTime > 0) {
+      await flushPendingWatchTime(previousTime, previousDuration)
       await saveCurrentPosition(previousVideo, previousTime, previousDuration)
+      clearDurationWriteCache(previousVideo.bvid)
     }
 
     // 转换为队列视频
@@ -697,11 +738,27 @@ export const usePlayerStore = defineStore('player', () => {
 
   function updateVideoDuration(bvid: string, durationSeconds: number) {
     const formattedDuration = formatDuration(durationSeconds)
+    if (!formattedDuration) return
 
     const historyIndex = playHistory.value.findIndex((v) => v.bvid === bvid)
-    if (historyIndex !== -1 && playHistory.value[historyIndex].duration !== formattedDuration) {
+    const historyDuration = historyIndex !== -1 ? playHistory.value[historyIndex].duration : ''
+    const hasHistoryDuration = Boolean(historyDuration)
+    const hasDurationChanged = historyDuration !== formattedDuration
+    const hasWrittenSameDuration =
+      lastDurationWriteByBvid?.bvid === bvid && lastDurationWriteByBvid.duration === formattedDuration
+
+    if (hasHistoryDuration && !hasDurationChanged && hasWrittenSameDuration) {
+      return
+    }
+
+    if (historyIndex !== -1 && hasDurationChanged) {
       playHistory.value[historyIndex].duration = formattedDuration
       saveHistoryToStorage(playHistory.value)
+    }
+
+    lastDurationWriteByBvid = {
+      bvid,
+      duration: formattedDuration
     }
 
     void window.electronAPI.store.updateFavoriteDuration(bvid, formattedDuration)
@@ -880,6 +937,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   // 播放完成后的处理
   async function handleVideoComplete() {
+    await flushPendingWatchTime()
+
     const video = currentVideo.value
     if (video) {
       const index = userQueue.value.findIndex((v) => v.bvid === video.bvid)
@@ -899,6 +958,8 @@ export const usePlayerStore = defineStore('player', () => {
     if (currentVideo.value && appSettings.rememberPosition) {
       window.electronAPI.store.clearPlayPosition(currentVideo.value.bvid)
     }
+
+    clearDurationWriteCache(video?.bvid)
 
     // 自动播放下一首
     next()
@@ -945,13 +1006,19 @@ export const usePlayerStore = defineStore('player', () => {
         // 如果没有当前视频，不更新进度（避免stop()后进度被重新设置）
         if (!currentVideo.value) return
 
+        const currentBvid = currentVideo.value.bvid
+        const wasPlaying = isPlaying.value
+
         currentTime.value = progress.currentTime
         duration.value = progress.duration || 0
         isPlaying.value = !progress.paused
-        syncNativePlaybackState()
+
+        if (wasPlaying !== isPlaying.value) {
+          syncNativePlaybackState()
+        }
 
         if (progress.duration > 0) {
-          updateVideoDuration(currentVideo.value.bvid, progress.duration)
+          updateVideoDuration(currentBvid, progress.duration)
         }
 
         const now = Date.now()
@@ -967,13 +1034,16 @@ export const usePlayerStore = defineStore('player', () => {
           if (!progress.paused && deltaSeconds > 0) {
             activePlayback = true
             sessionWatchSeconds += deltaSeconds
-            void window.electronAPI.store.updateWatchTime(
-              currentVideo.value.bvid,
-              deltaSeconds,
-              progress.duration || 0,
-              progress.currentTime
-            )
+            pendingWatchFlushSeconds += deltaSeconds
+
+            if (pendingWatchFlushSeconds >= PLAY_STATS_CONFIG.FLUSH_INTERVAL_SECONDS) {
+              void flushPendingWatchTime(progress.currentTime, progress.duration || 0)
+            }
           }
+        }
+
+        if (progress.paused && pendingWatchFlushSeconds > 0) {
+          void flushPendingWatchTime(progress.currentTime, progress.duration || 0)
         }
 
         if (!sessionQualified && progress.duration > 0 && activePlayback) {
