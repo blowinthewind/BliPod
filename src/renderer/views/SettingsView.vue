@@ -32,6 +32,10 @@
     Check,
     MemoryStick,
     Github,
+    User,
+    Play,
+    Database,
+    Info,
     X
   } from 'lucide-vue-next'
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
@@ -153,16 +157,6 @@
       )
     }
   }
-
-  const dataStats = computed(() => {
-    const favoritesStat = categoryStats.value.find((s) => s.key === 'favorites')
-    const playlistsStat = categoryStats.value.find((s) => s.key === 'playlists')
-    return {
-      favoritesCount: favoritesStat?.count || 0,
-      playlistsCount: playlistsStat?.count || 0,
-      totalVideosInPlaylists: 0
-    }
-  })
 
   function toggleExportCategory(key: string) {
     const index = selectedExportCategories.value.indexOf(key)
@@ -616,7 +610,10 @@
 
     <div class="settings-sections">
       <section class="settings-section">
-        <h2 class="section-title">账号</h2>
+        <h2 class="section-title">
+          <User :size="18" />
+          账号
+        </h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
@@ -730,7 +727,10 @@
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">播放</h2>
+        <h2 class="section-title">
+          <Play :size="18" />
+          播放
+        </h2>
         <div class="settings-card">
           <div class="setting-item">
             <div class="setting-info">
@@ -807,17 +807,11 @@
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">数据</h2>
+        <h2 class="section-title">
+          <Database :size="18" />
+          数据
+        </h2>
         <div class="settings-card">
-          <div class="setting-item data-stats">
-            <div class="setting-info">
-              <span class="setting-label">数据概览</span>
-              <span class="setting-desc">
-                {{ dataStats.favoritesCount }} 个收藏 · {{ dataStats.playlistsCount }} 个播放列表
-              </span>
-            </div>
-          </div>
-
           <div class="setting-item category-selection">
             <div class="setting-info">
               <div class="category-header">
@@ -898,7 +892,10 @@
       </section>
 
       <section class="settings-section">
-        <h2 class="section-title">关于 BliPod</h2>
+        <h2 class="section-title">
+          <Info :size="18" />
+          关于 BliPod
+        </h2>
         <div class="settings-card">
           <div class="setting-item about-item">
             <div class="setting-info">
@@ -1638,12 +1635,6 @@
 
   .rotate-180 {
     transform: rotate(180deg);
-  }
-
-  .data-stats {
-    background: var(--bg-card);
-    border-radius: 8px;
-    margin: 4px 16px;
   }
 
   .category-selection {
