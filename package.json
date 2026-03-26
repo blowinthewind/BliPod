@@ -14,12 +14,13 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
     "typecheck": "vue-tsc --noEmit",
-    "app:dir": "npm run build && electron-builder --dir",
-    "app:dist": "npm run build && electron-builder"
+    "app:dir": "npm run build && electron-builder --dir --mac --arm64 --x64",
+    "app:dist": "npm run build && electron-builder --mac --arm64 --x64"
   },
   "keywords": [
     "bilibili",
     "podcast",
+    "music",
     "electron"
   ],
   "author": "",
@@ -47,7 +48,7 @@
     "vue-tsc": "^3.2.5"
   },
   "build": {
-    "appId": "com.shrike.blipod",
+    "appId": "com.blowinthewind.blipod",
     "productName": "BliPod",
     "directories": {
       "output": "release",
