@@ -74,7 +74,8 @@
         "dmg",
         "zip"
       ],
-      "icon": "resources/icons/macos/app-icon.icns"
+      "icon": "resources/icons/macos/app-icon.icns",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     }
   },
   "dependencies": {
