@@ -167,6 +167,7 @@ interface MemoryAPI {
 
 interface ConfigAPI {
   getRuntimeConfig: () => Promise<RuntimeConfig>
+  openExternal: (url: string) => Promise<void>
 }
 
 interface StoreAPI {

@@ -152,6 +152,7 @@ export interface MemoryStats {
 
 export interface ConfigAPI {
   getRuntimeConfig: () => Promise<RuntimeConfig>
+  openExternal: (url: string) => Promise<void>
 }
 
 export interface NativePlaybackState {
@@ -466,6 +467,9 @@ const memoryAPI: MemoryAPI = {
 const configAPI: ConfigAPI = {
   getRuntimeConfig: () => {
     return ipcRenderer.invoke('config:getRuntimeConfig')
+  },
+  openExternal: (url: string) => {
+    return ipcRenderer.invoke('config:openExternal', url)
   }
 }
 

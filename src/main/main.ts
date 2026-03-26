@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, ipcMain, BrowserView, dialog, nativeImage } from 'electron'
+import { app, BrowserWindow, session, ipcMain, BrowserView, dialog, nativeImage, shell } from 'electron'
 import { createHash, randomBytes } from 'crypto'
 import { join, resolve } from 'path'
 import { readFileSync } from 'fs'
@@ -1760,6 +1760,14 @@ async function logout() {
 function setupIPC() {
   ipcMain.handle('config:getRuntimeConfig', async () => {
     return getRuntimeConfig()
+  })
+
+  ipcMain.handle('config:openExternal', async (_event, url: string) => {
+    const parsedUrl = new URL(url)
+    if (parsedUrl.protocol !== 'https:') {
+      throw new Error('Only HTTPS URLs are allowed')
+    }
+    await shell.openExternal(parsedUrl.toString())
   })
 
   ipcMain.handle(

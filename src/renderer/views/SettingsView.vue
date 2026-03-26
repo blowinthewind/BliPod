@@ -31,12 +31,14 @@
     AlertCircle,
     Check,
     MemoryStick,
+    Github,
     X
   } from 'lucide-vue-next'
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
   import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
   import { logger } from '@/utils/logger'
+  import packageJson from '../../../package.json'
 
   const themeStore = useThemeStore()
   const authStore = useAuthStore()
@@ -93,6 +95,10 @@
       ? options
       : [...options, defaultSearchViewTimeoutMinutes.value].sort((a, b) => a - b)
   })
+  const appVersion = packageJson.version
+  const appLicense = packageJson.license
+  const projectUrl =
+    typeof packageJson.repository === 'object' ? packageJson.repository.url : packageJson.repository ?? ''
 
   const memorySettings = ref({
     searchViewTimeout: defaultSearchViewTimeoutMs.value,
@@ -223,6 +229,11 @@
         exportMessage.value = null
       }, 5000)
     }
+  }
+
+  async function openProjectRepository() {
+    if (!projectUrl) return
+    await window.electronAPI.config.openExternal(projectUrl)
   }
 
   async function handleImport() {
@@ -885,6 +896,36 @@
           </div>
         </div>
       </section>
+
+      <section class="settings-section">
+        <h2 class="section-title">关于 BliPod</h2>
+        <div class="settings-card">
+          <div class="setting-item about-item">
+            <div class="setting-info">
+              <span class="setting-label">当前版本</span>
+              <span class="setting-desc">{{ appVersion }}</span>
+            </div>
+          </div>
+
+          <div class="setting-item about-item">
+            <div class="setting-info">
+              <span class="setting-label">项目地址</span>
+              <span class="setting-desc">在默认浏览器中打开项目主页</span>
+            </div>
+            <Button variant="secondary" size="sm" @click="openProjectRepository">
+              <Github :size="16" />
+              GitHub
+            </Button>
+          </div>
+
+          <div class="setting-item about-item">
+            <div class="setting-info">
+              <span class="setting-label">LICENSE</span>
+              <span class="setting-desc">{{ appLicense }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <LoginDialog :visible="showLoginDialog" @close="closeLoginDialog" />
@@ -1336,6 +1377,10 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 20px;
+  }
+
+  .about-item {
+    align-items: flex-start;
   }
 
   .setting-info {
