@@ -193,7 +193,7 @@
       </div>
       <div class="header-text">
         <h1 class="page-title">搜索</h1>
-        <p class="page-desc">搜索视频、UP 主和你想听的内容</p>
+        <p class="page-desc">搜索你想听的视频</p>
       </div>
     </div>
 
@@ -384,8 +384,8 @@
     <EmptyState
       v-else-if="!searchStore.isSearching && !hasError"
       :icon="Search"
-      title="搜索哔哩哔哩内容"
-      description="输入关键词，开始查找想听的视频和 UP 主"
+      title="搜索哔哩哔哩"
+      description="输入关键词，开始查找想听的视频"
     />
 
     <div class="loading-state" v-if="searchStore.isSearching && !searchStore.hasResults">

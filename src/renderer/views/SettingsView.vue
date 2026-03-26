@@ -604,7 +604,7 @@
       </div>
       <div class="header-text">
         <h1 class="page-title">设置</h1>
-        <p class="page-desc">按你的听播习惯调整 BliPod</p>
+        <p class="page-desc">按你的收听习惯调整 BliPod</p>
       </div>
     </div>
 
@@ -622,7 +622,7 @@
                 当前登录：{{ authStore.userInfo.name }}
               </span>
               <span class="setting-desc" v-else>
-                登录后即可同步账号状态并获得更完整的使用体验
+                登录后可获得更流畅的使用体验
               </span>
             </div>
             <div class="account-actions">
@@ -785,7 +785,7 @@
           <div class="setting-item">
             <div class="setting-info">
               <span class="setting-label">内存状态</span>
-              <span class="setting-desc">查看当前内存占用和活跃页面</span>
+              <span class="setting-desc">清理内存</span>
               <div v-if="memorySettings.cleanupMessage && !showSearchViewTimeoutControl" class="message-toast success">
                 <Check :size="14" />
                 {{ memorySettings.cleanupMessage }}

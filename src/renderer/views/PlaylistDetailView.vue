@@ -217,7 +217,7 @@
         v-else
         :icon="ListMusic"
         title="播放列表为空"
-        description="从搜索结果或收藏中添加视频"
+        description="从搜索结果中添加视频"
       />
 
       <ScrollToButtons v-if="videos.length > 5" scroll-container=".content-area" :threshold="5" />

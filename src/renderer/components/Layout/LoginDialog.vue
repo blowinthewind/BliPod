@@ -75,7 +75,7 @@
 
       <div class="dialog-header">
         <h2 id="login-dialog-title" class="dialog-title">登录哔哩哔哩</h2>
-        <p class="dialog-desc">扫码后即可同步收藏、历史和个性化推荐</p>
+        <p class="dialog-desc">扫码后即可登录</p>
       </div>
 
       <div class="dialog-content">
@@ -117,7 +117,7 @@
           <div class="qr-placeholder">
             <QrCode :size="64" />
           </div>
-          <p class="prompt-text">登录后可同步你的收藏、历史记录和个性化推荐</p>
+          <p class="prompt-text">登录后可获得更流畅的使用体验</p>
           <Button class="login-btn" @click="handleLogin">
             <QrCode :size="18" />
             扫码登录

@@ -151,7 +151,7 @@
       v-else
       :icon="History"
       title="暂无播放历史"
-      description="开始观看视频，历史记录将显示在这里"
+      description="开始收听视频，历史记录将显示在这里"
     />
 
     <ScrollToButtons v-if="history.length > 5" scroll-container=".content-area" :threshold="5" />
