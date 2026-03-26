@@ -131,7 +131,7 @@
     <section class="welcome-section">
       <div class="welcome-content">
         <h1 class="welcome-title">
-          {{ getGreeting() }}，<span class="accent">{{ userName }}</span>
+          {{ getGreeting() }}<template v-if="authStore.isLoggedIn">，<span class="accent">{{ userName }}</span></template>
         </h1>
         <p class="welcome-subtitle">今天想听点什么？</p>
       </div>
