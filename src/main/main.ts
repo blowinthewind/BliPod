@@ -61,7 +61,6 @@ let mainWindow: BrowserWindow | null = null
 let searchView: BrowserView | null = null
 let playerView: BrowserView | null = null
 let extractorScript: string | null = null
-let progressInterval: NodeJS.Timeout | null = null
 let qrPollInterval: NodeJS.Timeout | null = null
 let memoryCleanupInterval: NodeJS.Timeout | null = null
 let searchViewLastUsed: number = 0
@@ -94,6 +93,8 @@ const SEARCH_API_RESPONSE_ERROR = 'Bilibili 搜索接口返回异常'
 const SEARCH_API_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了搜索接口访问'
 const UPLOADER_NOT_LOGGED_IN_ERROR = '账号未登录'
 const UPLOADER_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了 UP 主投稿接口访问'
+const PLAYER_PROGRESS_CONSOLE_PREFIX = '__BLIPOD_PLAYER_PROGRESS__:'
+const PLAYER_READY_CONSOLE_PREFIX = '__BLIPOD_PLAYER_READY__:'
 const WBI_MIXIN_KEY_INDEXES = [
   46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35,
   27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13,
@@ -307,42 +308,76 @@ function getExtractorScript(): string {
   return extractorScript
 }
 
-function startProgressTracking() {
-  if (progressInterval) {
-    clearInterval(progressInterval)
+interface PlayerProgressPayload {
+  currentTime: number
+  duration: number
+  paused: boolean
+}
+
+function normalizePlayerProgressPayload(value: unknown): PlayerProgressPayload | null {
+  if (!value || typeof value !== 'object') {
+    return null
   }
 
-  progressInterval = setInterval(async () => {
-    if (!playerView || !mainWindow) return
+  const payload = value as Partial<PlayerProgressPayload>
+  const currentTime = typeof payload.currentTime === 'number' && Number.isFinite(payload.currentTime)
+    ? payload.currentTime
+    : null
+  const duration = typeof payload.duration === 'number' && Number.isFinite(payload.duration)
+    ? payload.duration
+    : null
+  const paused = typeof payload.paused === 'boolean' ? payload.paused : null
 
+  if (currentTime === null || duration === null || paused === null) {
+    return null
+  }
+
+  return {
+    currentTime,
+    duration,
+    paused
+  }
+}
+
+function sendPlayerProgressToRenderer(payload: PlayerProgressPayload) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return
+  }
+
+  mainWindow.webContents.send('player:progress', payload)
+}
+
+function handlePlayerConsoleMessage(message: string) {
+  if (message.startsWith(PLAYER_PROGRESS_CONSOLE_PREFIX)) {
     try {
-      const state = await playerView.webContents.executeJavaScript(`
-        (function() {
-          const video = document.querySelector('video');
-          if (!video) return null;
-          return {
-            currentTime: video.currentTime,
-            duration: video.duration || 0,
-            paused: video.paused
-          };
-        })()
-      `)
+      const payload = normalizePlayerProgressPayload(
+        JSON.parse(message.slice(PLAYER_PROGRESS_CONSOLE_PREFIX.length))
+      )
 
-      if (state && mainWindow) {
-        mainWindow.webContents.send('player:progress', state)
+      if (payload) {
+        playerViewLastUsed = Date.now()
+        sendPlayerProgressToRenderer(payload)
       }
     } catch (error) {
-      // 静默忽略进度追踪错误，但记录日志
-      logger.debug('Progress tracking error (ignored):', error)
+      logger.debug('Failed to parse player progress payload:', error)
     }
-  }, 500)
+    return
+  }
+
+  if (message.startsWith(PLAYER_READY_CONSOLE_PREFIX)) {
+    playerViewLastUsed = Date.now()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('player:ready')
+    }
+  }
+}
+
+function startProgressTracking() {
+  // 任务 C 已切换为媒体事件驱动桥；保留空函数是为了兼容现有调用点。
 }
 
 function stopProgressTracking() {
-  if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
-  }
+  // 任务 C 已切换为媒体事件驱动桥；保留空函数是为了兼容现有调用点。
 }
 
 function stopQrPoll() {
@@ -652,6 +687,10 @@ async function createPlayerView(): Promise<BrowserView> {
 
   playerViewLastUsed = Date.now()
 
+  playerView.webContents.on('console-message', (_event, _level, message) => {
+    handlePlayerConsoleMessage(message)
+  })
+
   playerView.webContents.on('did-finish-load', () => {
     logger.info('Player page finished loading')
     playerViewLastUsed = Date.now()
@@ -660,16 +699,43 @@ async function createPlayerView(): Promise<BrowserView> {
       .executeJavaScript(
         `
       (function() {
-        const style = document.createElement('style');
-        style.textContent = \`
-          video { display: none !important; }
-          body { background: transparent !important; }
-          .bilibili-player-video { display: none !important; }
-        \`;
-        document.head.appendChild(style);
+        const progressPrefix = ${JSON.stringify(PLAYER_PROGRESS_CONSOLE_PREFIX)};
+        const readyPrefix = ${JSON.stringify(PLAYER_READY_CONSOLE_PREFIX)};
+        const bridgeKey = '__BLIPOD_PLAYER_BRIDGE__';
 
-        const mediaSession = navigator.mediaSession;
-        if (mediaSession) {
+        const emit = (prefix, payload) => {
+          try {
+            console.log(prefix + JSON.stringify(payload));
+          } catch (_error) {
+            // ignore serialization errors
+          }
+        };
+
+        const readState = (video) => ({
+          currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+          duration: Number.isFinite(video.duration) ? video.duration : 0,
+          paused: video.paused
+        });
+
+        const installStyle = () => {
+          if (document.getElementById('blipod-player-style')) {
+            return;
+          }
+          const style = document.createElement('style');
+          style.id = 'blipod-player-style';
+          style.textContent = \`
+            video { display: none !important; }
+            body { background: transparent !important; }
+            .bilibili-player-video { display: none !important; }
+          \`;
+          document.head.appendChild(style);
+        };
+
+        const clearMediaSession = () => {
+          const mediaSession = navigator.mediaSession;
+          if (!mediaSession) {
+            return;
+          }
           mediaSession.metadata = null;
           mediaSession.playbackState = 'none';
           const actions = [
@@ -689,15 +755,112 @@ async function createPlayerView(): Promise<BrowserView> {
               // ignore unsupported action handlers
             }
           });
-        }
+        };
+
+        const ensureBridge = () => {
+          installStyle();
+          clearMediaSession();
+
+          const existing = window[bridgeKey];
+          const video = document.querySelector('video');
+          if (!video) {
+            if (existing && existing.video !== null) {
+              existing.video = null;
+              existing.lastState = null;
+            }
+            return false;
+          }
+
+          if (existing && existing.video === video) {
+            return true;
+          }
+
+          if (existing && existing.cleanup) {
+            existing.cleanup();
+          }
+
+          const state = {
+            video,
+            lastState: null,
+            cleanup: null,
+            observer: null,
+            retryTimer: null
+          };
+
+          const emitState = (force = false) => {
+            const nextState = readState(video);
+            if (
+              !force &&
+              state.lastState &&
+              state.lastState.currentTime === nextState.currentTime &&
+              state.lastState.duration === nextState.duration &&
+              state.lastState.paused === nextState.paused
+            ) {
+              return;
+            }
+            state.lastState = nextState;
+            emit(progressPrefix, nextState);
+          };
+
+          const onProgressEvent = () => emitState();
+          const events = ['loadedmetadata', 'timeupdate', 'play', 'pause', 'seeking', 'seeked', 'ended'];
+          events.forEach((eventName) => {
+            video.addEventListener(eventName, onProgressEvent, { passive: true });
+          });
+
+          state.cleanup = () => {
+            events.forEach((eventName) => {
+              video.removeEventListener(eventName, onProgressEvent);
+            });
+          };
+
+          window[bridgeKey] = state;
+          emit(readyPrefix, { attached: true });
+          emitState(true);
+          return true;
+        };
+
+        const bootstrap = () => {
+          ensureBridge();
+
+          const existing = window[bridgeKey] || {};
+          if (existing.observer) {
+            existing.observer.disconnect();
+          }
+          if (existing.retryTimer) {
+            clearInterval(existing.retryTimer);
+          }
+
+          const observer = new MutationObserver(() => {
+            ensureBridge();
+          });
+          observer.observe(document.documentElement || document.body, {
+            childList: true,
+            subtree: true
+          });
+
+          const retryTimer = window.setInterval(() => {
+            if (ensureBridge()) {
+              const activeState = window[bridgeKey];
+              if (activeState && activeState.retryTimer) {
+                clearInterval(activeState.retryTimer);
+                activeState.retryTimer = null;
+              }
+            }
+          }, 1000);
+
+          window[bridgeKey] = {
+            ...(window[bridgeKey] || {}),
+            observer,
+            retryTimer
+          };
+        };
+
+        bootstrap();
       })();
     `
       )
-      .catch((err) => logger.error('Failed to inject player styles:', err))
-
-    if (mainWindow) {
-      mainWindow.webContents.send('player:ready')
-    }
+      .catch((err) => logger.error('Failed to inject player bridge:', err))
 
     startProgressTracking()
   })
