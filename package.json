@@ -1,7 +1,7 @@
 {
   "name": "blipod",
   "productName": "BliPod",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "B站视频转Podcast播放器",
   "main": "dist/main/main.js",
   "scripts": {
