@@ -348,7 +348,7 @@
     <div class="player-controls">
       <div class="control-buttons">
         <button
-          class="control-btn small"
+          class="control-btn small mode-toggle-btn"
           :class="{ active: playerStore.isShuffle }"
           @click="playerStore.toggleShuffle"
           :aria-label="playerStore.isShuffle ? '关闭随机播放' : '开启随机播放'"
@@ -401,7 +401,7 @@
           <span class="seek-label">30</span>
         </button>
         <button
-          class="control-btn small"
+          class="control-btn small mode-toggle-btn"
           :class="{ active: playerStore.isRepeat }"
           @click="playerStore.toggleRepeat"
           :aria-label="playerStore.isRepeat ? '关闭循环播放' : '开启循环播放'"
@@ -827,6 +827,16 @@
 
   .control-btn.small.active {
     color: var(--accent);
+  }
+
+  .mode-toggle-btn.active {
+    background: var(--accent-muted);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+
+  .mode-toggle-btn.active:hover:not(:disabled) {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
   }
 
   .control-btn.small:has(.lucide-list-check) {
