@@ -13,6 +13,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   const hasFavorites = computed(() => favorites.value.length > 0)
   const favoritesCount = computed(() => favorites.value.length)
+  const favoriteBvidSet = computed(() => new Set(favorites.value.map((favorite) => favorite.bvid)))
 
   async function loadFavorites() {
     isLoading.value = true
@@ -75,7 +76,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   function isFavoriteSync(bvid: string): boolean {
-    return favorites.value.some((f) => f.bvid === bvid)
+    return favoriteBvidSet.value.has(bvid)
   }
 
   return {
@@ -84,6 +85,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     error,
     hasFavorites,
     favoritesCount,
+    favoriteBvidSet,
     loadFavorites,
     addFavorite,
     removeFavorite,

@@ -20,6 +20,7 @@
   import ScrollToButtons from '../components/ui/ScrollToButtons.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { useRouter, useRoute } from 'vue-router'
   import { useSearch } from '../composables/useSearch'
   import { useFavoritesStore } from '../stores/favorites'
@@ -47,6 +48,9 @@
   const favoritesStore = useFavoritesStore()
   const playlistsStore = usePlaylistsStore()
   const playerStore = usePlayerStore()
+  const { favoriteBvidSet } = storeToRefs(favoritesStore)
+  const { allPlaylistBvids } = storeToRefs(playlistsStore)
+  const { userQueueBvidSet } = storeToRefs(playerStore)
 
   const searchQuery = ref('')
   const showHistory = ref(false)
@@ -149,9 +153,16 @@
     }
   }
 
-  function isFavorite(bvid: string): boolean {
-    return favoritesStore.isFavoriteSync(bvid)
-  }
+  const resultRows = computed(() => {
+    return searchStore.results.map((result) => ({
+      result,
+      state: {
+        isFavorite: favoriteBvidSet.value.has(result.bvid),
+        isInQueue: userQueueBvidSet.value.has(result.bvid),
+        isInPlaylist: allPlaylistBvids.value.has(result.bvid)
+      }
+    }))
+  })
 
   function openPlaylistDialog(video: ExtractedVideo, event: Event) {
     event.stopPropagation()
@@ -172,9 +183,6 @@
     }
   }
 
-  function isInQueue(bvid: string): boolean {
-    return playerStore.userQueue.some((v) => v.bvid === bvid)
-  }
 </script>
 
 <template>
@@ -269,7 +277,7 @@
       </div>
 
       <div class="results-list">
-        <div v-for="result in searchStore.results" :key="result.bvid" class="result-item">
+        <div v-for="{ result, state } in resultRows" :key="result.bvid" class="result-item">
           <button
             class="result-main"
             type="button"
@@ -316,22 +324,22 @@
             type="button"
             @click.stop="toggleFavorite(result, $event)"
             :aria-label="
-              isFavorite(result.bvid) ? `从收藏中移除 ${result.title}` : `收藏 ${result.title}`
+              state.isFavorite ? `从收藏中移除 ${result.title}` : `收藏 ${result.title}`
             "
           >
-            <Heart :size="16" :fill="isFavorite(result.bvid) ? 'currentColor' : 'none'" />
+            <Heart :size="16" :fill="state.isFavorite ? 'currentColor' : 'none'" />
           </button>
           <button
             class="queue-btn"
             type="button"
             @click.stop="addToQueue(result, $event)"
             :aria-label="
-              isInQueue(result.bvid)
+              state.isInQueue
                 ? `${result.title} 已在播放队列中`
                 : `将 ${result.title} 添加到播放队列`
             "
           >
-            <Check v-if="isInQueue(result.bvid)" :size="16" />
+            <Check v-if="state.isInQueue" :size="16" />
             <ListMusic v-else :size="16" />
           </button>
           <button
@@ -339,12 +347,12 @@
             type="button"
             @click.stop="openPlaylistDialog(result, $event)"
             :aria-label="
-              playlistsStore.isVideoInAnyPlaylist(result.bvid)
+              state.isInPlaylist
                 ? `${result.title} 已添加到播放列表`
                 : `将 ${result.title} 添加到播放列表`
             "
           >
-            <ListCheck v-if="playlistsStore.isVideoInAnyPlaylist(result.bvid)" :size="16" />
+            <ListCheck v-if="state.isInPlaylist" :size="16" />
             <ListPlus v-else :size="16" />
           </button>
         </div>

@@ -104,6 +104,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ========== 用户维护的播放队列 ==========
   const userQueue = ref<ExtractedVideo[]>([])
+  const userQueueBvidSet = computed(() => new Set(userQueue.value.map((video) => video.bvid)))
 
   // ========== 播放历史记录 ==========
   const playHistory = ref<HistoryVideo[]>(loadHistoryFromStorage())
@@ -645,7 +646,7 @@ export const usePlayerStore = defineStore('player', () => {
     const queueVideo: QueueVideo = {
       ...video,
       source: 'history',
-      isFromUserQueue: userQueue.value.some((v) => v.bvid === video.bvid)
+      isFromUserQueue: userQueueBvidSet.value.has(video.bvid)
     }
 
     currentVideo.value = queueVideo
@@ -768,7 +769,7 @@ export const usePlayerStore = defineStore('player', () => {
   // ========== 用户维护的播放队列 ==========
 
   async function addToUserQueue(video: ExtractedVideo) {
-    if (userQueue.value.find((v) => v.bvid === video.bvid)) {
+    if (userQueueBvidSet.value.has(video.bvid)) {
       return false
     }
     if (userQueue.value.length >= MAX_QUEUE_SIZE) {
@@ -1123,6 +1124,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 用户维护的播放队列
     userQueue,
+    userQueueBvidSet,
 
     // 播放历史记录
     playHistory,
