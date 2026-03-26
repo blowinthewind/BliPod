@@ -12,7 +12,6 @@
     Shuffle,
     ListCheck,
     ListPlus,
-    Maximize2,
     Heart,
     ListMusic,
     X,
@@ -520,9 +519,6 @@
           />
         </div>
       </div>
-      <button class="control-btn small" aria-label="全屏">
-        <Maximize2 :size="18" />
-      </button>
     </div>
 
     <!-- 播放队列面板 -->
