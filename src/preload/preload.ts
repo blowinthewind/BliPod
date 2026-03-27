@@ -93,6 +93,7 @@ export interface Playlist {
 
 export interface AppSettings {
   autoPlay: boolean
+  autoPlayNextPart: boolean
   rememberPosition: boolean
   currentThemeId: string
   customThemes: Theme[]

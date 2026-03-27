@@ -57,6 +57,10 @@
     get: () => appSettingsStore.autoPlay,
     set: (value) => appSettingsStore.setAutoPlay(value)
   })
+  const autoPlayNextPart = computed({
+    get: () => appSettingsStore.autoPlayNextPart,
+    set: (value) => appSettingsStore.setAutoPlayNextPart(value)
+  })
   const rememberPosition = computed({
     get: () => appSettingsStore.rememberPosition,
     set: (value) => appSettingsStore.setRememberPosition(value)
@@ -830,6 +834,20 @@
               <input
                 type="checkbox"
                 v-model="autoPlay"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <span id="auto-play-next-part-label" class="setting-label">自动播放下一P</span>
+              <span class="setting-desc">播放完当前分P后，若当前视频还有下一P，则优先继续播放同一视频的下一P</span>
+            </div>
+            <label class="toggle" aria-labelledby="auto-play-next-part-label">
+              <input
+                type="checkbox"
+                v-model="autoPlayNextPart"
               />
               <span class="toggle-slider"></span>
             </label>

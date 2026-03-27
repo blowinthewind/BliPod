@@ -6,6 +6,7 @@ import { DEFAULT_THEME_ID, cloneTheme, findTheme, normalizeCustomTheme, resolveT
 export const useAppSettingsStore = defineStore('appSettings', () => {
   const settings = ref<AppSettings>({
     autoPlay: true,
+    autoPlayNextPart: false,
     rememberPosition: true,
     currentThemeId: DEFAULT_THEME_ID,
     customThemes: []
@@ -15,6 +16,7 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
   const error = ref<string | null>(null)
 
   const autoPlay = computed(() => settings.value.autoPlay)
+  const autoPlayNextPart = computed(() => settings.value.autoPlayNextPart)
   const rememberPosition = computed(() => settings.value.rememberPosition)
   const currentThemeId = computed(() => settings.value.currentThemeId)
   const customThemes = computed(() => settings.value.customThemes)
@@ -44,6 +46,10 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
 
   async function setAutoPlay(value: boolean) {
     await updateSettings({ autoPlay: value })
+  }
+
+  async function setAutoPlayNextPart(value: boolean) {
+    await updateSettings({ autoPlayNextPart: value })
   }
 
   async function setRememberPosition(value: boolean) {
@@ -165,12 +171,14 @@ export const useAppSettingsStore = defineStore('appSettings', () => {
     isLoading,
     error,
     autoPlay,
+    autoPlayNextPart,
     rememberPosition,
     currentThemeId,
     customThemes,
     loadSettings,
     updateSettings,
     setAutoPlay,
+    setAutoPlayNextPart,
     setRememberPosition,
     setCurrentThemeId,
     setCustomThemes,

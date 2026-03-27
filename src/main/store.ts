@@ -22,6 +22,7 @@ export interface Playlist {
 
 export interface AppSettings {
   autoPlay: boolean
+  autoPlayNextPart: boolean
   rememberPosition: boolean
   currentThemeId: string
   customThemes: Theme[]
@@ -67,6 +68,7 @@ const defaults: AppStore = {
   playlists: [],
   settings: {
     autoPlay: true,
+    autoPlayNextPart: false,
     rememberPosition: true,
     currentThemeId: DEFAULT_THEME_ID,
     customThemes: []
