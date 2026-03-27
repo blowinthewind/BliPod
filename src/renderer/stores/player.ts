@@ -122,6 +122,7 @@ export const usePlayerStore = defineStore('player', () => {
     return (currentTime.value / duration.value) * 100
   })
   const currentPlaybackPages = computed(() => currentPlaybackDetail.value?.pages ?? [])
+  const hasMultiplePlaybackPages = computed(() => currentPlaybackPages.value.length > 1)
 
   // 是否有下一首（从实际播放队列中）
   const hasNext = computed(() => {
@@ -318,6 +319,34 @@ export const usePlayerStore = defineStore('player', () => {
     const target = resolvePlayTarget(detail, requestedTarget)
     currentPlayTarget.value = target ?? null
     window.electronAPI.search.playVideo(video.bvid, autoplay, target)
+  }
+
+  async function playCurrentVideoPage(page: VideoPageInfo): Promise<void> {
+    const video = currentVideo.value
+    if (!video) return
+
+    if (
+      currentPlayTarget.value?.cid === page.cid &&
+      currentPlayTarget.value?.page === page.page
+    ) {
+      return
+    }
+
+    pendingResumeTime = null
+    currentTime.value = 0
+    duration.value = 0
+    isLoading.value = true
+    isPlaying.value = false
+    currentPlayTarget.value = {
+      cid: page.cid,
+      page: page.page
+    }
+
+    window.electronAPI.search.playVideo(video.bvid, true, {
+      cid: page.cid,
+      page: page.page
+    })
+    syncNativePlaybackState()
   }
 
   /**
@@ -1152,6 +1181,7 @@ export const usePlayerStore = defineStore('player', () => {
     currentPlaybackDetail,
     currentPlayTarget,
     currentPlaybackPages,
+    hasMultiplePlaybackPages,
     isPlaying,
     isLoading,
     currentTime,
@@ -1180,6 +1210,7 @@ export const usePlayerStore = defineStore('player', () => {
     // 播放控制
     saveCurrentPosition,
     playVideo,
+    playCurrentVideoPage,
     play,
     pause,
     togglePlay,

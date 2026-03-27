@@ -14,10 +14,11 @@
     ListPlus,
     Heart,
     ListMusic,
+    ListVideo,
     X,
     Trash2
   } from 'lucide-vue-next'
-  import { computed, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
+  import { computed, nextTick, onMounted, onBeforeUnmount, ref, type Ref } from 'vue'
   import { usePlayerStore } from '../../stores/player'
   import { useFavoritesStore } from '../../stores/favorites'
   import { usePlaylistsStore } from '../../stores/playlists'
@@ -42,11 +43,17 @@
     if (!playerStore.currentVideo) return false
     return playerStore.userQueue.some((v) => v.bvid === playerStore.currentVideo?.bvid)
   })
+  const playbackPages = computed(() => playerStore.currentPlaybackPages)
+  const hasPlaybackPages = computed(() => playerStore.hasMultiplePlaybackPages)
 
   const showPlaylistDialog = ref(false)
+  const showChapterPanel = ref(false)
   const showQueuePanel = ref(false)
   const showVolumePopover = ref(false)
   const isCompactVolumeMode = ref(false)
+  const chapterToggleButtonRef = ref<HTMLButtonElement | null>(null)
+  const chapterPanelRef = ref<HTMLDivElement | null>(null)
+  const closeChapterButtonRef = ref<HTMLButtonElement | null>(null)
   const queueToggleButtonRef = ref<HTMLButtonElement | null>(null)
   const queuePanelRef = ref<HTMLDivElement | null>(null)
   const closeQueueButtonRef = ref<HTMLButtonElement | null>(null)
@@ -223,21 +230,56 @@
     }
   }
 
-  function toggleQueuePanel() {
-    showQueuePanel.value = !showQueuePanel.value
+  function closeChapterPanel() {
+    showChapterPanel.value = false
+  }
+
+  function toggleChapterPanel() {
+    if (!hasPlaybackPages.value) return
+    showQueuePanel.value = false
+    showChapterPanel.value = !showChapterPanel.value
   }
 
   function closeQueuePanel() {
     showQueuePanel.value = false
   }
 
+  function toggleQueuePanel() {
+    showChapterPanel.value = false
+    showQueuePanel.value = !showQueuePanel.value
+  }
+
+  const { handleKeydown: handleChapterPanelKeydown } = useDialogFocusTrap({
+    open: showChapterPanel as Ref<boolean>,
+    containerRef: chapterPanelRef,
+    initialFocusRef: closeChapterButtonRef,
+    restoreFocusRef: chapterToggleButtonRef,
+    onClose: closeChapterPanel
+  })
+
   const { handleKeydown: handleQueuePanelKeydown } = useDialogFocusTrap({
-    open: showQueuePanel,
+    open: showQueuePanel as Ref<boolean>,
     containerRef: queuePanelRef,
     initialFocusRef: closeQueueButtonRef,
     restoreFocusRef: queueToggleButtonRef,
     onClose: closeQueuePanel
   })
+
+  function isActivePlaybackPage(page: VideoPageInfo) {
+    if (playerStore.currentPlayTarget?.cid != null) {
+      return playerStore.currentPlayTarget.cid === page.cid
+    }
+
+    if (playerStore.currentPlayTarget?.page != null) {
+      return playerStore.currentPlayTarget.page === page.page
+    }
+
+    return playerStore.currentPlaybackDetail?.defaultPage === page.page
+  }
+
+  function playPage(page: VideoPageInfo) {
+    void playerStore.playCurrentVideoPage(page)
+  }
 
   function playFromQueue(index: number) {
     playerStore.playFromUserQueue(index)
@@ -437,6 +479,18 @@
 
     <div class="extra-controls">
       <button
+        v-if="hasPlaybackPages"
+        ref="chapterToggleButtonRef"
+        class="control-btn small chapter-btn"
+        :class="{ active: showChapterPanel }"
+        @click="toggleChapterPanel"
+        aria-label="分P列表"
+        :aria-expanded="showChapterPanel"
+        aria-controls="player-chapter-panel"
+      >
+        <ListVideo :size="18" />
+      </button>
+      <button
         ref="queueToggleButtonRef"
         class="control-btn small queue-btn"
         :class="{ active: showQueuePanel || isCurrentInQueue }"
@@ -517,6 +571,61 @@
             @input="handleVolumeChange"
             aria-label="音量"
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- 分P面板 -->
+    <div class="chapter-panel-overlay" v-if="showChapterPanel" @click.self="closeChapterPanel">
+      <div
+        id="player-chapter-panel"
+        ref="chapterPanelRef"
+        class="chapter-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="player-chapter-title"
+        @keydown="handleChapterPanelKeydown"
+      >
+        <div class="chapter-header">
+          <div id="player-chapter-title" class="chapter-title">
+            <ListVideo :size="18" />
+            <span>分P列表</span>
+            <span class="chapter-count">({{ playbackPages.length }})</span>
+          </div>
+          <button
+            ref="closeChapterButtonRef"
+            class="chapter-action-btn"
+            type="button"
+            aria-label="关闭分P列表"
+            @click="closeChapterPanel"
+          >
+            <X :size="16" />
+          </button>
+        </div>
+
+        <div class="chapter-list">
+          <div
+            v-for="page in playbackPages"
+            :key="page.cid"
+            class="chapter-item"
+            :class="{ active: isActivePlaybackPage(page) }"
+          >
+            <button
+              class="chapter-item-main"
+              type="button"
+              :aria-label="`播放第 ${page.page} P：${page.part}`"
+              :aria-current="isActivePlaybackPage(page) ? 'true' : undefined"
+              @click="playPage(page)"
+            >
+              <div class="chapter-item-index">P{{ page.page }}</div>
+              <div class="chapter-item-info">
+                <div class="chapter-item-title" :title="page.part">{{ page.part }}</div>
+                <div class="chapter-item-meta" v-if="page.duration > 0">
+                  {{ formatTime(page.duration) }}
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1050,6 +1159,12 @@
     pointer-events: none;
   }
 
+  .chapter-btn.active {
+    color: var(--accent);
+    background: var(--accent-muted);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+
   /* 队列按钮 */
   .queue-btn {
     position: relative;
@@ -1070,6 +1185,158 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .chapter-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 16px;
+    padding-bottom: 106px;
+  }
+
+  .chapter-panel {
+    width: min(320px, calc(100vw - 32px));
+    max-width: 100%;
+    max-height: min(420px, calc(100vh - 138px));
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chapter-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .chapter-count {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  .chapter-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      transform 0.2s,
+      opacity 0.2s;
+  }
+
+  .chapter-action-btn:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  .chapter-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .chapter-item {
+    display: flex;
+    align-items: stretch;
+    padding: 10px;
+    border-radius: 8px;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      opacity 0.2s;
+  }
+
+  .chapter-item:hover,
+  .chapter-item:focus-within {
+    background: var(--bg-card);
+  }
+
+  .chapter-item.active {
+    background: var(--accent-muted);
+  }
+
+  .chapter-item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .chapter-item-index {
+    width: 28px;
+    text-align: center;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .chapter-item.active .chapter-item-index {
+    color: var(--accent);
+  }
+
+  .chapter-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .chapter-item-title {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chapter-item-meta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* 队列面板 */
@@ -1331,6 +1598,7 @@
       width: clamp(72px, 16vw, 100px);
     }
 
+    .chapter-panel-overlay,
     .queue-panel-overlay {
       padding: 0;
       padding-bottom: 90px;
@@ -1338,6 +1606,7 @@
       justify-content: center;
     }
 
+    .chapter-panel,
     .queue-panel {
       width: calc(100% - 32px);
       max-height: 60vh;
