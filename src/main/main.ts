@@ -54,6 +54,7 @@ import {
 import type { ExportOptions, ImportOptionsV2 } from './dataImportExport'
 import { logger } from './utils/logger'
 import { createMacOSPlaybackControls } from './macosPlaybackControls'
+import { formatPlayCount } from '../shared/format'
 import { DEFAULT_RUNTIME_CONFIG } from '../shared/runtimeConfig'
 import { getRuntimeConfig, loadRuntimeConfig } from './runtimeConfig'
 
@@ -1070,16 +1071,14 @@ function stripHtmlTags(value?: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
 }
 
-function formatSearchPlayCount(value?: number | string) {
-  if (value == null || value === '') {
-    return ''
+function normalizeSearchResultPlayCounts(result: SearchResult): SearchResult {
+  return {
+    ...result,
+    videos: result.videos.map((video) => ({
+      ...video,
+      playCount: formatPlayCount(video.playCount)
+    }))
   }
-
-  if (typeof value === 'string') {
-    return value.trim()
-  }
-
-  return String(value)
 }
 
 function getSearchVideoUrl(item: BilibiliSearchApiItem) {
@@ -1113,7 +1112,7 @@ function mapSearchApiVideo(item: BilibiliSearchApiItem): ExtractedVideo | null {
     author: item.author || '未知UP主',
     authorLink: authorMid ? `https://space.bilibili.com/${authorMid}` : '',
     duration: item.duration?.trim() || '',
-    playCount: formatSearchPlayCount(item.play),
+    playCount: formatPlayCount(item.play),
     videoLink
   }
 }
@@ -1220,7 +1219,7 @@ function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: Upload
     author,
     authorLink: authorMid ? `https://space.bilibili.com/${authorMid}` : '',
     duration: item.length || '',
-    playCount: item.play != null ? String(item.play) : '',
+    playCount: formatPlayCount(item.play),
     videoLink: `https://www.bilibili.com/video/${item.bvid}`
   }
 }
@@ -1304,7 +1303,7 @@ async function loadSearchResultsByDom(query: string, offset?: number | null): Pr
   logger.info('Loading search URL via DOM fallback', `${normalizedQuery} page: ${pagination.page}`)
   await loadSearchViewUrl(view, searchUrl, 'search', { autoExtract: false })
 
-  const result = await extractSearchResultsFromView(view, 'search')
+  const result = normalizeSearchResultPlayCounts(await extractSearchResultsFromView(view, 'search'))
   updateSearchSessionState(normalizedQuery, 'dom', {
     page: result.currentPage,
     offset: result.nextOffset != null ? Math.max(result.nextOffset - SEARCH_API_DYNAMIC_OFFSET_STEP, 0) : pagination.offset
@@ -1454,7 +1453,7 @@ async function loadUploaderVideosByDom(mid: string, page: number = 1): Promise<S
   logger.info('Loading uploader page via DOM fallback', `${normalizedMid} page: ${normalizedPage}`)
   await loadSearchViewUrl(view, pageUrl, 'uploader', { autoExtract: false })
 
-  const result = await extractSearchResultsFromView(view, 'uploader')
+  const result = normalizeSearchResultPlayCounts(await extractSearchResultsFromView(view, 'uploader'))
   const uploader =
     result.uploader ||
     (result.videos.length > 0
@@ -1956,9 +1955,9 @@ function setupIPC() {
         }
       }
 
-      const result = await searchView.webContents.executeJavaScript(
-        'window.__BILI_CLICK_NEXT_PAGE__()'
-      ) as SearchResult
+      const result = normalizeSearchResultPlayCounts(
+        (await searchView.webContents.executeJavaScript('window.__BILI_CLICK_NEXT_PAGE__()')) as SearchResult
+      )
 
       logger.info('Click next page result:', JSON.stringify(result, null, 2))
       updateSearchSessionState(sessionState.query, 'dom', {
