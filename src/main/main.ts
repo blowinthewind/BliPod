@@ -1271,7 +1271,7 @@ function mapPlaybackDetail(data: BilibiliViewApiData | undefined, requestedBvid:
     .map((item) => mapPlaybackDetailPage(item))
     .filter((item): item is VideoPageInfo => item !== null)
 
-  return {
+  const detail: VideoPlaybackDetail = {
     bvid: data?.bvid || requestedBvid,
     aid: Number.isFinite(data?.aid) ? Number(data?.aid) : undefined,
     title: data?.title?.trim() || undefined,
@@ -1280,6 +1280,39 @@ function mapPlaybackDetail(data: BilibiliViewApiData | undefined, requestedBvid:
     defaultPage: pages[0]?.page ?? 1,
     pages
   }
+
+  const resolvedDefaultPage = findPlaybackPageByTarget(detail, {
+    cid: detail.defaultCid,
+    page: detail.defaultPage
+  })
+
+  if (resolvedDefaultPage) {
+    detail.defaultCid = resolvedDefaultPage.cid
+    detail.defaultPage = resolvedDefaultPage.page
+  }
+
+  return detail
+}
+
+function findPlaybackPageByTarget(
+  detail: VideoPlaybackDetail,
+  target: { cid?: number; page?: number }
+): VideoPageInfo | null {
+  if (target.cid != null && Number.isFinite(target.cid)) {
+    const matchedByCid = detail.pages.find((page) => page.cid === target.cid)
+    if (matchedByCid) {
+      return matchedByCid
+    }
+  }
+
+  if (target.page != null && Number.isFinite(target.page)) {
+    const matchedByPage = detail.pages.find((page) => page.page === target.page)
+    if (matchedByPage) {
+      return matchedByPage
+    }
+  }
+
+  return null
 }
 
 function normalizePlaybackDetailCacheKey(bvid: string) {
