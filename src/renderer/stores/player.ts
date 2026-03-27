@@ -26,7 +26,7 @@ const PLAYBACK_CONFIG = {
   // 定期保存间隔（毫秒）
   AUTO_SAVE_INTERVAL: 30000,
   // 判断搜索时长与实际播放时长差异是否足以推断多P
-  MULTI_PAGE_DURATION_DIFF_SECONDS: 30
+  MULTI_PART_DURATION_DIFF_SECONDS: 30
 } as const
 
 const PLAY_STATS_CONFIG = {
@@ -123,8 +123,8 @@ export const usePlayerStore = defineStore('player', () => {
     if (duration.value === 0) return 0
     return (currentTime.value / duration.value) * 100
   })
-  const currentPlaybackPages = computed(() => currentPlaybackDetail.value?.pages ?? [])
-  const hasMultiplePlaybackPages = computed(() => currentPlaybackPages.value.length > 1)
+  const currentPlaybackParts = computed(() => currentPlaybackDetail.value?.parts ?? [])
+  const hasMultiplePlaybackParts = computed(() => currentPlaybackParts.value.length > 1)
 
   // 是否有下一首（从实际播放队列中）
   const hasNext = computed(() => {
@@ -293,14 +293,14 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function isLikelyMultiPageVideo(video: ExtractedVideo | null, actualDuration: number): boolean {
+  function isLikelyMultiPartVideo(video: ExtractedVideo | null, actualDuration: number): boolean {
     if (!video || actualDuration <= 0) return false
 
     const extractedDuration = parseDuration(video.duration)
     if (extractedDuration <= 0) return false
 
     return (
-      extractedDuration - actualDuration >= PLAYBACK_CONFIG.MULTI_PAGE_DURATION_DIFF_SECONDS
+      extractedDuration - actualDuration >= PLAYBACK_CONFIG.MULTI_PART_DURATION_DIFF_SECONDS
     )
   }
 
@@ -325,14 +325,14 @@ export const usePlayerStore = defineStore('player', () => {
     detail: VideoPlaybackDetail | null,
     requestedTarget?: PlayTarget
   ): PlayTarget | undefined {
-    if (requestedTarget?.cid != null || requestedTarget?.page != null) {
+    if (requestedTarget?.cid != null || requestedTarget?.partIndex != null) {
       return requestedTarget
     }
 
     if (detail?.defaultCid != null) {
       return {
         cid: detail.defaultCid,
-        page: detail.defaultPage
+        partIndex: detail.defaultPart
       }
     }
 
@@ -351,13 +351,13 @@ export const usePlayerStore = defineStore('player', () => {
     window.electronAPI.search.playVideo(video.bvid, autoplay, requestedTarget)
   }
 
-  async function playCurrentVideoPage(page: VideoPageInfo): Promise<void> {
+  async function playCurrentVideoPart(part: VideoPartInfo): Promise<void> {
     const video = currentVideo.value
     if (!video) return
 
     if (
-      currentPlayTarget.value?.cid === page.cid &&
-      currentPlayTarget.value?.page === page.page
+      currentPlayTarget.value?.cid === part.cid &&
+      currentPlayTarget.value?.partIndex === part.partIndex
     ) {
       return
     }
@@ -368,13 +368,13 @@ export const usePlayerStore = defineStore('player', () => {
     isLoading.value = true
     isPlaying.value = false
     currentPlayTarget.value = {
-      cid: page.cid,
-      page: page.page
+      cid: part.cid,
+      partIndex: part.partIndex
     }
 
     window.electronAPI.search.playVideo(video.bvid, true, {
-      cid: page.cid,
-      page: page.page
+      cid: part.cid,
+      partIndex: part.partIndex
     })
     syncNativePlaybackState()
   }
@@ -1138,7 +1138,7 @@ export const usePlayerStore = defineStore('player', () => {
         if (progress.duration > 0) {
           if (
             !currentPlaybackDetail.value &&
-            isLikelyMultiPageVideo(currentVideo.value, progress.duration)
+            isLikelyMultiPartVideo(currentVideo.value, progress.duration)
           ) {
             void ensurePlaybackDetailForCurrentVideo()
           }
@@ -1230,8 +1230,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentVideo,
     currentPlaybackDetail,
     currentPlayTarget,
-    currentPlaybackPages,
-    hasMultiplePlaybackPages,
+    currentPlaybackParts,
+    hasMultiplePlaybackParts,
     isPlaying,
     isLoading,
     currentTime,
@@ -1260,7 +1260,7 @@ export const usePlayerStore = defineStore('player', () => {
     // 播放控制
     saveCurrentPosition,
     playVideo,
-    playCurrentVideoPage,
+    playCurrentVideoPart,
     play,
     pause,
     togglePlay,

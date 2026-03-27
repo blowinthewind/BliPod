@@ -14,7 +14,7 @@ import type {
   NativeMenuCommand,
   PlayTarget,
   VideoPlaybackDetail,
-  VideoPageInfo
+  VideoPartInfo
 } from '../preload/preload'
 import {
   store,
@@ -1247,68 +1247,68 @@ function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: Upload
   }
 }
 
-function mapPlaybackDetailPage(item: BilibiliViewApiPageItem): VideoPageInfo | null {
+function mapPlaybackDetailPart(item: BilibiliViewApiPageItem): VideoPartInfo | null {
   if (!Number.isFinite(item.cid) || !Number.isFinite(item.page)) {
     return null
   }
 
   const cid = Number(item.cid)
-  const page = Number(item.page)
-  if (cid <= 0 || page <= 0) {
+  const partIndex = Number(item.page)
+  if (cid <= 0 || partIndex <= 0) {
     return null
   }
 
   return {
     cid,
-    page,
-    part: item.part?.trim() || `P${page}`,
+    partIndex,
+    part: item.part?.trim() || `P${partIndex}`,
     duration: Number.isFinite(item.duration) && Number(item.duration) > 0 ? Number(item.duration) : 0
   }
 }
 
 function mapPlaybackDetail(data: BilibiliViewApiData | undefined, requestedBvid: string): VideoPlaybackDetail {
-  const pages = (data?.pages || [])
-    .map((item) => mapPlaybackDetailPage(item))
-    .filter((item): item is VideoPageInfo => item !== null)
+  const parts = (data?.pages || [])
+    .map((item) => mapPlaybackDetailPart(item))
+    .filter((item): item is VideoPartInfo => item !== null)
 
   const detail: VideoPlaybackDetail = {
     bvid: data?.bvid || requestedBvid,
     aid: Number.isFinite(data?.aid) ? Number(data?.aid) : undefined,
     title: data?.title?.trim() || undefined,
-    videos: Number.isFinite(data?.videos) && Number(data?.videos) > 0 ? Number(data?.videos) : pages.length,
-    defaultCid: Number.isFinite(data?.cid) && Number(data?.cid) > 0 ? Number(data?.cid) : pages[0]?.cid,
-    defaultPage: pages[0]?.page ?? 1,
-    pages
+    videos: Number.isFinite(data?.videos) && Number(data?.videos) > 0 ? Number(data?.videos) : parts.length,
+    defaultCid: Number.isFinite(data?.cid) && Number(data?.cid) > 0 ? Number(data?.cid) : parts[0]?.cid,
+    defaultPart: parts[0]?.partIndex ?? 1,
+    parts
   }
 
-  const resolvedDefaultPage = findPlaybackPageByTarget(detail, {
+  const resolvedDefaultPart = findPlaybackPartByTarget(detail, {
     cid: detail.defaultCid,
-    page: detail.defaultPage
+    partIndex: detail.defaultPart
   })
 
-  if (resolvedDefaultPage) {
-    detail.defaultCid = resolvedDefaultPage.cid
-    detail.defaultPage = resolvedDefaultPage.page
+  if (resolvedDefaultPart) {
+    detail.defaultCid = resolvedDefaultPart.cid
+    detail.defaultPart = resolvedDefaultPart.partIndex
   }
 
   return detail
 }
 
-function findPlaybackPageByTarget(
+function findPlaybackPartByTarget(
   detail: VideoPlaybackDetail,
-  target: { cid?: number; page?: number }
-): VideoPageInfo | null {
+  target: { cid?: number; partIndex?: number }
+): VideoPartInfo | null {
   if (target.cid != null && Number.isFinite(target.cid)) {
-    const matchedByCid = detail.pages.find((page) => page.cid === target.cid)
+    const matchedByCid = detail.parts.find((part) => part.cid === target.cid)
     if (matchedByCid) {
       return matchedByCid
     }
   }
 
-  if (target.page != null && Number.isFinite(target.page)) {
-    const matchedByPage = detail.pages.find((page) => page.page === target.page)
-    if (matchedByPage) {
-      return matchedByPage
+  if (target.partIndex != null && Number.isFinite(target.partIndex)) {
+    const matchedByPart = detail.parts.find((part) => part.partIndex === target.partIndex)
+    if (matchedByPart) {
+      return matchedByPart
     }
   }
 
@@ -1473,8 +1473,8 @@ function buildPlayerUrl(bvid: string, autoplay: boolean, target?: PlayTarget) {
     params.set('cid', String(target.cid))
   }
 
-  if (target?.page != null && Number.isFinite(target.page) && target.page > 0) {
-    params.set('p', String(target.page))
+  if (target?.partIndex != null && Number.isFinite(target.partIndex) && target.partIndex > 0) {
+    params.set('p', String(target.partIndex))
   }
 
   return `https://player.bilibili.com/player.html?${params.toString()}`

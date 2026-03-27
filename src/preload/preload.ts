@@ -39,12 +39,12 @@ export interface SearchResult {
 
 export interface PlayTarget {
   cid?: number
-  page?: number
+  partIndex?: number
 }
 
-export interface VideoPageInfo {
+export interface VideoPartInfo {
   cid: number
-  page: number
+  partIndex: number
   part: string
   duration: number
 }
@@ -55,8 +55,8 @@ export interface VideoPlaybackDetail {
   title?: string
   videos: number
   defaultCid?: number
-  defaultPage: number
-  pages: VideoPageInfo[]
+  defaultPart: number
+  parts: VideoPartInfo[]
 }
 
 export interface UserInfo {

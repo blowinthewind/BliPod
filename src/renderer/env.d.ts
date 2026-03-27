@@ -41,12 +41,12 @@ interface UploaderInfo {
 
 interface PlayTarget {
   cid?: number
-  page?: number
+  partIndex?: number
 }
 
-interface VideoPageInfo {
+interface VideoPartInfo {
   cid: number
-  page: number
+  partIndex: number
   part: string
   duration: number
 }
@@ -57,8 +57,8 @@ interface VideoPlaybackDetail {
   title?: string
   videos: number
   defaultCid?: number
-  defaultPage: number
-  pages: VideoPageInfo[]
+  defaultPart: number
+  parts: VideoPartInfo[]
 }
 
 interface PlayerProgress {

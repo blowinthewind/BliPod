@@ -18,7 +18,7 @@
     X,
     Trash2
   } from 'lucide-vue-next'
-  import { computed, nextTick, onMounted, onBeforeUnmount, ref, type Ref } from 'vue'
+  import { computed, nextTick, onMounted, onBeforeUnmount, ref, toRaw, type Ref } from 'vue'
   import { usePlayerStore } from '../../stores/player'
   import { useFavoritesStore } from '../../stores/favorites'
   import { usePlaylistsStore } from '../../stores/playlists'
@@ -43,8 +43,8 @@
     if (!playerStore.currentVideo) return false
     return playerStore.userQueue.some((v) => v.bvid === playerStore.currentVideo?.bvid)
   })
-  const playbackPages = computed(() => playerStore.currentPlaybackPages)
-  const hasPlaybackPages = computed(() => playerStore.hasMultiplePlaybackPages)
+  const playbackParts = computed(() => playerStore.currentPlaybackParts)
+  const hasPlaybackParts = computed(() => playerStore.hasMultiplePlaybackParts)
 
   const showPlaylistDialog = ref(false)
   const showChapterPanel = ref(false)
@@ -235,7 +235,7 @@
   }
 
   function toggleChapterPanel() {
-    if (!hasPlaybackPages.value) return
+    if (!hasPlaybackParts.value) return
     showQueuePanel.value = false
     showChapterPanel.value = !showChapterPanel.value
   }
@@ -265,20 +265,20 @@
     onClose: closeQueuePanel
   })
 
-  function isActivePlaybackPage(page: VideoPageInfo) {
+  function isActivePlaybackPart(part: VideoPartInfo) {
     if (playerStore.currentPlayTarget?.cid != null) {
-      return playerStore.currentPlayTarget.cid === page.cid
+      return playerStore.currentPlayTarget.cid === part.cid
     }
 
-    if (playerStore.currentPlayTarget?.page != null) {
-      return playerStore.currentPlayTarget.page === page.page
+    if (playerStore.currentPlayTarget?.partIndex != null) {
+      return playerStore.currentPlayTarget.partIndex === part.partIndex
     }
 
-    return playerStore.currentPlaybackDetail?.defaultPage === page.page
+    return playerStore.currentPlaybackDetail?.defaultPart === part.partIndex
   }
 
-  function playPage(page: VideoPageInfo) {
-    void playerStore.playCurrentVideoPage(page)
+  function playPart(part: VideoPartInfo) {
+    void playerStore.playCurrentVideoPart(part)
   }
 
   function playFromQueue(index: number) {
@@ -479,7 +479,7 @@
 
     <div class="extra-controls">
       <button
-        v-if="hasPlaybackPages"
+        v-if="hasPlaybackParts"
         ref="chapterToggleButtonRef"
         class="control-btn small chapter-btn"
         :class="{ active: showChapterPanel }"
@@ -590,7 +590,7 @@
           <div id="player-chapter-title" class="chapter-title">
             <ListVideo :size="18" />
             <span>分P列表</span>
-            <span class="chapter-count">({{ playbackPages.length }})</span>
+            <span class="chapter-count">({{ playbackParts.length }})</span>
           </div>
           <button
             ref="closeChapterButtonRef"
@@ -605,23 +605,23 @@
 
         <div class="chapter-list">
           <div
-            v-for="page in playbackPages"
-            :key="page.cid"
+            v-for="part in playbackParts"
+            :key="part.cid"
             class="chapter-item"
-            :class="{ active: isActivePlaybackPage(page) }"
+            :class="{ active: isActivePlaybackPart(part) }"
           >
             <button
               class="chapter-item-main"
               type="button"
-              :aria-label="`播放第 ${page.page} P：${page.part}`"
-              :aria-current="isActivePlaybackPage(page) ? 'true' : undefined"
-              @click="playPage(page)"
+              :aria-label="`播放第 ${part.partIndex} P：${part.part}`"
+              :aria-current="isActivePlaybackPart(part) ? 'true' : undefined"
+              @click="playPart(part)"
             >
-              <div class="chapter-item-index">P{{ page.page }}</div>
+              <div class="chapter-item-index">P{{ part.partIndex }}</div>
               <div class="chapter-item-info">
-                <div class="chapter-item-title" :title="page.part">{{ page.part }}</div>
-                <div class="chapter-item-meta" v-if="page.duration > 0">
-                  {{ formatTime(page.duration) }}
+                <div class="chapter-item-title" :title="part.part">{{ part.part }}</div>
+                <div class="chapter-item-meta" v-if="part.duration > 0">
+                  {{ formatTime(part.duration) }}
                 </div>
               </div>
             </button>
