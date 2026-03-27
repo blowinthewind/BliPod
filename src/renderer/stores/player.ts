@@ -156,6 +156,7 @@ export const usePlayerStore = defineStore('player', () => {
   let readyListenerRefCount = 0
   let progressListenerRefCount = 0
   let playbackDetailLazyLoadState: 'idle' | 'loading' | 'done' = 'idle'
+  let isHandlingPlaybackEnd = false
 
   function syncNativePlaybackState() {
     window.electronAPI.nativePlayer.updateState({
@@ -379,6 +380,79 @@ export const usePlayerStore = defineStore('player', () => {
     syncNativePlaybackState()
   }
 
+  function getCurrentPlaybackPartIndex(): number {
+    const detail = currentPlaybackDetail.value
+    if (!detail || currentPlaybackParts.value.length === 0) {
+      return -1
+    }
+
+    if (currentPlayTarget.value?.cid != null) {
+      const matchedByCid = currentPlaybackParts.value.findIndex((part) => part.cid === currentPlayTarget.value?.cid)
+      if (matchedByCid !== -1) {
+        return matchedByCid
+      }
+    }
+
+    if (currentPlayTarget.value?.partIndex != null) {
+      const matchedByPartIndex = currentPlaybackParts.value.findIndex(
+        (part) => part.partIndex === currentPlayTarget.value?.partIndex
+      )
+      if (matchedByPartIndex !== -1) {
+        return matchedByPartIndex
+      }
+    }
+
+    return currentPlaybackParts.value.findIndex((part) => part.partIndex === detail.defaultPart)
+  }
+
+  function getNextPlaybackPart(): VideoPartInfo | null {
+    const currentPartIndex = getCurrentPlaybackPartIndex()
+    if (currentPartIndex < 0) {
+      return null
+    }
+
+    return currentPlaybackParts.value[currentPartIndex + 1] ?? null
+  }
+
+  async function tryAutoPlayNextPlaybackPart(): Promise<boolean> {
+    if (!appSettings.autoPlayNextPart) {
+      return false
+    }
+
+    if (!currentPlaybackDetail.value || currentPlaybackParts.value.length <= 1) {
+      return false
+    }
+
+    const nextPart = getNextPlaybackPart()
+    if (!nextPart) {
+      return false
+    }
+
+    await playCurrentVideoPart(nextPart)
+    return true
+  }
+
+  async function handlePlaybackEnded(): Promise<void> {
+    if (isHandlingPlaybackEnd) {
+      return
+    }
+
+    isHandlingPlaybackEnd = true
+
+    if (isRepeat.value) {
+      seek(0)
+      play()
+      return
+    }
+
+    const switchedToNextPart = await tryAutoPlayNextPlaybackPart()
+    if (switchedToNextPart) {
+      return
+    }
+
+    await handleVideoComplete()
+  }
+
   /**
    * 启动定期自动保存
    */
@@ -587,6 +661,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function stop() {
+    isHandlingPlaybackEnd = false
     stopAutoSave()
     await flushPendingWatchTime()
     await saveCurrentPosition()
@@ -1088,6 +1163,7 @@ export const usePlayerStore = defineStore('player', () => {
   function setReadyListener() {
     if (!readyListenerUnsubscribe) {
       readyListenerUnsubscribe = window.electronAPI.search.onPlayerReady(() => {
+        isHandlingPlaybackEnd = false
         isLoading.value = false
         isPlaying.value = true
         window.electronAPI.search.setVolume(volume.value)
@@ -1130,6 +1206,14 @@ export const usePlayerStore = defineStore('player', () => {
         currentTime.value = progress.currentTime
         duration.value = progress.duration || 0
         isPlaying.value = !progress.paused
+
+        if (
+          progress.duration <= 0 ||
+          progress.currentTime < progress.duration * 0.99 ||
+          !progress.paused
+        ) {
+          isHandlingPlaybackEnd = false
+        }
 
         if (wasPlaying !== isPlaying.value) {
           syncNativePlaybackState()
@@ -1197,14 +1281,7 @@ export const usePlayerStore = defineStore('player', () => {
           progress.currentTime >= progress.duration * 0.99 &&
           progress.paused
         ) {
-          // 如果开启了循环播放，则重新播放当前视频
-          if (isRepeat.value) {
-            seek(0)
-            play()
-          } else {
-            // 播放完成，处理下一首
-            handleVideoComplete()
-          }
+          void handlePlaybackEnded()
         }
       })
     }
