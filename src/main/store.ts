@@ -1,6 +1,6 @@
 import Store from 'electron-store'
 import { BUILT_IN_THEME_IDS, DEFAULT_THEME_ID, type Theme } from '../shared/theme'
-import type { ExtractedVideo } from '../preload/preload'
+import type { ExtractedVideo, VideoPlaybackDetail } from '../preload/preload'
 
 export interface FavoriteVideo extends ExtractedVideo {
   addedAt: number
@@ -44,6 +44,13 @@ export interface PlayStatsEntry {
   lastPosition: number | null
 }
 
+export interface CachedPlaybackDetailEntry {
+  detail: VideoPlaybackDetail
+  fetchedAt: number
+  expiresAt: number
+  version: 1
+}
+
 export interface AppStore {
   favorites: FavoriteVideo[]
   playlists: Playlist[]
@@ -52,6 +59,7 @@ export interface AppStore {
   userQueue: ExtractedVideo[]
   lastVolume: number
   playStats?: Record<string, PlayStatsEntry>
+  playbackDetailCache?: Record<string, CachedPlaybackDetailEntry>
 }
 
 const defaults: AppStore = {
@@ -66,7 +74,8 @@ const defaults: AppStore = {
   playPositions: [],
   userQueue: [],
   lastVolume: 80,
-  playStats: {}
+  playStats: {},
+  playbackDetailCache: {}
 }
 
 const BUILT_IN_THEME_ID_SET = new Set<string>(BUILT_IN_THEME_IDS)

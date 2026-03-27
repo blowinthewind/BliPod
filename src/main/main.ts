@@ -17,6 +17,7 @@ import type {
   VideoPageInfo
 } from '../preload/preload'
 import {
+  store,
   getFavorites,
   addFavorite,
   removeFavorite,
@@ -46,7 +47,8 @@ import {
   getLastVolume,
   setLastVolume,
   updateFavoriteDuration,
-  updatePlaylistVideoDuration
+  updatePlaylistVideoDuration,
+  type CachedPlaybackDetailEntry
 } from './store'
 import {
   exportDataToFile,
@@ -76,6 +78,7 @@ let lastSearchQuery: string = ''
 let searchSessionState: SearchSessionState | null = null
 let searchViewLoadContext: SearchViewContext = 'search'
 let searchViewAutoExtractEnabled = false
+const playbackDetailMemoryCache = new Map<string, CachedPlaybackDetailEntry>()
 
 const BILIBILI_SESSION = 'persist:bilibili'
 const MEMORY_CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -97,6 +100,7 @@ const SEARCH_API_RESPONSE_ERROR = 'Bilibili 搜索接口返回异常'
 const SEARCH_API_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了搜索接口访问'
 const UPLOADER_NOT_LOGGED_IN_ERROR = '账号未登录'
 const UPLOADER_RISK_BLOCKED_ERROR = 'Bilibili 风控校验阻止了 UP 主投稿接口访问'
+const PLAYBACK_DETAIL_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const PLAYER_PROGRESS_CONSOLE_PREFIX = '__BLIPOD_PLAYER_PROGRESS__:'
 const PLAYER_READY_CONSOLE_PREFIX = '__BLIPOD_PLAYER_READY__:'
 const WBI_MIXIN_KEY_INDEXES = [
@@ -1278,22 +1282,113 @@ function mapPlaybackDetail(data: BilibiliViewApiData | undefined, requestedBvid:
   }
 }
 
-async function fetchVideoPlaybackDetail(bvid: string): Promise<VideoPlaybackDetail> {
+function normalizePlaybackDetailCacheKey(bvid: string) {
   const normalizedBvid = bvid.trim()
   if (!normalizedBvid) {
     throw new Error('Invalid bvid')
   }
 
-  const response = await fetchBilibiliJson<BilibiliViewApiData>(
-    `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(normalizedBvid)}`,
-    `https://www.bilibili.com/video/${normalizedBvid}`
-  )
+  return normalizedBvid
+}
 
-  if (response.code !== 0) {
-    throw new Error(response.message || 'Failed to load video detail')
+function createPlaybackDetailCacheEntry(detail: VideoPlaybackDetail): CachedPlaybackDetailEntry {
+  const now = Date.now()
+  return {
+    detail,
+    fetchedAt: now,
+    expiresAt: now + PLAYBACK_DETAIL_CACHE_TTL_MS,
+    version: 1
+  }
+}
+
+function getPlaybackDetailPersistentCache(): Record<string, CachedPlaybackDetailEntry> {
+  return store.get('playbackDetailCache') || {}
+}
+
+function getFreshPlaybackDetailEntry(
+  bvid: string,
+  source: 'memory' | 'persistent',
+  entry: CachedPlaybackDetailEntry | null | undefined
+): CachedPlaybackDetailEntry | null {
+  if (!entry) {
+    logger.info(`Playback detail cache miss (${source}): ${bvid}`)
+    return null
   }
 
-  return mapPlaybackDetail(response.data, normalizedBvid)
+  if (entry.version !== 1) {
+    logger.info(`Playback detail cache skipped (${source}, version mismatch): ${bvid}`)
+    return null
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    logger.info(`Playback detail cache expired (${source}): ${bvid}`)
+    return null
+  }
+
+  logger.info(`Playback detail cache hit (${source}): ${bvid}`)
+  return entry
+}
+
+function setPlaybackDetailCacheEntry(bvid: string, entry: CachedPlaybackDetailEntry) {
+  playbackDetailMemoryCache.set(bvid, entry)
+  const persistentCache = getPlaybackDetailPersistentCache()
+  store.set('playbackDetailCache', {
+    ...persistentCache,
+    [bvid]: entry
+  })
+  logger.info(`Playback detail cache updated: ${bvid}`)
+}
+
+async function fetchVideoPlaybackDetailFromApi(bvid: string): Promise<VideoPlaybackDetail> {
+  const normalizedBvid = normalizePlaybackDetailCacheKey(bvid)
+  logger.info(`Playback detail API request started: ${normalizedBvid}`)
+
+  try {
+    const response = await fetchBilibiliJson<BilibiliViewApiData>(
+      `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(normalizedBvid)}`,
+      `https://www.bilibili.com/video/${normalizedBvid}`
+    )
+
+    if (response.code !== 0) {
+      throw new Error(response.message || 'Failed to load video detail')
+    }
+
+    const detail = mapPlaybackDetail(response.data, normalizedBvid)
+    logger.info(`Playback detail API request succeeded: ${normalizedBvid}`)
+    return detail
+  } catch (error) {
+    logger.error(`Playback detail API request failed: ${normalizedBvid}`)
+    throw error
+  }
+}
+
+async function getPlaybackDetailWithCache(bvid: string): Promise<VideoPlaybackDetail> {
+  const normalizedBvid = normalizePlaybackDetailCacheKey(bvid)
+
+  const memoryEntry = getFreshPlaybackDetailEntry(
+    normalizedBvid,
+    'memory',
+    playbackDetailMemoryCache.get(normalizedBvid)
+  )
+  if (memoryEntry) {
+    return memoryEntry.detail
+  }
+
+  const persistentEntry = getFreshPlaybackDetailEntry(
+    normalizedBvid,
+    'persistent',
+    getPlaybackDetailPersistentCache()[normalizedBvid]
+  )
+  if (persistentEntry) {
+    playbackDetailMemoryCache.set(normalizedBvid, persistentEntry)
+    logger.info(`Playback detail cache warmed memory from persistent cache: ${normalizedBvid}`)
+    return persistentEntry.detail
+  }
+
+  logger.info(`Playback detail cache falling back to API: ${normalizedBvid}`)
+  const detail = await fetchVideoPlaybackDetailFromApi(normalizedBvid)
+  setPlaybackDetailCacheEntry(normalizedBvid, createPlaybackDetailCacheEntry(detail))
+  return detail
 }
 
 function buildPlayerUrl(bvid: string, autoplay: boolean, target?: PlayTarget) {
@@ -1939,7 +2034,7 @@ function setupIPC() {
 
   ipcMain.handle('video:getPlaybackDetail', async (_event, bvid: string): Promise<VideoPlaybackDetail> => {
     logger.info('Playback detail request received:', bvid)
-    return fetchVideoPlaybackDetail(bvid)
+    return getPlaybackDetailWithCache(bvid)
   })
 
   ipcMain.on('player:play', async (_event, bvid: string, autoplay: boolean = true, target?: PlayTarget) => {
