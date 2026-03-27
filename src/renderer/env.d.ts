@@ -39,6 +39,28 @@ interface UploaderInfo {
   mid: string
 }
 
+interface PlayTarget {
+  cid?: number
+  page?: number
+}
+
+interface VideoPageInfo {
+  cid: number
+  page: number
+  part: string
+  duration: number
+}
+
+interface VideoPlaybackDetail {
+  bvid: string
+  aid?: number
+  title?: string
+  videos: number
+  defaultCid?: number
+  defaultPage: number
+  pages: VideoPageInfo[]
+}
+
 interface PlayerProgress {
   currentTime: number
   duration: number
@@ -219,7 +241,8 @@ interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string, page?: number) => Promise<SearchResult>
   clickNextPage: () => void
-  playVideo: (bvid: string, autoplay?: boolean) => void
+  getPlaybackDetail: (bvid: string) => Promise<VideoPlaybackDetail>
+  playVideo: (bvid: string, autoplay?: boolean, target?: PlayTarget) => void
   pauseVideo: () => void
   resumeVideo: () => void
   seekVideo: (time: number) => void

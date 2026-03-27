@@ -37,6 +37,28 @@ export interface SearchResult {
   uploader?: UploaderInfo
 }
 
+export interface PlayTarget {
+  cid?: number
+  page?: number
+}
+
+export interface VideoPageInfo {
+  cid: number
+  page: number
+  part: string
+  duration: number
+}
+
+export interface VideoPlaybackDetail {
+  bvid: string
+  aid?: number
+  title?: string
+  videos: number
+  defaultCid?: number
+  defaultPage: number
+  pages: VideoPageInfo[]
+}
+
 export interface UserInfo {
   mid: number
   name: string
@@ -242,7 +264,8 @@ export interface SearchAPI {
   search: (query: string, offset?: number) => Promise<SearchResult>
   loadUploaderVideos: (mid: string, page?: number) => Promise<SearchResult>
   clickNextPage: () => void
-  playVideo: (bvid: string, autoplay?: boolean) => void
+  getPlaybackDetail: (bvid: string) => Promise<VideoPlaybackDetail>
+  playVideo: (bvid: string, autoplay?: boolean, target?: PlayTarget) => void
   pauseVideo: () => void
   resumeVideo: () => void
   seekVideo: (time: number) => void
@@ -273,8 +296,11 @@ const searchAPI: SearchAPI = {
   clickNextPage: () => {
     ipcRenderer.send('search:clickNextPage')
   },
-  playVideo: (bvid: string, autoplay: boolean = true) => {
-    ipcRenderer.send('player:play', bvid, autoplay)
+  getPlaybackDetail: (bvid: string) => {
+    return ipcRenderer.invoke('video:getPlaybackDetail', bvid)
+  },
+  playVideo: (bvid: string, autoplay: boolean = true, target?: PlayTarget) => {
+    ipcRenderer.send('player:play', bvid, autoplay, target)
   },
   pauseVideo: () => {
     ipcRenderer.send('player:pause')

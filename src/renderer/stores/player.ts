@@ -87,6 +87,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ========== 基础播放状态 ==========
   const currentVideo = ref<QueueVideo | null>(null)
+  const currentPlaybackDetail = ref<VideoPlaybackDetail | null>(null)
+  const currentPlayTarget = ref<PlayTarget | null>(null)
   const isPlaying = ref(false)
   const isLoading = ref(false)
   const currentTime = ref(0)
@@ -119,6 +121,7 @@ export const usePlayerStore = defineStore('player', () => {
     if (duration.value === 0) return 0
     return (currentTime.value / duration.value) * 100
   })
+  const currentPlaybackPages = computed(() => currentPlaybackDetail.value?.pages ?? [])
 
   // 是否有下一首（从实际播放队列中）
   const hasNext = computed(() => {
@@ -277,6 +280,46 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  async function loadPlaybackDetail(bvid: string): Promise<VideoPlaybackDetail | null> {
+    try {
+      return await window.electronAPI.search.getPlaybackDetail(bvid)
+    } catch (e) {
+      logger.warn('Failed to load playback detail:', e)
+      return null
+    }
+  }
+
+  function resolvePlayTarget(
+    detail: VideoPlaybackDetail | null,
+    requestedTarget?: PlayTarget
+  ): PlayTarget | undefined {
+    if (requestedTarget?.cid != null || requestedTarget?.page != null) {
+      return requestedTarget
+    }
+
+    if (detail?.defaultCid != null) {
+      return {
+        cid: detail.defaultCid,
+        page: detail.defaultPage
+      }
+    }
+
+    return undefined
+  }
+
+  async function startPlayback(
+    video: ExtractedVideo,
+    autoplay: boolean = true,
+    requestedTarget?: PlayTarget
+  ): Promise<void> {
+    const detail = await loadPlaybackDetail(video.bvid)
+    currentPlaybackDetail.value = detail
+
+    const target = resolvePlayTarget(detail, requestedTarget)
+    currentPlayTarget.value = target ?? null
+    window.electronAPI.search.playVideo(video.bvid, autoplay, target)
+  }
+
   /**
    * 启动定期自动保存
    */
@@ -389,7 +432,7 @@ export const usePlayerStore = defineStore('player', () => {
       }
 
       const shouldAutoPlay = appSettings.autoPlay
-      window.electronAPI.search.playVideo(lastPlayed.bvid, shouldAutoPlay)
+      await startPlayback(lastPlayed, shouldAutoPlay)
       if (shouldAutoPlay) {
         isPlaying.value = true
       }
@@ -448,7 +491,7 @@ export const usePlayerStore = defineStore('player', () => {
     addToHistory(video)
 
     syncNativePlaybackState()
-    window.electronAPI.search.playVideo(video.bvid)
+    await startPlayback(video)
   }
 
   function play() {
@@ -485,6 +528,8 @@ export const usePlayerStore = defineStore('player', () => {
     clearDurationWriteCache(currentVideo.value?.bvid)
     window.electronAPI.search.pauseVideo()
     currentVideo.value = null
+    currentPlaybackDetail.value = null
+    currentPlayTarget.value = null
     isPlaying.value = false
     isLoading.value = false
     currentTime.value = 0
@@ -626,7 +671,7 @@ export const usePlayerStore = defineStore('player', () => {
     addToHistory(video)
 
     syncNativePlaybackState()
-    window.electronAPI.search.playVideo(video.bvid)
+    await startPlayback(video)
   }
 
   // 从历史记录中播放（用于 previous）
@@ -663,7 +708,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     // 注意：从历史播放时，不添加到历史，避免重复
     syncNativePlaybackState()
-    window.electronAPI.search.playVideo(video.bvid)
+    await startPlayback(video)
   }
 
   function toggleRepeat() {
@@ -1104,6 +1149,9 @@ export const usePlayerStore = defineStore('player', () => {
   return {
     // 基础状态
     currentVideo,
+    currentPlaybackDetail,
+    currentPlayTarget,
+    currentPlaybackPages,
     isPlaying,
     isLoading,
     currentTime,

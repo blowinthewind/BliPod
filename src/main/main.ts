@@ -11,7 +11,10 @@ import type {
   AppSettings,
   AppStore,
   NativePlaybackState,
-  NativeMenuCommand
+  NativeMenuCommand,
+  PlayTarget,
+  VideoPlaybackDetail,
+  VideoPageInfo
 } from '../preload/preload'
 import {
   getFavorites,
@@ -176,6 +179,22 @@ interface BilibiliSearchApiData {
   is_risk?: boolean
   gaia_res_type?: number
   gaia_data?: unknown
+}
+
+interface BilibiliViewApiPageItem {
+  cid?: number
+  page?: number
+  part?: string
+  duration?: number
+}
+
+interface BilibiliViewApiData {
+  aid?: number
+  bvid?: string
+  cid?: number
+  videos?: number
+  title?: string
+  pages?: BilibiliViewApiPageItem[]
 }
 
 interface SearchPaginationState {
@@ -1224,6 +1243,78 @@ function mapUploaderVideo(item: BilibiliUploaderVideoItem, uploaderInfo?: Upload
   }
 }
 
+function mapPlaybackDetailPage(item: BilibiliViewApiPageItem): VideoPageInfo | null {
+  if (!Number.isFinite(item.cid) || !Number.isFinite(item.page)) {
+    return null
+  }
+
+  const cid = Number(item.cid)
+  const page = Number(item.page)
+  if (cid <= 0 || page <= 0) {
+    return null
+  }
+
+  return {
+    cid,
+    page,
+    part: item.part?.trim() || `P${page}`,
+    duration: Number.isFinite(item.duration) && Number(item.duration) > 0 ? Number(item.duration) : 0
+  }
+}
+
+function mapPlaybackDetail(data: BilibiliViewApiData | undefined, requestedBvid: string): VideoPlaybackDetail {
+  const pages = (data?.pages || [])
+    .map((item) => mapPlaybackDetailPage(item))
+    .filter((item): item is VideoPageInfo => item !== null)
+
+  return {
+    bvid: data?.bvid || requestedBvid,
+    aid: Number.isFinite(data?.aid) ? Number(data?.aid) : undefined,
+    title: data?.title?.trim() || undefined,
+    videos: Number.isFinite(data?.videos) && Number(data?.videos) > 0 ? Number(data?.videos) : pages.length,
+    defaultCid: Number.isFinite(data?.cid) && Number(data?.cid) > 0 ? Number(data?.cid) : pages[0]?.cid,
+    defaultPage: pages[0]?.page ?? 1,
+    pages
+  }
+}
+
+async function fetchVideoPlaybackDetail(bvid: string): Promise<VideoPlaybackDetail> {
+  const normalizedBvid = bvid.trim()
+  if (!normalizedBvid) {
+    throw new Error('Invalid bvid')
+  }
+
+  const response = await fetchBilibiliJson<BilibiliViewApiData>(
+    `https://api.bilibili.com/x/web-interface/view?bvid=${encodeURIComponent(normalizedBvid)}`,
+    `https://www.bilibili.com/video/${normalizedBvid}`
+  )
+
+  if (response.code !== 0) {
+    throw new Error(response.message || 'Failed to load video detail')
+  }
+
+  return mapPlaybackDetail(response.data, normalizedBvid)
+}
+
+function buildPlayerUrl(bvid: string, autoplay: boolean, target?: PlayTarget) {
+  const params = new URLSearchParams({
+    bvid,
+    high_quality: '1',
+    autoplay: autoplay ? '1' : '0',
+    muted: '0'
+  })
+
+  if (target?.cid != null && Number.isFinite(target.cid) && target.cid > 0) {
+    params.set('cid', String(target.cid))
+  }
+
+  if (target?.page != null && Number.isFinite(target.page) && target.page > 0) {
+    params.set('p', String(target.page))
+  }
+
+  return `https://player.bilibili.com/player.html?${params.toString()}`
+}
+
 async function loadSearchResultsByApi(query: string, offset?: number | null): Promise<SearchResult> {
   const normalizedQuery = normalizeSearchQuery(query)
   const pagination = resolveSearchPaginationState(offset)
@@ -1846,12 +1937,17 @@ function setupIPC() {
     }
   })
 
-  ipcMain.on('player:play', async (_event, bvid: string, autoplay: boolean = true) => {
+  ipcMain.handle('video:getPlaybackDetail', async (_event, bvid: string): Promise<VideoPlaybackDetail> => {
+    logger.info('Playback detail request received:', bvid)
+    return fetchVideoPlaybackDetail(bvid)
+  })
+
+  ipcMain.on('player:play', async (_event, bvid: string, autoplay: boolean = true, target?: PlayTarget) => {
     logger.info('Playing video:', `${bvid} autoplay: ${autoplay}`)
 
     try {
       const view = await createPlayerView()
-      const playUrl = `https://player.bilibili.com/player.html?bvid=${bvid}&high_quality=1&autoplay=${autoplay ? 1 : 0}&muted=0`
+      const playUrl = buildPlayerUrl(bvid, autoplay, target)
 
       await view.webContents.loadURL(playUrl)
 
