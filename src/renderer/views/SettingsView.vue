@@ -842,7 +842,7 @@
           <div class="setting-item">
             <div class="setting-info">
               <span id="auto-play-next-part-label" class="setting-label">自动播放下一P</span>
-              <span class="setting-desc">播放完当前分P后，若当前视频还有下一P，则优先继续播放同一视频的下一P</span>
+              <span class="setting-desc">仅在多P视频自然播完当前分P后生效；若当前视频还有下一P，则优先继续播放同一视频的下一P</span>
             </div>
             <label class="toggle" aria-labelledby="auto-play-next-part-label">
               <input
