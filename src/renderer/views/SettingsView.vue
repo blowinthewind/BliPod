@@ -830,7 +830,6 @@
               <input
                 type="checkbox"
                 v-model="autoPlay"
-                @keyup.enter.prevent="autoPlay = !autoPlay"
               />
               <span class="toggle-slider"></span>
             </label>
@@ -845,7 +844,6 @@
               <input
                 type="checkbox"
                 v-model="rememberPosition"
-                @keyup.enter.prevent="rememberPosition = !rememberPosition"
               />
               <span class="toggle-slider"></span>
             </label>
