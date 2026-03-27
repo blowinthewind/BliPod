@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAppSettingsStore } from './appSettings'
 import { logger } from '../utils/logger'
-import { formatDuration } from '../utils/format'
+import { formatDuration, parseDuration } from '../utils/format'
 
 export interface HistoryVideo extends ExtractedVideo {
   playedAt: number
@@ -24,7 +24,9 @@ const PLAYBACK_CONFIG = {
   // 最大保存的位置记录数
   MAX_POSITION_RECORDS: 100,
   // 定期保存间隔（毫秒）
-  AUTO_SAVE_INTERVAL: 30000
+  AUTO_SAVE_INTERVAL: 30000,
+  // 判断搜索时长与实际播放时长差异是否足以推断多P
+  MULTI_PAGE_DURATION_DIFF_SECONDS: 30
 } as const
 
 const PLAY_STATS_CONFIG = {
@@ -153,6 +155,7 @@ export const usePlayerStore = defineStore('player', () => {
   let progressListenerUnsubscribe: (() => void) | null = null
   let readyListenerRefCount = 0
   let progressListenerRefCount = 0
+  let playbackDetailLazyLoadState: 'idle' | 'loading' | 'done' = 'idle'
 
   function syncNativePlaybackState() {
     window.electronAPI.nativePlayer.updateState({
@@ -290,6 +293,34 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
+  function isLikelyMultiPageVideo(video: ExtractedVideo | null, actualDuration: number): boolean {
+    if (!video || actualDuration <= 0) return false
+
+    const extractedDuration = parseDuration(video.duration)
+    if (extractedDuration <= 0) return false
+
+    return (
+      extractedDuration - actualDuration >= PLAYBACK_CONFIG.MULTI_PAGE_DURATION_DIFF_SECONDS
+    )
+  }
+
+  async function ensurePlaybackDetailForCurrentVideo(): Promise<void> {
+    const video = currentVideo.value
+    if (!video || playbackDetailLazyLoadState !== 'idle') return
+
+    playbackDetailLazyLoadState = 'loading'
+    const detail = await loadPlaybackDetail(video.bvid)
+
+    if (!currentVideo.value || currentVideo.value.bvid !== video.bvid) {
+      return
+    }
+
+    currentPlaybackDetail.value = detail
+    const target = resolvePlayTarget(detail, currentPlayTarget.value ?? undefined)
+    currentPlayTarget.value = target ?? currentPlayTarget.value
+    playbackDetailLazyLoadState = 'done'
+  }
+
   function resolvePlayTarget(
     detail: VideoPlaybackDetail | null,
     requestedTarget?: PlayTarget
@@ -313,12 +344,11 @@ export const usePlayerStore = defineStore('player', () => {
     autoplay: boolean = true,
     requestedTarget?: PlayTarget
   ): Promise<void> {
-    const detail = await loadPlaybackDetail(video.bvid)
-    currentPlaybackDetail.value = detail
+    currentPlaybackDetail.value = null
+    currentPlayTarget.value = requestedTarget ?? null
+    playbackDetailLazyLoadState = 'idle'
 
-    const target = resolvePlayTarget(detail, requestedTarget)
-    currentPlayTarget.value = target ?? null
-    window.electronAPI.search.playVideo(video.bvid, autoplay, target)
+    window.electronAPI.search.playVideo(video.bvid, autoplay, requestedTarget)
   }
 
   async function playCurrentVideoPage(page: VideoPageInfo): Promise<void> {
@@ -450,6 +480,9 @@ export const usePlayerStore = defineStore('player', () => {
       isPlaying.value = false
       currentTime.value = 0
       duration.value = 0
+      currentPlaybackDetail.value = null
+      currentPlayTarget.value = null
+      playbackDetailLazyLoadState = 'idle'
       resetPlaySession()
       await loadPlaySessionStats(lastPlayed.bvid)
 
@@ -509,6 +542,9 @@ export const usePlayerStore = defineStore('player', () => {
     isPlaying.value = false
     currentTime.value = 0
     duration.value = 0
+    currentPlaybackDetail.value = null
+    currentPlayTarget.value = null
+    playbackDetailLazyLoadState = 'idle'
     pendingResumeTime = null
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
@@ -559,6 +595,7 @@ export const usePlayerStore = defineStore('player', () => {
     currentVideo.value = null
     currentPlaybackDetail.value = null
     currentPlayTarget.value = null
+    playbackDetailLazyLoadState = 'idle'
     isPlaying.value = false
     isLoading.value = false
     currentTime.value = 0
@@ -689,6 +726,9 @@ export const usePlayerStore = defineStore('player', () => {
     isPlaying.value = false
     currentTime.value = 0
     duration.value = 0
+    currentPlaybackDetail.value = null
+    currentPlayTarget.value = null
+    playbackDetailLazyLoadState = 'idle'
     pendingResumeTime = null
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
@@ -728,6 +768,9 @@ export const usePlayerStore = defineStore('player', () => {
     isPlaying.value = false
     currentTime.value = 0
     duration.value = 0
+    currentPlaybackDetail.value = null
+    currentPlayTarget.value = null
+    playbackDetailLazyLoadState = 'idle'
     pendingResumeTime = null
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
@@ -1093,6 +1136,13 @@ export const usePlayerStore = defineStore('player', () => {
         }
 
         if (progress.duration > 0) {
+          if (
+            !currentPlaybackDetail.value &&
+            isLikelyMultiPageVideo(currentVideo.value, progress.duration)
+          ) {
+            void ensurePlaybackDetailForCurrentVideo()
+          }
+
           updateVideoDuration(currentBvid, progress.duration)
         }
 

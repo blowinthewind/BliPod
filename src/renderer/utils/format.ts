@@ -11,3 +11,18 @@ export function formatDuration(seconds: number): string {
   }
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
+
+export function parseDuration(durationText: string): number {
+  if (!durationText) return 0
+
+  const parts = durationText
+    .trim()
+    .split(':')
+    .map((part) => Number.parseInt(part, 10))
+
+  if (parts.length === 0 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
+    return 0
+  }
+
+  return parts.reduce((total, part) => total * 60 + part, 0)
+}
