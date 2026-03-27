@@ -738,7 +738,11 @@
               <span class="setting-desc">应用启动后自动继续播放上次未播完的视频</span>
             </div>
             <label class="toggle" aria-labelledby="auto-play-label">
-              <input type="checkbox" v-model="autoPlay" />
+              <input
+                type="checkbox"
+                v-model="autoPlay"
+                @keyup.enter.prevent="autoPlay = !autoPlay"
+              />
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -749,7 +753,11 @@
               <span class="setting-desc">下次播放时从上次停下的位置继续</span>
             </div>
             <label class="toggle" aria-labelledby="remember-position-label">
-              <input type="checkbox" v-model="rememberPosition" />
+              <input
+                type="checkbox"
+                v-model="rememberPosition"
+                @keyup.enter.prevent="rememberPosition = !rememberPosition"
+              />
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -1622,6 +1630,11 @@
       transform 0.2s,
       background-color 0.2s,
       opacity 0.2s;
+  }
+
+  .toggle input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   .toggle input:checked + .toggle-slider {
