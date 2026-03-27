@@ -1329,6 +1329,31 @@ function getFreshPlaybackDetailEntry(
   return entry
 }
 
+function findStalePlaybackDetailEntry(
+  candidates: Array<{
+    source: 'memory' | 'persistent'
+    entry: CachedPlaybackDetailEntry | null | undefined
+  }>
+): { source: 'memory' | 'persistent'; entry: CachedPlaybackDetailEntry } | null {
+  const staleEntries = candidates.filter(
+    (candidate): candidate is { source: 'memory' | 'persistent'; entry: CachedPlaybackDetailEntry } => {
+      const entry = candidate.entry
+      if (!entry) {
+        return false
+      }
+
+      return entry.version === 1 && entry.expiresAt <= Date.now()
+    }
+  )
+
+  if (staleEntries.length === 0) {
+    return null
+  }
+
+  staleEntries.sort((a, b) => b.entry.fetchedAt - a.entry.fetchedAt)
+  return staleEntries[0]
+}
+
 function setPlaybackDetailCacheEntry(bvid: string, entry: CachedPlaybackDetailEntry) {
   playbackDetailMemoryCache.set(bvid, entry)
   const persistentCache = getPlaybackDetailPersistentCache()
@@ -1364,31 +1389,43 @@ async function fetchVideoPlaybackDetailFromApi(bvid: string): Promise<VideoPlayb
 
 async function getPlaybackDetailWithCache(bvid: string): Promise<VideoPlaybackDetail> {
   const normalizedBvid = normalizePlaybackDetailCacheKey(bvid)
+  const memoryCandidate = playbackDetailMemoryCache.get(normalizedBvid)
+  const persistentCandidate = getPlaybackDetailPersistentCache()[normalizedBvid]
 
-  const memoryEntry = getFreshPlaybackDetailEntry(
-    normalizedBvid,
-    'memory',
-    playbackDetailMemoryCache.get(normalizedBvid)
-  )
+  const memoryEntry = getFreshPlaybackDetailEntry(normalizedBvid, 'memory', memoryCandidate)
   if (memoryEntry) {
     return memoryEntry.detail
   }
 
-  const persistentEntry = getFreshPlaybackDetailEntry(
-    normalizedBvid,
-    'persistent',
-    getPlaybackDetailPersistentCache()[normalizedBvid]
-  )
+  const persistentEntry = getFreshPlaybackDetailEntry(normalizedBvid, 'persistent', persistentCandidate)
   if (persistentEntry) {
     playbackDetailMemoryCache.set(normalizedBvid, persistentEntry)
     logger.info(`Playback detail cache warmed memory from persistent cache: ${normalizedBvid}`)
     return persistentEntry.detail
   }
 
+  const staleEntry = findStalePlaybackDetailEntry([
+    { source: 'memory', entry: memoryCandidate },
+    { source: 'persistent', entry: persistentCandidate }
+  ])
+
   logger.info(`Playback detail cache falling back to API: ${normalizedBvid}`)
-  const detail = await fetchVideoPlaybackDetailFromApi(normalizedBvid)
-  setPlaybackDetailCacheEntry(normalizedBvid, createPlaybackDetailCacheEntry(detail))
-  return detail
+
+  try {
+    const detail = await fetchVideoPlaybackDetailFromApi(normalizedBvid)
+    setPlaybackDetailCacheEntry(normalizedBvid, createPlaybackDetailCacheEntry(detail))
+    return detail
+  } catch (error) {
+    if (staleEntry) {
+      playbackDetailMemoryCache.set(normalizedBvid, staleEntry.entry)
+      logger.info(
+        `Playback detail cache stale fallback hit (${staleEntry.source}): ${normalizedBvid}`
+      )
+      return staleEntry.entry.detail
+    }
+
+    throw error
+  }
 }
 
 function buildPlayerUrl(bvid: string, autoplay: boolean, target?: PlayTarget) {
