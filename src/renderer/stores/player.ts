@@ -1128,31 +1128,41 @@ export const usePlayerStore = defineStore('player', () => {
     playVideoFromQueue(queue[0])
   }
 
-  // 播放完成后的处理
+  // 整个视频播放完成后的处理
   async function handleVideoComplete() {
+    const completedVideo = currentVideo.value
+    if (!completedVideo) {
+      return
+    }
+
     await flushPendingWatchTime()
 
-    const video = currentVideo.value
-    if (video) {
-      const index = userQueue.value.findIndex((v) => v.bvid === video.bvid)
-      if (index > -1) {
-        userQueue.value.splice(index, 1)
-        try {
-          await window.electronAPI.store.removeFromUserQueue(video.bvid)
-        } catch (e) {
-          logger.warn('Failed to save user queue:', e)
-        }
+    if (currentVideo.value?.bvid !== completedVideo.bvid) {
+      return
+    }
 
-        syncNativePlaybackState()
+    const index = userQueue.value.findIndex((v) => v.bvid === completedVideo.bvid)
+    if (index > -1) {
+      userQueue.value.splice(index, 1)
+      try {
+        await window.electronAPI.store.removeFromUserQueue(completedVideo.bvid)
+      } catch (e) {
+        logger.warn('Failed to save user queue:', e)
       }
+
+      syncNativePlaybackState()
     }
 
     // 清除播放位置记录
-    if (currentVideo.value && appSettings.rememberPosition) {
-      window.electronAPI.store.clearPlayPosition(currentVideo.value.bvid)
+    if (appSettings.rememberPosition) {
+      void window.electronAPI.store.clearPlayPosition(completedVideo.bvid)
     }
 
-    clearDurationWriteCache(video?.bvid)
+    clearDurationWriteCache(completedVideo.bvid)
+
+    if (currentVideo.value?.bvid !== completedVideo.bvid) {
+      return
+    }
 
     // 自动播放下一首
     next()
