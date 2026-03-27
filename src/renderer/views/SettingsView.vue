@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, computed, toRaw } from 'vue'
+  import { ref, onMounted, onUnmounted, computed, toRaw, nextTick } from 'vue'
   import { useThemeStore } from '@/stores/theme'
   import {
     THEME_COLOR_GROUPS,
@@ -41,6 +41,7 @@
   import LoginDialog from '@/components/Layout/LoginDialog.vue'
   import Button from '@/components/ui/Button.vue'
   import { useDialogFocusTrap } from '@/composables/useDialogFocusTrap'
+  import { getFocusableElementsIn, toEl, useFocusLoop, type MaybeContainer } from '@/composables/useFocusLoop'
   import { logger } from '@/utils/logger'
   import packageJson from '../../../package.json'
 
@@ -89,6 +90,14 @@
   const importMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
   const showExportOptions = ref(false)
   const showImportOptions = ref(false)
+  const skipExportRestoreFocus = ref(false)
+  const skipImportRestoreFocus = ref(false)
+  const exportPanelRef = ref<HTMLDivElement | null>(null)
+  const exportActionButtonRef = ref<MaybeContainer>(null)
+  const exportSelectAllButtonRef = ref<MaybeContainer>(null)
+  const importPanelRef = ref<HTMLDivElement | null>(null)
+  const importActionButtonRef = ref<MaybeContainer>(null)
+  const importStrategySelectRef = ref<HTMLSelectElement | null>(null)
   const defaultSearchViewTimeoutMinutes = computed(
     () => runtimeConfigStore.behavior.memory.searchViewIdleTimeoutMinutes
   )
@@ -206,9 +215,9 @@
           type: 'success',
           text: `已导出到 ${result.filePath?.split('/').pop()}`
         }
-        showExportOptions.value = false
+        closeExportOptions()
       } else if (result.error === 'Export cancelled') {
-        showExportOptions.value = false
+        closeExportOptions()
       } else {
         exportMessage.value = { type: 'error', text: result.error || '导出失败' }
       }
@@ -260,7 +269,7 @@
           type: 'success',
           text: statsText || '导入完成'
         }
-        showImportOptions.value = false
+        closeImportOptions()
         await loadCategoryStats()
         await favoritesStore.loadFavorites()
         await playlistsStore.loadPlaylists()
@@ -268,7 +277,7 @@
         await appSettingsStore.loadSettings()
         playerStore.loadHistory()
       } else if (result.error === 'Import cancelled') {
-        showImportOptions.value = false
+        closeImportOptions()
       } else {
         importMessage.value = { type: 'error', text: result.error || '导入失败' }
       }
@@ -285,20 +294,100 @@
     }
   }
 
-  function handleExportAction() {
-    if (!showExportOptions.value) {
-      showExportOptions.value = true
+  function getSettingsFocusableElements() {
+    const root = document.querySelector('main.content-area') ?? document.body
+    return getFocusableElementsIn(root)
+  }
+
+  function focusNextSettingsElement(current: MaybeContainer | undefined) {
+    const currentEl = toEl(current)
+    if (!currentEl) {
       return
     }
-    handleExport()
+
+    const focusableElements = getSettingsFocusableElements()
+    const currentIndex = focusableElements.indexOf(currentEl)
+    if (currentIndex === -1) {
+      return
+    }
+
+    focusableElements[currentIndex + 1]?.focus()
+  }
+
+  function openExportOptions() {
+    skipExportRestoreFocus.value = false
+    showExportOptions.value = true
+  }
+
+  function closeExportOptions({ focusNext = false }: { focusNext?: boolean } = {}) {
+    skipExportRestoreFocus.value = focusNext
+    showExportOptions.value = false
+
+    if (!focusNext) {
+      return
+    }
+
+    void nextTick(() => {
+      focusNextSettingsElement(exportActionButtonRef.value)
+      skipExportRestoreFocus.value = false
+    })
+  }
+
+  function openImportOptions() {
+    skipImportRestoreFocus.value = false
+    showImportOptions.value = true
+  }
+
+  function closeImportOptions({ focusNext = false }: { focusNext?: boolean } = {}) {
+    skipImportRestoreFocus.value = focusNext
+    showImportOptions.value = false
+
+    if (!focusNext) {
+      return
+    }
+
+    void nextTick(() => {
+      focusNextSettingsElement(importActionButtonRef.value)
+      skipImportRestoreFocus.value = false
+    })
+  }
+
+  const { handleKeydown: handleExportPanelKeydown } = useFocusLoop({
+    open: showExportOptions,
+    containerRef: exportPanelRef,
+    initialFocusRef: exportSelectAllButtonRef,
+    restoreFocusRef: exportActionButtonRef,
+    onEscape: () => {
+      closeExportOptions({ focusNext: true })
+    },
+    restoreFocusWhen: () => !skipExportRestoreFocus.value
+  })
+
+  const { handleKeydown: handleImportPanelKeydown } = useFocusLoop({
+    open: showImportOptions,
+    containerRef: importPanelRef,
+    initialFocusRef: importStrategySelectRef,
+    restoreFocusRef: importActionButtonRef,
+    onEscape: () => {
+      closeImportOptions({ focusNext: true })
+    },
+    restoreFocusWhen: () => !skipImportRestoreFocus.value
+  })
+
+  function handleExportAction() {
+    if (!showExportOptions.value) {
+      openExportOptions()
+      return
+    }
+    void handleExport()
   }
 
   function handleImportAction() {
     if (!showImportOptions.value) {
-      showImportOptions.value = true
+      openImportOptions()
       return
     }
-    handleImport()
+    void handleImport()
   }
 
   type EditableTheme = Theme & { effects: ThemeEffects }
@@ -820,12 +909,18 @@
           数据
         </h2>
         <div class="settings-card">
-          <div class="setting-item category-selection">
+          <div
+            ref="exportPanelRef"
+            class="setting-item category-selection"
+            @keydown="handleExportPanelKeydown"
+          >
             <div class="setting-info">
               <div class="category-header">
                 <span class="setting-label">导出数据</span>
-                <div class="category-actions" v-if="showExportOptions">
-                  <Button variant="secondary" size="sm" @click="selectAllExportCategories">全选</Button>
+                <div v-if="showExportOptions" id="settings-export-panel" class="category-actions">
+                  <Button ref="exportSelectAllButtonRef" variant="secondary" size="sm" @click="selectAllExportCategories">
+                    全选
+                  </Button>
                   <Button variant="secondary" size="sm" @click="deselectAllExportCategories">取消全选</Button>
                 </div>
               </div>
@@ -853,13 +948,25 @@
                 </span>
               </label>
             </div>
-            <Button variant="secondary" size="sm" :disabled="isExporting" @click="handleExportAction">
+            <Button
+              ref="exportActionButtonRef"
+              variant="secondary"
+              size="sm"
+              :disabled="isExporting"
+              :aria-expanded="showExportOptions"
+              aria-controls="settings-export-panel"
+              @click="handleExportAction"
+            >
               <Download :size="18" :class="{ 'animate-spin': isExporting }" />
               {{ isExporting ? '正在导出...' : showExportOptions ? '导出已选内容' : '导出' }}
             </Button>
           </div>
 
-          <div class="setting-item category-selection">
+          <div
+            ref="importPanelRef"
+            class="setting-item category-selection"
+            @keydown="handleImportPanelKeydown"
+          >
             <div class="setting-info">
               <span class="setting-label">导入数据</span>
               <span class="setting-desc">选择文件后，再勾选需要导入的数据分类</span>
@@ -869,8 +976,8 @@
                 {{ importMessage.text }}
               </div>
             </div>
-            <div v-if="showImportOptions" class="import-strategy">
-              <select v-model="importStrategy" class="strategy-select">
+            <div v-if="showImportOptions" id="settings-import-panel" class="import-strategy">
+              <select ref="importStrategySelectRef" v-model="importStrategy" class="strategy-select">
                 <option value="merge">合并导入（保留现有数据）</option>
                 <option value="overwrite">覆盖导入（替换全部数据）</option>
               </select>
@@ -891,7 +998,15 @@
                 </span>
               </label>
             </div>
-            <Button variant="secondary" size="sm" :disabled="isImporting" @click="handleImportAction">
+            <Button
+              ref="importActionButtonRef"
+              variant="secondary"
+              size="sm"
+              :disabled="isImporting"
+              :aria-expanded="showImportOptions"
+              aria-controls="settings-import-panel"
+              @click="handleImportAction"
+            >
               <Upload :size="18" :class="{ 'animate-spin': isImporting }" />
               {{ isImporting ? '正在导入...' : showImportOptions ? '导入已选内容' : '导入' }}
             </Button>
