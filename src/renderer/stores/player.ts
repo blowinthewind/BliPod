@@ -522,25 +522,22 @@ export const usePlayerStore = defineStore('player', () => {
 
     await saveCurrentPosition(video)
 
+    const requestedTarget: PlayTarget = {
+      cid: part.cid,
+      partIndex: part.partIndex
+    }
     pendingResumeTime = null
+    const restoredTarget = (await restorePlayPosition(video, requestedTarget)) ?? requestedTarget
+
     currentTime.value = 0
     duration.value = 0
     isLoading.value = true
     isPlaying.value = false
-    currentPlayTarget.value = {
-      cid: part.cid,
-      partIndex: part.partIndex
-    }
+    currentPlayTarget.value = restoredTarget
 
-    await addToHistory(video, {
-      cid: part.cid,
-      partIndex: part.partIndex
-    })
+    await addToHistory(video, restoredTarget)
 
-    window.electronAPI.search.playVideo(video.bvid, true, {
-      cid: part.cid,
-      partIndex: part.partIndex
-    })
+    window.electronAPI.search.playVideo(video.bvid, true, restoredTarget)
     syncNativePlaybackState()
   }
 
