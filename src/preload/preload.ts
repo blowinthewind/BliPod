@@ -101,9 +101,17 @@ export interface AppSettings {
 
 export interface PlayPosition {
   bvid: string
+  cid: number | null
+  partIndex: number | null
   currentTime: number
   duration: number
   updatedAt: number
+}
+
+export interface PlayHistoryEntry extends ExtractedVideo {
+  playedAt: number
+  cid: number | null
+  partIndex: number | null
 }
 
 export interface PlayStatsEntry {
@@ -121,6 +129,7 @@ export interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  playHistory: PlayHistoryEntry[]
   userQueue: ExtractedVideo[]
   lastVolume: number
   playStats?: Record<string, PlayStatsEntry>
@@ -234,9 +243,14 @@ export interface StoreAPI {
   updatePlaylistVideoDuration: (bvid: string, duration: string) => Promise<boolean>
   getSettings: () => Promise<AppSettings>
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
-  getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
-  savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
-  clearPlayPosition: (bvid: string) => Promise<void>
+  getPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => Promise<PlayPosition | null>
+  savePlayPosition: (position: PlayPosition) => Promise<void>
+  clearPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => Promise<void>
+  getLastPlayPositionByBvid: (bvid: string) => Promise<PlayPosition | null>
+  getPlayHistory: () => Promise<PlayHistoryEntry[]>
+  addOrUpdatePlayHistory: (entry: PlayHistoryEntry) => Promise<void>
+  removeFromPlayHistory: (bvid: string) => Promise<void>
+  clearPlayHistory: () => Promise<void>
   getPlayStats: (bvid?: string) => Promise<PlayStatsEntry | Record<string, PlayStatsEntry> | null>
   updateWatchTime: (
     bvid: string,
@@ -414,14 +428,29 @@ const storeAPI: StoreAPI = {
   updateSettings: (updates: Partial<AppSettings>) => {
     return ipcRenderer.invoke('store:updateSettings', updates)
   },
-  getPlayPosition: (bvid: string) => {
-    return ipcRenderer.invoke('store:getPlayPosition', bvid)
+  getPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => {
+    return ipcRenderer.invoke('store:getPlayPosition', bvid, cid, partIndex)
   },
-  savePlayPosition: (bvid: string, currentTime: number, duration: number) => {
-    return ipcRenderer.invoke('store:savePlayPosition', bvid, currentTime, duration)
+  savePlayPosition: (position: PlayPosition) => {
+    return ipcRenderer.invoke('store:savePlayPosition', position)
   },
-  clearPlayPosition: (bvid: string) => {
-    return ipcRenderer.invoke('store:clearPlayPosition', bvid)
+  clearPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => {
+    return ipcRenderer.invoke('store:clearPlayPosition', bvid, cid, partIndex)
+  },
+  getLastPlayPositionByBvid: (bvid: string) => {
+    return ipcRenderer.invoke('store:getLastPlayPositionByBvid', bvid)
+  },
+  getPlayHistory: () => {
+    return ipcRenderer.invoke('store:getPlayHistory')
+  },
+  addOrUpdatePlayHistory: (entry: PlayHistoryEntry) => {
+    return ipcRenderer.invoke('store:addOrUpdatePlayHistory', entry)
+  },
+  removeFromPlayHistory: (bvid: string) => {
+    return ipcRenderer.invoke('store:removeFromPlayHistory', bvid)
+  },
+  clearPlayHistory: () => {
+    return ipcRenderer.invoke('store:clearPlayHistory')
   },
   getPlayStats: (bvid?: string) => {
     return ipcRenderer.invoke('store:getPlayStats', bvid)

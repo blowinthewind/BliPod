@@ -30,9 +30,17 @@ export interface AppSettings {
 
 export interface PlayPosition {
   bvid: string
+  cid: number | null
+  partIndex: number | null
   currentTime: number
   duration: number
   updatedAt: number
+}
+
+export interface PlayHistoryEntry extends ExtractedVideo {
+  playedAt: number
+  cid: number | null
+  partIndex: number | null
 }
 
 export interface PlayStatsEntry {
@@ -57,6 +65,7 @@ export interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  playHistory: PlayHistoryEntry[]
   userQueue: ExtractedVideo[]
   lastVolume: number
   playStats?: Record<string, PlayStatsEntry>
@@ -74,6 +83,7 @@ const defaults: AppStore = {
     customThemes: []
   },
   playPositions: [],
+  playHistory: [],
   userQueue: [],
   lastVolume: 80,
   playStats: {},
@@ -284,26 +294,37 @@ export function updateSettings(updates: Partial<AppSettings>): AppSettings {
   return newSettings
 }
 
-export function getPlayPosition(bvid: string): PlayPosition | null {
+export function getPlayPosition(bvid: string, cid?: number | null, partIndex?: number | null): PlayPosition | null {
   const positions = store.get('playPositions')
+  if (cid != null) {
+    return positions.find((p) => p.bvid === bvid && p.cid === cid) || null
+  }
+  if (partIndex != null) {
+    return positions.find((p) => p.bvid === bvid && p.partIndex === partIndex) || null
+  }
   return positions.find((p) => p.bvid === bvid) || null
 }
 
-export function savePlayPosition(bvid: string, currentTime: number, duration: number): void {
+export function getLastPlayPositionByBvid(bvid: string): PlayPosition | null {
+  const positions = store.get('playPositions').filter((p) => p.bvid === bvid)
+  if (positions.length === 0) return null
+  return positions.reduce((latest, p) => (p.updatedAt > latest.updatedAt ? p : latest))
+}
+
+export function savePlayPosition(position: PlayPosition): void {
   const positions = store.get('playPositions')
-  const index = positions.findIndex((p) => p.bvid === bvid)
 
-  const position: PlayPosition = {
-    bvid,
-    currentTime,
-    duration,
-    updatedAt: Date.now()
-  }
+  const matchIndex = positions.findIndex((p) => {
+    if (p.bvid !== position.bvid) return false
+    if (position.cid != null) return p.cid === position.cid
+    if (position.partIndex != null) return p.partIndex === position.partIndex
+    return p.cid == null && p.partIndex == null
+  })
 
-  if (index === -1) {
+  if (matchIndex === -1) {
     positions.push(position)
   } else {
-    positions[index] = position
+    positions[matchIndex] = position
   }
 
   if (positions.length > 100) {
@@ -314,13 +335,56 @@ export function savePlayPosition(bvid: string, currentTime: number, duration: nu
   store.set('playPositions', positions)
 }
 
-export function clearPlayPosition(bvid: string): void {
+export function clearPlayPosition(bvid: string, cid?: number | null, partIndex?: number | null): void {
   const positions = store.get('playPositions')
-  const index = positions.findIndex((p) => p.bvid === bvid)
+  let index: number
+  if (cid != null) {
+    index = positions.findIndex((p) => p.bvid === bvid && p.cid === cid)
+  } else if (partIndex != null) {
+    index = positions.findIndex((p) => p.bvid === bvid && p.partIndex === partIndex)
+  } else {
+    index = positions.findIndex((p) => p.bvid === bvid)
+  }
   if (index !== -1) {
     positions.splice(index, 1)
     store.set('playPositions', positions)
   }
+}
+
+const MAX_PLAY_HISTORY_SIZE = 100
+
+export function getPlayHistory(): PlayHistoryEntry[] {
+  return safeClone(store.get('playHistory') || [])
+}
+
+export function addOrUpdatePlayHistory(entry: PlayHistoryEntry): void {
+  const history = store.get('playHistory') || []
+  const existingIndex = history.findIndex((h) => h.bvid === entry.bvid)
+
+  if (existingIndex !== -1) {
+    history.splice(existingIndex, 1)
+  }
+
+  history.unshift(normalizeVideo(entry))
+
+  if (history.length > MAX_PLAY_HISTORY_SIZE) {
+    history.splice(MAX_PLAY_HISTORY_SIZE)
+  }
+
+  store.set('playHistory', history)
+}
+
+export function removeFromPlayHistory(bvid: string): void {
+  const history = store.get('playHistory') || []
+  const index = history.findIndex((h) => h.bvid === bvid)
+  if (index !== -1) {
+    history.splice(index, 1)
+    store.set('playHistory', history)
+  }
+}
+
+export function clearPlayHistory(): void {
+  store.set('playHistory', [])
 }
 
 export function getPlayStats(
@@ -445,6 +509,7 @@ export function exportData(): AppStore {
     playlists: getPlaylists(),
     settings: getSettings(),
     playPositions: safeClone(store.get('playPositions')),
+    playHistory: [],
     userQueue: getUserQueue(),
     lastVolume: store.get('lastVolume')
   }

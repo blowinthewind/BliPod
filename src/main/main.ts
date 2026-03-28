@@ -31,8 +31,13 @@ import {
   getSettings,
   updateSettings,
   getPlayPosition,
+  getLastPlayPositionByBvid,
   savePlayPosition,
   clearPlayPosition,
+  getPlayHistory,
+  addOrUpdatePlayHistory,
+  removeFromPlayHistory,
+  clearPlayHistory,
   getPlayStats,
   updateWatchTime,
   incrementPlayCount,
@@ -2374,19 +2379,39 @@ function setupIPC() {
     return updateSettings(updates)
   })
 
-  ipcMain.handle('store:getPlayPosition', async (_event, bvid: string) => {
-    return getPlayPosition(bvid)
+  ipcMain.handle('store:getPlayPosition', async (_event, bvid: string, cid?: number | null, partIndex?: number | null) => {
+    return getPlayPosition(bvid, cid, partIndex)
   })
 
   ipcMain.handle(
     'store:savePlayPosition',
-    async (_event, bvid: string, currentTime: number, duration: number) => {
-      return savePlayPosition(bvid, currentTime, duration)
+    async (_event, position: import('./store').PlayPosition) => {
+      return savePlayPosition(position)
     }
   )
 
-  ipcMain.handle('store:clearPlayPosition', async (_event, bvid: string) => {
-    return clearPlayPosition(bvid)
+  ipcMain.handle('store:clearPlayPosition', async (_event, bvid: string, cid?: number | null, partIndex?: number | null) => {
+    return clearPlayPosition(bvid, cid, partIndex)
+  })
+
+  ipcMain.handle('store:getLastPlayPositionByBvid', async (_event, bvid: string) => {
+    return getLastPlayPositionByBvid(bvid)
+  })
+
+  ipcMain.handle('store:getPlayHistory', async () => {
+    return getPlayHistory()
+  })
+
+  ipcMain.handle('store:addOrUpdatePlayHistory', async (_event, entry: import('./store').PlayHistoryEntry) => {
+    return addOrUpdatePlayHistory(entry)
+  })
+
+  ipcMain.handle('store:removeFromPlayHistory', async (_event, bvid: string) => {
+    return removeFromPlayHistory(bvid)
+  })
+
+  ipcMain.handle('store:clearPlayHistory', async () => {
+    return clearPlayHistory()
   })
 
   ipcMain.handle('store:getPlayStats', async (_event, bvid?: string) => {

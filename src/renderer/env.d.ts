@@ -109,9 +109,17 @@ interface AppSettings {
 
 interface PlayPosition {
   bvid: string
+  cid: number | null
+  partIndex: number | null
   currentTime: number
   duration: number
   updatedAt: number
+}
+
+interface PlayHistoryEntry extends ExtractedVideo {
+  playedAt: number
+  cid: number | null
+  partIndex: number | null
 }
 
 interface PlayStatsEntry {
@@ -129,6 +137,7 @@ interface AppStore {
   playlists: Playlist[]
   settings: AppSettings
   playPositions: PlayPosition[]
+  playHistory: PlayHistoryEntry[]
   userQueue: ExtractedVideo[]
   lastVolume: number
   playStats?: Record<string, PlayStatsEntry>
@@ -211,9 +220,14 @@ interface StoreAPI {
   updatePlaylistVideoDuration: (bvid: string, duration: string) => Promise<boolean>
   getSettings: () => Promise<AppSettings>
   updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>
-  getPlayPosition: (bvid: string) => Promise<PlayPosition | null>
-  savePlayPosition: (bvid: string, currentTime: number, duration: number) => Promise<void>
-  clearPlayPosition: (bvid: string) => Promise<void>
+  getPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => Promise<PlayPosition | null>
+  savePlayPosition: (position: PlayPosition) => Promise<void>
+  clearPlayPosition: (bvid: string, cid?: number | null, partIndex?: number | null) => Promise<void>
+  getLastPlayPositionByBvid: (bvid: string) => Promise<PlayPosition | null>
+  getPlayHistory: () => Promise<PlayHistoryEntry[]>
+  addOrUpdatePlayHistory: (entry: PlayHistoryEntry) => Promise<void>
+  removeFromPlayHistory: (bvid: string) => Promise<void>
+  clearPlayHistory: () => Promise<void>
   getPlayStats: (bvid?: string) => Promise<PlayStatsEntry | Record<string, PlayStatsEntry> | null>
   updateWatchTime: (
     bvid: string,

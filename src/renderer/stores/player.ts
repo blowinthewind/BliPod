@@ -248,7 +248,14 @@ export const usePlayerStore = defineStore('player', () => {
         if (time >= dur * PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
           await window.electronAPI.store.clearPlayPosition(video.bvid)
         } else {
-          await window.electronAPI.store.savePlayPosition(video.bvid, time, dur)
+          await window.electronAPI.store.savePlayPosition({
+            bvid: video.bvid,
+            cid: null,
+            partIndex: null,
+            currentTime: time,
+            duration: dur,
+            updatedAt: Date.now()
+          })
         }
       } catch (e) {
         logger.warn('Failed to save play position:', e)
