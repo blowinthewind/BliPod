@@ -417,6 +417,18 @@ export const usePlayerStore = defineStore('player', () => {
     )
   }
 
+  function shouldEnsurePlaybackDetail(actualDuration: number = duration.value): boolean {
+    if (currentPlaybackDetail.value || !currentVideo.value) {
+      return false
+    }
+
+    if (currentPlayTarget.value?.cid != null || currentPlayTarget.value?.partIndex != null) {
+      return true
+    }
+
+    return isLikelyMultiPartVideo(currentVideo.value, actualDuration)
+  }
+
   async function ensurePlaybackDetailForCurrentVideo(): Promise<void> {
     const video = currentVideo.value
     if (!video || playbackDetailLazyLoadState !== 'idle') return
@@ -1338,6 +1350,10 @@ export const usePlayerStore = defineStore('player', () => {
         window.electronAPI.search.setVolume(volume.value)
         syncNativePlaybackState()
 
+        if (shouldEnsurePlaybackDetail()) {
+          void ensurePlaybackDetailForCurrentVideo()
+        }
+
         // 恢复播放位置
         if (pendingResumeTime !== null) {
           const targetTime = pendingResumeTime
@@ -1389,10 +1405,7 @@ export const usePlayerStore = defineStore('player', () => {
         }
 
         if (progress.duration > 0) {
-          if (
-            !currentPlaybackDetail.value &&
-            isLikelyMultiPartVideo(currentVideo.value, progress.duration)
-          ) {
+          if (shouldEnsurePlaybackDetail(progress.duration)) {
             void ensurePlaybackDetailForCurrentVideo()
           }
 
