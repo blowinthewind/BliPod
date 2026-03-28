@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { Play, Search, Heart, History, ListMusic } from 'lucide-vue-next'
   import { useAuthStore } from '../stores/auth'
@@ -34,6 +34,14 @@
 
   const continueVideos = ref<ContinueVideo[]>([])
   const isLoadingContinue = ref(false)
+  const continueRefreshKey = computed(() => {
+    const currentBvid = playerStore.currentVideo?.bvid ?? ''
+    const historyKey = history.value
+      .map((video) => `${video.bvid}:${video.playedAt}:${video.cid ?? ''}:${video.partIndex ?? ''}`)
+      .join('|')
+    return `${currentBvid}|${historyKey}`
+  })
+  let continueLoadVersion = 0
 
   const userName = computed(() => authStore.userName)
   const favoritesCount = computed(() => favoritesStore.favorites.length)
@@ -43,17 +51,21 @@
   const history = computed(() => playerStore.playHistory)
   const playlistsCount = computed(() => playlistsStore.playlistsCount)
 
-  onMounted(async () => {
+  onMounted(() => {
     favoritesStore.loadFavorites()
     playlistsStore.loadPlaylists()
-    await playerStore.loadHistory()
-    await loadContinueVideos()
   })
 
   async function loadContinueVideos() {
+    const requestVersion = ++continueLoadVersion
     const fetchCount = CONTINUE_CONFIG.MAX_VIDEOS + CONTINUE_CONFIG.FETCH_EXTRA
     const historyVideos = playerStore.playHistory.slice(0, fetchCount)
-    if (historyVideos.length === 0) return
+
+    if (historyVideos.length === 0) {
+      continueVideos.value = []
+      isLoadingContinue.value = false
+      return
+    }
 
     isLoadingContinue.value = true
     const videos: ContinueVideo[] = []
@@ -93,9 +105,21 @@
       }
     }
 
+    if (requestVersion !== continueLoadVersion) {
+      return
+    }
+
     continueVideos.value = videos
     isLoadingContinue.value = false
   }
+
+  watch(
+    continueRefreshKey,
+    () => {
+      void loadContinueVideos()
+    },
+    { flush: 'post', immediate: true }
+  )
 
   function getGreeting(): string {
     const hour = new Date().getHours()

@@ -275,7 +275,7 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   async function repairHistoryEntries(history: HistoryVideo[]): Promise<HistoryVideo[]> {
-    let hasChanges = false
+    let repairedCount = 0
 
     const repairedHistory = await Promise.all(
       history.map(async (entry) => {
@@ -289,7 +289,7 @@ export const usePlayerStore = defineStore('player', () => {
           return entry
         }
 
-        hasChanges = true
+        repairedCount += 1
         return {
           ...entry,
           cid: matchedPart.cid,
@@ -298,9 +298,13 @@ export const usePlayerStore = defineStore('player', () => {
       })
     )
 
-    if (!hasChanges) {
+    if (repairedCount === 0) {
       return history
     }
+
+    logger.info('Repaired play history entries from playback detail', {
+      count: repairedCount
+    })
 
     try {
       await window.electronAPI.store.clearPlayHistory()
@@ -434,6 +438,11 @@ export const usePlayerStore = defineStore('player', () => {
       ((previousTarget?.cid ?? null) !== (target.cid ?? null) ||
         (previousTarget?.partIndex ?? null) !== (target.partIndex ?? null))
     ) {
+      logger.debug('Backfilled playback target from playback detail', {
+        bvid: video.bvid,
+        previousTarget: previousTarget ?? null,
+        nextTarget: target
+      })
       void addToHistory(video, target)
     }
 
@@ -1060,6 +1069,9 @@ export const usePlayerStore = defineStore('player', () => {
     try {
       const history = await window.electronAPI.store.getPlayHistory()
       playHistory.value = await repairHistoryEntries(history)
+      logger.debug('Loaded play history from main store', {
+        count: playHistory.value.length
+      })
     } catch (e) {
       logger.warn('Failed to load play history:', e)
       playHistory.value = []
