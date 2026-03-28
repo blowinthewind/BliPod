@@ -205,6 +205,57 @@ export const usePlayerStore = defineStore('player', () => {
     return queue
   }
 
+  function createPlayTarget(cid?: number | null, partIndex?: number | null): PlayTarget | undefined {
+    const normalizedCid = typeof cid === 'number' && Number.isFinite(cid) && cid > 0 ? cid : undefined
+    const normalizedPartIndex =
+      typeof partIndex === 'number' && Number.isFinite(partIndex) && partIndex > 0 ? partIndex : undefined
+
+    if (normalizedCid == null && normalizedPartIndex == null) {
+      return undefined
+    }
+
+    return {
+      ...(normalizedCid != null ? { cid: normalizedCid } : {}),
+      ...(normalizedPartIndex != null ? { partIndex: normalizedPartIndex } : {})
+    }
+  }
+
+  function getHistoryEntryPlayTarget(video: ExtractedVideo | HistoryVideo): PlayTarget | undefined {
+    const candidate = video as Partial<PlayHistoryEntry>
+    return createPlayTarget(candidate.cid, candidate.partIndex)
+  }
+
+  function getCurrentPositionTarget(video: ExtractedVideo | null = currentVideo.value): {
+    cid: number | null
+    partIndex: number | null
+  } {
+    if (!video || currentVideo.value?.bvid !== video.bvid) {
+      return { cid: null, partIndex: null }
+    }
+
+    const activeTarget = createPlayTarget(currentPlayTarget.value?.cid, currentPlayTarget.value?.partIndex)
+    if (activeTarget) {
+      return {
+        cid: activeTarget.cid ?? null,
+        partIndex: activeTarget.partIndex ?? null
+      }
+    }
+
+    const fallbackTarget = createPlayTarget(
+      currentPlaybackDetail.value?.defaultCid,
+      currentPlaybackDetail.value?.defaultPart
+    )
+
+    return {
+      cid: fallbackTarget?.cid ?? null,
+      partIndex: fallbackTarget?.partIndex ?? null
+    }
+  }
+
+  function getPositionPlayTarget(position: PlayPosition | null | undefined): PlayTarget | undefined {
+    return createPlayTarget(position?.cid, position?.partIndex)
+  }
+
   // ========== 播放控制 ==========
 
   async function saveCurrentPosition(
@@ -217,15 +268,17 @@ export const usePlayerStore = defineStore('player', () => {
     }
     if (!video || !appSettings.rememberPosition) return
     if (time > 0 && dur > 0) {
+      const { cid, partIndex } = getCurrentPositionTarget(video)
+
       try {
         // 如果当前时间超过视频时长的95%，视为已播放完成，清除位置记录
         if (time >= dur * PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
-          await window.electronAPI.store.clearPlayPosition(video.bvid)
+          await window.electronAPI.store.clearPlayPosition(video.bvid, cid, partIndex)
         } else {
           await window.electronAPI.store.savePlayPosition({
             bvid: video.bvid,
-            cid: null,
-            partIndex: null,
+            cid,
+            partIndex,
             currentTime: time,
             duration: dur,
             updatedAt: Date.now()
@@ -241,17 +294,29 @@ export const usePlayerStore = defineStore('player', () => {
    * 恢复视频播放位置
    * @param video 要恢复位置的视频
    */
-  async function restorePlayPosition(video: ExtractedVideo): Promise<void> {
-    if (!appSettings.rememberPosition) return
+  async function restorePlayPosition(video: ExtractedVideo, target?: PlayTarget): Promise<PlayTarget | undefined> {
+    if (!appSettings.rememberPosition) return target
 
     try {
-      const position = await window.electronAPI.store.getPlayPosition(video.bvid)
-      if (!position || position.currentTime <= 0 || position.duration <= 0) return
+      const requestedTarget = createPlayTarget(target?.cid, target?.partIndex)
+      const position = requestedTarget
+        ? await window.electronAPI.store.getPlayPosition(
+            video.bvid,
+            requestedTarget.cid ?? null,
+            requestedTarget.partIndex ?? null
+          )
+        : await window.electronAPI.store.getLastPlayPositionByBvid(video.bvid)
+
+      if (!position || position.currentTime <= 0 || position.duration <= 0) {
+        return requestedTarget
+      }
 
       const progressPercent = position.currentTime / position.duration
 
       // 如果进度超过90%，视为已播放完成，不恢复
-      if (progressPercent >= PLAYBACK_CONFIG.MAX_RESUME_PROGRESS) return
+      if (progressPercent >= PLAYBACK_CONFIG.MAX_RESUME_PROGRESS) {
+        return requestedTarget
+      }
 
       // 限制恢复时间不超过99%，且至少10秒才恢复
       const resumeTime = Math.min(
@@ -261,8 +326,11 @@ export const usePlayerStore = defineStore('player', () => {
       if (resumeTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
         pendingResumeTime = resumeTime
       }
+
+      return getPositionPlayTarget(position) ?? requestedTarget
     } catch (e) {
       logger.warn('Failed to restore play position:', e)
+      return target
     }
   }
 
@@ -344,6 +412,8 @@ export const usePlayerStore = defineStore('player', () => {
       return
     }
 
+    await saveCurrentPosition(video)
+
     pendingResumeTime = null
     currentTime.value = 0
     duration.value = 0
@@ -353,6 +423,11 @@ export const usePlayerStore = defineStore('player', () => {
       cid: part.cid,
       partIndex: part.partIndex
     }
+
+    await addToHistory(video, {
+      cid: part.cid,
+      partIndex: part.partIndex
+    })
 
     window.electronAPI.search.playVideo(video.bvid, true, {
       cid: part.cid,
@@ -518,17 +593,8 @@ export const usePlayerStore = defineStore('player', () => {
       const lastPlayed = playHistory.value[0]
       if (!lastPlayed) return false
 
-      let position = null
-      if (appSettings.rememberPosition) {
-        position = await window.electronAPI.store.getPlayPosition(lastPlayed.bvid)
-        if (position && position.currentTime > 0 && position.duration > 0) {
-          const progressPercent = position.currentTime / position.duration
-          if (progressPercent >= PLAYBACK_CONFIG.COMPLETION_THRESHOLD) {
-            logger.info('Last played video was completed, not restoring')
-            return false
-          }
-        }
-      }
+      const requestedTarget = getHistoryEntryPlayTarget(lastPlayed)
+      const restoredTarget = await restorePlayPosition(lastPlayed, requestedTarget)
 
       actualQueue.value = buildActualQueue(lastPlayed, [], 'history')
       currentIndex.value = 0
@@ -540,20 +606,13 @@ export const usePlayerStore = defineStore('player', () => {
       currentTime.value = 0
       duration.value = 0
       currentPlaybackDetail.value = null
-      currentPlayTarget.value = null
+      currentPlayTarget.value = restoredTarget ?? requestedTarget ?? null
       playbackDetailLazyLoadState = 'idle'
       resetPlaySession()
       await loadPlaySessionStats(lastPlayed.bvid)
 
-      if (position && position.currentTime > PLAYBACK_CONFIG.MIN_RESUME_TIME) {
-        pendingResumeTime = Math.min(
-          position.currentTime,
-          position.duration * PLAYBACK_CONFIG.RESUME_TIME_CAP
-        )
-      }
-
       const shouldAutoPlay = appSettings.autoPlay
-      await startPlayback(lastPlayed, shouldAutoPlay)
+      await startPlayback(lastPlayed, shouldAutoPlay, restoredTarget ?? requestedTarget)
       if (shouldAutoPlay) {
         isPlaying.value = true
       }
@@ -608,14 +667,17 @@ export const usePlayerStore = defineStore('player', () => {
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
 
+    const requestedTarget = getHistoryEntryPlayTarget(video)
+
     // 恢复播放位置
-    await restorePlayPosition(video)
+    const restoredTarget = await restorePlayPosition(video, requestedTarget)
+    currentPlayTarget.value = restoredTarget ?? requestedTarget ?? null
 
     // 添加到播放历史记录
-    await addToHistory(video)
+    await addToHistory(video, restoredTarget ?? requestedTarget)
 
     syncNativePlaybackState()
-    await startPlayback(video)
+    await startPlayback(video, true, restoredTarget ?? requestedTarget)
   }
 
   function play() {
@@ -793,14 +855,17 @@ export const usePlayerStore = defineStore('player', () => {
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
 
+    const requestedTarget = getHistoryEntryPlayTarget(video)
+
     // 恢复播放位置
-    await restorePlayPosition(video)
+    const restoredTarget = await restorePlayPosition(video, requestedTarget)
+    currentPlayTarget.value = restoredTarget ?? requestedTarget ?? null
 
     // 添加到播放历史
-    await addToHistory(video)
+    await addToHistory(video, restoredTarget ?? requestedTarget)
 
     syncNativePlaybackState()
-    await startPlayback(video)
+    await startPlayback(video, true, restoredTarget ?? requestedTarget)
   }
 
   // 从历史记录中播放（用于 previous）
@@ -835,12 +900,15 @@ export const usePlayerStore = defineStore('player', () => {
     resetPlaySession()
     await loadPlaySessionStats(video.bvid)
 
+    const requestedTarget = getHistoryEntryPlayTarget(video)
+
     // 恢复播放位置
-    await restorePlayPosition(video)
+    const restoredTarget = await restorePlayPosition(video, requestedTarget)
+    currentPlayTarget.value = restoredTarget ?? requestedTarget ?? null
 
     // 注意：从历史播放时，不添加到历史，避免重复
     syncNativePlaybackState()
-    await startPlayback(video)
+    await startPlayback(video, true, restoredTarget ?? requestedTarget)
   }
 
   function toggleRepeat() {
@@ -863,12 +931,14 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ========== 播放历史记录 ==========
 
-  async function addToHistory(video: ExtractedVideo) {
+  async function addToHistory(video: ExtractedVideo, target?: PlayTarget) {
+    const resolvedTarget = createPlayTarget(target?.cid, target?.partIndex) ?? getHistoryEntryPlayTarget(video)
+
     const entry: HistoryVideo = {
       ...normalizeVideo(video),
       playedAt: Date.now(),
-      cid: null,
-      partIndex: null
+      cid: resolvedTarget?.cid ?? null,
+      partIndex: resolvedTarget?.partIndex ?? null
     }
 
     try {
@@ -926,9 +996,12 @@ export const usePlayerStore = defineStore('player', () => {
 
     if (historyIndex !== -1 && hasDurationChanged) {
       const currentEntry = playHistory.value[historyIndex]
+      const currentTarget = getCurrentPositionTarget(currentVideo.value?.bvid === bvid ? currentVideo.value : null)
       const nextEntry: HistoryVideo = {
         ...currentEntry,
-        duration: formattedDuration
+        duration: formattedDuration,
+        cid: currentTarget.cid ?? currentEntry.cid,
+        partIndex: currentTarget.partIndex ?? currentEntry.partIndex
       }
       playHistory.value[historyIndex] = nextEntry
       void window.electronAPI.store.addOrUpdatePlayHistory(nextEntry)
@@ -1138,9 +1211,10 @@ export const usePlayerStore = defineStore('player', () => {
       syncNativePlaybackState()
     }
 
-    // 清除播放位置记录
+    // 清除播放位置记录（只清当前分P）
     if (appSettings.rememberPosition) {
-      void window.electronAPI.store.clearPlayPosition(completedVideo.bvid)
+      const { cid, partIndex } = getCurrentPositionTarget(completedVideo)
+      void window.electronAPI.store.clearPlayPosition(completedVideo.bvid, cid, partIndex)
     }
 
     clearDurationWriteCache(completedVideo.bvid)
