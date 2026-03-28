@@ -64,7 +64,15 @@
       if (currentVideo && video.bvid === currentVideo.bvid) continue
 
       try {
-        const position = await window.electronAPI.store.getPlayPosition(video.bvid)
+        const position =
+          video.cid != null || video.partIndex != null
+            ? await window.electronAPI.store.getPlayPosition(
+                video.bvid,
+                video.cid ?? null,
+                video.partIndex ?? null
+              )
+            : await window.electronAPI.store.getLastPlayPositionByBvid(video.bvid)
+
         if (position && position.currentTime > 0 && position.duration > 0) {
           const progressPercent = position.currentTime / position.duration
           if (
