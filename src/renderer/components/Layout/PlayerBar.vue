@@ -61,6 +61,25 @@
   const volumePopoverRef = ref<HTMLDivElement | null>(null)
   const volumePopoverSliderRef = ref<HTMLInputElement | null>(null)
   const volumePopoverMuteButtonRef = ref<HTMLButtonElement | null>(null)
+  const currentPlaybackPart = computed(() => playbackParts.value.find((part) => isActivePlaybackPart(part)) ?? null)
+  const playbackPartSummary = computed(() => {
+    if (!hasPlaybackParts.value) return ''
+
+    const currentPartIndex = currentPlaybackPart.value?.partIndex
+    return currentPartIndex != null
+      ? `当前 P${currentPartIndex} / 共 ${playbackParts.value.length}P`
+      : `共 ${playbackParts.value.length}P`
+  })
+  const playbackPartContext = computed(() => {
+    if (!playbackPartSummary.value) return ''
+
+    const currentPartTitle = currentPlaybackPart.value?.part?.trim()
+    return currentPartTitle ? `${playbackPartSummary.value} · ${currentPartTitle}` : playbackPartSummary.value
+  })
+  const chapterToggleLabel = computed(() => {
+    if (!hasPlaybackParts.value) return '分P列表'
+    return `${showChapterPanel.value ? '关闭' : '打开'}分P列表（${playbackPartSummary.value}）`
+  })
 
   onMounted(async () => {
     syncCompactVolumeMode()
@@ -339,33 +358,38 @@
 <template>
   <footer class="player-bar">
     <div class="now-playing">
-      <button
-        class="track-cover"
-        type="button"
-        @click="playerStore.togglePlay"
-        :aria-label="
-          playerStore.isPlaying
-            ? `暂停 ${playerStore.currentVideo?.title || '当前内容'}`
-            : `播放 ${playerStore.currentVideo?.title || '当前内容'}`
-        "
-        :disabled="!playerStore.hasVideo"
-      >
-        <img
-          v-if="playerStore.currentVideo?.cover"
-          :src="playerStore.currentVideo.cover"
-          :alt="playerStore.currentVideo.title"
-        />
-        <div v-else class="cover-placeholder">
-          <span v-if="playerStore.isLoading">⏳</span>
-          <span v-else>🎵</span>
-        </div>
-        <div class="track-cover-overlay">
-          <span class="mini-play-btn" aria-hidden="true">
-            <Play v-if="!playerStore.isPlaying" :size="14" />
-            <Pause v-else :size="14" />
-          </span>
-        </div>
-      </button>
+      <div class="track-cover-shell">
+        <button
+          class="track-cover"
+          type="button"
+          @click="playerStore.togglePlay"
+          :aria-label="
+            playerStore.isPlaying
+              ? `暂停 ${playerStore.currentVideo?.title || '当前内容'}`
+              : `播放 ${playerStore.currentVideo?.title || '当前内容'}`
+          "
+          :title="playbackPartContext || undefined"
+          :disabled="!playerStore.hasVideo"
+        >
+          <img
+            v-if="playerStore.currentVideo?.cover"
+            :src="playerStore.currentVideo.cover"
+            :alt="playerStore.currentVideo.title"
+          />
+          <div v-else class="cover-placeholder">
+            <span v-if="playerStore.isLoading">⏳</span>
+            <span v-else>🎵</span>
+          </div>
+        </button>
+        <span
+          v-if="currentPlaybackPart"
+          class="track-part-indicator"
+          :title="playbackPartContext"
+          aria-hidden="true"
+        >
+          P
+        </span>
+      </div>
       <div class="track-info">
         <span class="track-title" :title="playerStore.currentVideo?.title">
           {{ playerStore.currentVideo?.title || '等待播放' }}
@@ -484,11 +508,12 @@
         class="control-btn small chapter-btn"
         :class="{ active: showChapterPanel }"
         @click="toggleChapterPanel"
-        aria-label="分P列表"
+        :aria-label="chapterToggleLabel"
         :aria-expanded="showChapterPanel"
         aria-controls="player-chapter-panel"
       >
         <ListVideo :size="18" />
+        <span class="chapter-badge">{{ playbackParts.length }}</span>
       </button>
       <button
         ref="queueToggleButtonRef"
@@ -587,10 +612,12 @@
         @keydown="handleChapterPanelKeydown"
       >
         <div class="chapter-header">
-          <div id="player-chapter-title" class="chapter-title">
-            <ListVideo :size="18" />
-            <span>分P列表</span>
-            <span class="chapter-count">({{ playbackParts.length }})</span>
+          <div class="chapter-header-copy">
+            <div id="player-chapter-title" class="chapter-title">
+              <ListVideo :size="18" />
+              <span>分P列表</span>
+            </div>
+            <div v-if="playbackPartSummary" class="chapter-summary">{{ playbackPartSummary }}</div>
           </div>
           <button
             ref="closeChapterButtonRef"
@@ -620,8 +647,13 @@
               <div class="chapter-item-index">P{{ part.partIndex }}</div>
               <div class="chapter-item-info">
                 <div class="chapter-item-title" :title="part.part">{{ part.part }}</div>
-                <div class="chapter-item-meta" v-if="part.duration > 0">
-                  {{ formatTime(part.duration) }}
+                <div class="chapter-item-meta">
+                  <template v-if="isActivePlaybackPart(part)">
+                    正在播放<span v-if="part.duration > 0"> · {{ formatTime(part.duration) }}</span>
+                  </template>
+                  <template v-else-if="part.duration > 0">
+                    {{ formatTime(part.duration) }}
+                  </template>
                 </div>
               </div>
             </button>
@@ -748,14 +780,20 @@
     min-width: 0;
   }
 
-  .track-cover {
+  .track-cover-shell {
     position: relative;
     width: 56px;
     height: 56px;
+    flex-shrink: 0;
+  }
+
+  .track-cover {
+    position: relative;
+    width: 100%;
+    height: 100%;
     border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--bg-card);
-    flex-shrink: 0;
     cursor: pointer;
     padding: 0;
     border: none;
@@ -776,38 +814,6 @@
     font-size: var(--text-2xl);
   }
 
-  .track-cover-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-overlay);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .track-cover:hover .track-cover-overlay {
-    opacity: 1;
-  }
-
-  .mini-play-btn {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--text-primary);
-    border: none;
-    border-radius: var(--radius-full);
-    color: var(--bg-primary);
-    cursor: pointer;
-    transition: transform 0.2s ease;
-  }
-
-  .mini-play-btn:hover {
-    transform: scale(1.1);
-  }
 
   .track-info {
     display: flex;
@@ -830,6 +836,59 @@
   .track-artist {
     font-size: var(--text-xs);
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-part-indicator {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border: 2px solid var(--bg-secondary);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .track-part-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+
+  .track-part-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .track-part-text {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1159,10 +1218,34 @@
     pointer-events: none;
   }
 
+  .chapter-btn {
+    position: relative;
+  }
+
   .chapter-btn.active {
     color: var(--accent);
     background: var(--accent-muted);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+
+  .chapter-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background: color-mix(in srgb, var(--accent) 14%, var(--bg-secondary));
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+    font-size: 0.625rem;
+    font-weight: 600;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    line-height: 1;
   }
 
   /* 队列按钮 */
@@ -1217,10 +1300,18 @@
 
   .chapter-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 12px;
     padding: 16px;
     border-bottom: 1px solid var(--border);
+  }
+
+  .chapter-header-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .chapter-title {
@@ -1232,10 +1323,12 @@
     color: var(--text-primary);
   }
 
-  .chapter-count {
-    font-size: var(--text-sm);
+  .chapter-summary {
+    font-size: var(--text-xs);
     color: var(--text-secondary);
-    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .chapter-action-btn {
