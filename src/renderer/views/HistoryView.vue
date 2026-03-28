@@ -66,6 +66,10 @@
     })
   }
 
+  function formatPartLabel(video: HistoryVideo): string {
+    return video.partIndex != null && video.partIndex > 0 ? `P${video.partIndex}` : ''
+  }
+
   function playVideo(video: HistoryVideo) {
     // 从历史播放时，不传 contextVideos，只播放单个视频 + 用户队列
     playerStore.playVideo(video, undefined, 'history')
@@ -127,6 +131,7 @@
             <h3 class="item-title">{{ item.title }}</h3>
             <div class="item-meta">
               <span class="meta-author">{{ item.author }}</span>
+              <span v-if="formatPartLabel(item)" class="meta-part">{{ formatPartLabel(item) }}</span>
               <span class="meta-date">
                 <Clock :size="12" />
                 {{ formatDate(item.playedAt) }}
@@ -376,6 +381,11 @@
     font-size: var(--text-xs);
     color: var(--text-secondary);
     line-height: 1.4;
+  }
+
+  .meta-part {
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .meta-date {

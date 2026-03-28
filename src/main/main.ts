@@ -1335,7 +1335,7 @@ function createPlaybackDetailCacheEntry(detail: VideoPlaybackDetail): CachedPlay
     detail,
     fetchedAt: now,
     expiresAt: now + PLAYBACK_DETAIL_CACHE_TTL_MS,
-    version: 1
+    version: 2
   }
 }
 
@@ -1353,8 +1353,17 @@ function getFreshPlaybackDetailEntry(
     return null
   }
 
-  if (entry.version !== 1) {
+  if (entry.version !== 2) {
     logger.info(`Playback detail cache skipped (${source}, version mismatch): ${bvid}`)
+    if (source === 'memory') {
+      playbackDetailMemoryCache.delete(bvid)
+    } else {
+      const persistentCache = getPlaybackDetailPersistentCache()
+      if (persistentCache[bvid]) {
+        const { [bvid]: _removed, ...restCache } = persistentCache
+        store.set('playbackDetailCache', restCache)
+      }
+    }
     return null
   }
 
@@ -1380,7 +1389,7 @@ function findStalePlaybackDetailEntry(
         return false
       }
 
-      return entry.version === 1 && entry.expiresAt <= Date.now()
+      return entry.version === 2 && entry.expiresAt <= Date.now()
     }
   )
 

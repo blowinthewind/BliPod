@@ -57,7 +57,7 @@ export interface CachedPlaybackDetailEntry {
   detail: VideoPlaybackDetail
   fetchedAt: number
   expiresAt: number
-  version: 1
+  version: 2
 }
 
 export interface AppStore {

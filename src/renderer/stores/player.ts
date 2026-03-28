@@ -225,15 +225,19 @@ export const usePlayerStore = defineStore('player', () => {
     return createPlayTarget(candidate.cid, candidate.partIndex)
   }
 
+  function getActivePlayTarget(video: ExtractedVideo | null = currentVideo.value): PlayTarget | undefined {
+    if (!video || currentVideo.value?.bvid !== video.bvid) {
+      return undefined
+    }
+
+    return createPlayTarget(currentPlayTarget.value?.cid, currentPlayTarget.value?.partIndex)
+  }
+
   function getCurrentPositionTarget(video: ExtractedVideo | null = currentVideo.value): {
     cid: number | null
     partIndex: number | null
   } {
-    if (!video || currentVideo.value?.bvid !== video.bvid) {
-      return { cid: null, partIndex: null }
-    }
-
-    const activeTarget = createPlayTarget(currentPlayTarget.value?.cid, currentPlayTarget.value?.partIndex)
+    const activeTarget = getActivePlayTarget(video)
     if (activeTarget) {
       return {
         cid: activeTarget.cid ?? null,
@@ -241,10 +245,10 @@ export const usePlayerStore = defineStore('player', () => {
       }
     }
 
-    const fallbackTarget = createPlayTarget(
-      currentPlaybackDetail.value?.defaultCid,
-      currentPlaybackDetail.value?.defaultPart
-    )
+    const fallbackTarget =
+      video && currentVideo.value?.bvid === video.bvid
+        ? createPlayTarget(currentPlaybackDetail.value?.defaultCid, currentPlaybackDetail.value?.defaultPart)
+        : undefined
 
     return {
       cid: fallbackTarget?.cid ?? null,
@@ -252,8 +256,63 @@ export const usePlayerStore = defineStore('player', () => {
     }
   }
 
-  function getPositionPlayTarget(position: PlayPosition | null | undefined): PlayTarget | undefined {
-    return createPlayTarget(position?.cid, position?.partIndex)
+  function getPositionPlayTarget(
+    position: PlayPosition | null | undefined,
+    fallbackTarget?: PlayTarget
+  ): PlayTarget | undefined {
+    const positionTarget = createPlayTarget(position?.cid, position?.partIndex)
+
+    if (
+      positionTarget?.cid != null &&
+      positionTarget.partIndex == null &&
+      fallbackTarget?.cid === positionTarget.cid &&
+      fallbackTarget.partIndex != null
+    ) {
+      return fallbackTarget
+    }
+
+    return positionTarget ?? fallbackTarget
+  }
+
+  async function repairHistoryEntries(history: HistoryVideo[]): Promise<HistoryVideo[]> {
+    let hasChanges = false
+
+    const repairedHistory = await Promise.all(
+      history.map(async (entry) => {
+        if (entry.cid == null || entry.partIndex != null) {
+          return entry
+        }
+
+        const detail = await loadPlaybackDetail(entry.bvid)
+        const matchedPart = detail?.parts.find((part) => part.cid === entry.cid)
+        if (!matchedPart || matchedPart.partIndex <= 0) {
+          return entry
+        }
+
+        hasChanges = true
+        return {
+          ...entry,
+          cid: matchedPart.cid,
+          partIndex: matchedPart.partIndex
+        }
+      })
+    )
+
+    if (!hasChanges) {
+      return history
+    }
+
+    try {
+      await window.electronAPI.store.clearPlayHistory()
+      for (const entry of [...repairedHistory].reverse()) {
+        await window.electronAPI.store.addOrUpdatePlayHistory(entry)
+      }
+    } catch (e) {
+      logger.warn('Failed to repair play history entries:', e)
+      return history
+    }
+
+    return repairedHistory
   }
 
   // ========== 播放控制 ==========
@@ -327,7 +386,7 @@ export const usePlayerStore = defineStore('player', () => {
         pendingResumeTime = resumeTime
       }
 
-      return getPositionPlayTarget(position) ?? requestedTarget
+      return getPositionPlayTarget(position, requestedTarget)
     } catch (e) {
       logger.warn('Failed to restore play position:', e)
       return target
@@ -365,9 +424,19 @@ export const usePlayerStore = defineStore('player', () => {
       return
     }
 
+    const previousTarget = currentPlayTarget.value ?? undefined
     currentPlaybackDetail.value = detail
-    const target = resolvePlayTarget(detail, currentPlayTarget.value ?? undefined)
+    const target = resolvePlayTarget(detail, previousTarget)
     currentPlayTarget.value = target ?? currentPlayTarget.value
+
+    if (
+      target &&
+      ((previousTarget?.cid ?? null) !== (target.cid ?? null) ||
+        (previousTarget?.partIndex ?? null) !== (target.partIndex ?? null))
+    ) {
+      void addToHistory(video, target)
+    }
+
     playbackDetailLazyLoadState = 'done'
   }
 
@@ -375,8 +444,26 @@ export const usePlayerStore = defineStore('player', () => {
     detail: VideoPlaybackDetail | null,
     requestedTarget?: PlayTarget
   ): PlayTarget | undefined {
-    if (requestedTarget?.cid != null || requestedTarget?.partIndex != null) {
-      return requestedTarget
+    const normalizedTarget = createPlayTarget(requestedTarget?.cid, requestedTarget?.partIndex)
+    if (normalizedTarget && detail?.parts?.length) {
+      const matchedPart =
+        (normalizedTarget.cid != null
+          ? detail.parts.find((part) => part.cid === normalizedTarget.cid)
+          : undefined) ??
+        (normalizedTarget.partIndex != null
+          ? detail.parts.find((part) => part.partIndex === normalizedTarget.partIndex)
+          : undefined)
+
+      if (matchedPart) {
+        return {
+          cid: matchedPart.cid,
+          partIndex: matchedPart.partIndex
+        }
+      }
+    }
+
+    if (normalizedTarget) {
+      return normalizedTarget
     }
 
     if (detail?.defaultCid != null) {
@@ -971,7 +1058,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   async function loadHistory() {
     try {
-      playHistory.value = await window.electronAPI.store.getPlayHistory()
+      const history = await window.electronAPI.store.getPlayHistory()
+      playHistory.value = await repairHistoryEntries(history)
     } catch (e) {
       logger.warn('Failed to load play history:', e)
       playHistory.value = []
@@ -996,12 +1084,12 @@ export const usePlayerStore = defineStore('player', () => {
 
     if (historyIndex !== -1 && hasDurationChanged) {
       const currentEntry = playHistory.value[historyIndex]
-      const currentTarget = getCurrentPositionTarget(currentVideo.value?.bvid === bvid ? currentVideo.value : null)
+      const activeTarget = getActivePlayTarget(currentVideo.value?.bvid === bvid ? currentVideo.value : null)
       const nextEntry: HistoryVideo = {
         ...currentEntry,
         duration: formattedDuration,
-        cid: currentTarget.cid ?? currentEntry.cid,
-        partIndex: currentTarget.partIndex ?? currentEntry.partIndex
+        cid: activeTarget?.cid ?? currentEntry.cid,
+        partIndex: activeTarget?.partIndex ?? currentEntry.partIndex
       }
       playHistory.value[historyIndex] = nextEntry
       void window.electronAPI.store.addOrUpdatePlayHistory(nextEntry)

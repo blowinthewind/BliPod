@@ -126,6 +126,10 @@
     router.push('/playlists')
   }
 
+  function formatPartLabel(video: HistoryVideo): string {
+    return video.partIndex != null && video.partIndex > 0 ? `P${video.partIndex}` : ''
+  }
+
   function playContinueVideo(video: HistoryVideo) {
     playerStore.playVideo(video, undefined, 'history')
   }
@@ -224,6 +228,7 @@
             <h3 class="continue-title">{{ video.title }}</h3>
             <div class="continue-meta">
               <span class="continue-author">{{ video.author }}</span>
+              <span v-if="formatPartLabel(video)" class="continue-part">{{ formatPartLabel(video) }}</span>
               <span class="continue-time"
                 >{{ video.currentTimeFormatted }} / {{ video.duration }}</span
               >
@@ -568,6 +573,11 @@
     gap: 2px;
     font-size: var(--text-xs);
     color: var(--text-secondary);
+  }
+
+  .continue-part {
+    color: var(--accent);
+    font-weight: 600;
   }
 
   .continue-time {
