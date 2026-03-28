@@ -152,8 +152,9 @@
     removeNativePlayerCommandListener = window.electronAPI.nativePlayer.onCommand(
       handleNativePlayerCommand
     )
-    // 加载持久化的用户播放队列
+    // 加载持久化的用户播放队列与播放历史
     await playerStore.loadUserQueue()
+    await playerStore.loadHistory()
     playerStore.syncNativePlaybackState()
   })
 

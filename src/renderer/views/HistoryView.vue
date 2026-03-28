@@ -30,8 +30,8 @@
     showClearConfirm.value = false
   }
 
-  function confirmClearHistory() {
-    playerStore.clearHistory()
+  async function confirmClearHistory() {
+    await playerStore.clearHistory()
     showClearConfirm.value = false
   }
 

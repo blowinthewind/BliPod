@@ -279,7 +279,7 @@
         await playlistsStore.loadPlaylists()
         await playerStore.loadUserQueue()
         await appSettingsStore.loadSettings()
-        playerStore.loadHistory()
+        await playerStore.loadHistory()
       } else if (result.error === 'Import cancelled') {
         closeImportOptions()
       } else {

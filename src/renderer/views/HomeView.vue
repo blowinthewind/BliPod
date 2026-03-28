@@ -46,6 +46,7 @@
   onMounted(async () => {
     favoritesStore.loadFavorites()
     playlistsStore.loadPlaylists()
+    await playerStore.loadHistory()
     await loadContinueVideos()
   })
 

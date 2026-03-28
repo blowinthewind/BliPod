@@ -4,11 +4,8 @@ import { useAppSettingsStore } from './appSettings'
 import { logger } from '../utils/logger'
 import { formatDuration, parseDuration } from '../utils/format'
 
-export interface HistoryVideo extends ExtractedVideo {
-  playedAt: number
-}
+export type HistoryVideo = PlayHistoryEntry
 
-const MAX_HISTORY_SIZE = 100
 const MAX_QUEUE_SIZE = 50
 
 // 播放配置常量
@@ -36,29 +33,6 @@ const PLAY_STATS_CONFIG = {
   MAX_DELTA_SECONDS: 5,
   FLUSH_INTERVAL_SECONDS: 5
 } as const
-
-function loadHistoryFromStorage(): HistoryVideo[] {
-  try {
-    const stored = localStorage.getItem('playHistory')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed)) {
-        return parsed.map((video) => normalizeVideo(video as HistoryVideo))
-      }
-    }
-  } catch (e) {
-    logger.warn('Failed to load play history:', e)
-  }
-  return []
-}
-
-function saveHistoryToStorage(history: HistoryVideo[]) {
-  try {
-    localStorage.setItem('playHistory', JSON.stringify(history))
-  } catch (e) {
-    logger.warn('Failed to save play history:', e)
-  }
-}
 
 function normalizeCoverUrl(cover: string): string {
   if (!cover) return cover
@@ -111,7 +85,7 @@ export const usePlayerStore = defineStore('player', () => {
   const userQueueBvidSet = computed(() => new Set(userQueue.value.map((video) => video.bvid)))
 
   // ========== 播放历史记录 ==========
-  const playHistory = ref<HistoryVideo[]>(loadHistoryFromStorage())
+  const playHistory = ref<HistoryVideo[]>([])
 
   // ========== 历史导航状态 ==========
   // -1 表示不在历史导航模式，>=0 表示正在浏览历史（值为历史索引）
@@ -537,6 +511,10 @@ export const usePlayerStore = defineStore('player', () => {
    */
   async function restoreLastPlayedVideo(): Promise<boolean> {
     try {
+      if (playHistory.value.length === 0) {
+        await loadHistory()
+      }
+
       const lastPlayed = playHistory.value[0]
       if (!lastPlayed) return false
 
@@ -634,7 +612,7 @@ export const usePlayerStore = defineStore('player', () => {
     await restorePlayPosition(video)
 
     // 添加到播放历史记录
-    addToHistory(video)
+    await addToHistory(video)
 
     syncNativePlaybackState()
     await startPlayback(video)
@@ -819,7 +797,7 @@ export const usePlayerStore = defineStore('player', () => {
     await restorePlayPosition(video)
 
     // 添加到播放历史
-    addToHistory(video)
+    await addToHistory(video)
 
     syncNativePlaybackState()
     await startPlayback(video)
@@ -885,54 +863,49 @@ export const usePlayerStore = defineStore('player', () => {
 
   // ========== 播放历史记录 ==========
 
-  function addToHistory(video: ExtractedVideo) {
-    // 移除重复项
-    const existingIndex = playHistory.value.findIndex((v) => v.bvid === video.bvid)
-    if (existingIndex === 0) {
-      playHistory.value[0] = {
-        ...playHistory.value[0],
-        ...video,
-        playedAt: Date.now()
-      }
-      saveHistoryToStorage(playHistory.value)
-      return
-    }
-    if (existingIndex > -1) {
-      playHistory.value.splice(existingIndex, 1)
+  async function addToHistory(video: ExtractedVideo) {
+    const entry: HistoryVideo = {
+      ...normalizeVideo(video),
+      playedAt: Date.now(),
+      cid: null,
+      partIndex: null
     }
 
-    // 添加到开头
-    playHistory.value.unshift({
-      ...video,
-      playedAt: Date.now()
-    })
-
-    // 限制大小
-    if (playHistory.value.length > MAX_HISTORY_SIZE) {
-      playHistory.value = playHistory.value.slice(0, MAX_HISTORY_SIZE)
+    try {
+      await window.electronAPI.store.addOrUpdatePlayHistory(entry)
+      playHistory.value = await window.electronAPI.store.getPlayHistory()
+    } catch (e) {
+      logger.warn('Failed to update play history:', e)
     }
-
-    // 持久化到本地存储
-    saveHistoryToStorage(playHistory.value)
   }
 
-  function removeFromHistory(bvid: string) {
-    const index = playHistory.value.findIndex((v) => v.bvid === bvid)
-    if (index > -1) {
-      playHistory.value.splice(index, 1)
-      saveHistoryToStorage(playHistory.value)
+  async function removeFromHistory(bvid: string) {
+    try {
+      await window.electronAPI.store.removeFromPlayHistory(bvid)
+      playHistory.value = await window.electronAPI.store.getPlayHistory()
       syncNativePlaybackState()
+    } catch (e) {
+      logger.warn('Failed to remove play history item:', e)
     }
   }
 
-  function clearHistory() {
-    playHistory.value = []
-    saveHistoryToStorage(playHistory.value)
-    syncNativePlaybackState()
+  async function clearHistory() {
+    try {
+      await window.electronAPI.store.clearPlayHistory()
+      playHistory.value = []
+      syncNativePlaybackState()
+    } catch (e) {
+      logger.warn('Failed to clear play history:', e)
+    }
   }
 
-  function loadHistory() {
-    playHistory.value = loadHistoryFromStorage()
+  async function loadHistory() {
+    try {
+      playHistory.value = await window.electronAPI.store.getPlayHistory()
+    } catch (e) {
+      logger.warn('Failed to load play history:', e)
+      playHistory.value = []
+    }
     syncNativePlaybackState()
   }
 
@@ -952,8 +925,13 @@ export const usePlayerStore = defineStore('player', () => {
     }
 
     if (historyIndex !== -1 && hasDurationChanged) {
-      playHistory.value[historyIndex].duration = formattedDuration
-      saveHistoryToStorage(playHistory.value)
+      const currentEntry = playHistory.value[historyIndex]
+      const nextEntry: HistoryVideo = {
+        ...currentEntry,
+        duration: formattedDuration
+      }
+      playHistory.value[historyIndex] = nextEntry
+      void window.electronAPI.store.addOrUpdatePlayHistory(nextEntry)
     }
 
     lastDurationWriteByBvid = {
